@@ -1,16 +1,17 @@
 package io.goreecloud.browser
 
 /**
- * Browser-owned Android-native mapping metadata for Glaze UI 2.2.0 Stable.
+ * Browser-owned Android-native mapping metadata for GLAZE UI V1.4 Stable.
  *
  * This records the semantic contract consumed by the Android shell. It is source
- * mapping evidence only; rendered/native-device visual and accessibility
- * acceptance remain separate promotion gates.
+ * mapping evidence only; rendered/native-device/human visual and accessibility
+ * acceptance remain separate promotion gates. Human/manual/physical-device
+ * optical validation is explicitly carried by the shared V1.4.1 hardening track.
  */
 object GlazeContract {
-    const val VERSION = "2.2.0"
-    const val STABLE_RELEASE_REVISION = "6731098b28dd0393faa878c70d989a221d714a20"
-    const val ACCEPTED_VISUAL_SOURCE = "0411b0f6dd877aea30e2c5674e1acde0105fd97b"
+    const val VERSION = "1.4.0"
+    const val STABLE_RELEASE_REVISION = "84cb3db4884042f0fa25ed6d475a127fb110f596"
+    const val HUMAN_VISUAL_VALIDATION_FOLLOW_UP = "1.4.1"
 
     const val GENERAL_TARGET_DP = 48
     const val TOUCH_ASSISTANCE_TARGET_DP = 56
@@ -58,9 +59,9 @@ object GlazeContract {
     }
 
     /**
-     * Glaze UI 2.2 system-level hierarchy. Browser-owned chrome remains within
-     * Application scope; it does not relabel local Browser search/menu surfaces
-     * as Universal Search, Control Center, System Panel, or Critical System UI.
+     * Glaze hierarchy remains presentation-only. Browser-owned chrome remains
+     * within Application scope; local Browser search/menu surfaces are not
+     * relabeled as Universal Search, Control Center, System Panel, or Critical UI.
      */
     enum class ShellSurface {
         Workspace,
@@ -139,7 +140,7 @@ object GlazeContract {
         mapping.dominantGlazePanels in 0..MAX_DOMINANT_GLAZE_PANELS &&
             mapping.smallFloatingGlazeControls in 0..MAX_SMALL_FLOATING_GLAZE_CONTROLS
 
-    /** Higher value means higher Glaze UI 2.2 presentation priority. */
+    /** Higher value means higher presentation-state priority. */
     fun statePriority(state: InteractionState): Int = when (state) {
         InteractionState.Rest -> 0
         InteractionState.Hover -> 1
