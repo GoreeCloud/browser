@@ -38,15 +38,15 @@ if(GOREECLOUD_ENABLE_LINUX_GTK_HOST AND NOT UNIX)
   message(FATAL_ERROR "GOREECLOUD_ENABLE_LINUX_GTK_HOST is currently supported only on Linux/Unix")
 endif()
 
-set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "2.0.0" CACHE STRING
+set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "1.4.0" CACHE STRING
     "Current approved Stable Glaze UI version required by GoreeCloud Browser")
 set(GOREECLOUD_GLAZE_UI_STABLE_REVISION
-    "ff3fff4306bd53ea9c0715a7c0d64265bb038617" CACHE STRING
+    "84cb3db4884042f0fa25ed6d475a127fb110f596" CACHE STRING
     "Exact reviewed Glaze UI Stable source revision")
 
-if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "2.0.0")
+if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "1.4.0")
   message(FATAL_ERROR
-    "GoreeCloud Browser source currently accepts Glaze UI Stable 2.0.0. "
+    "GoreeCloud Browser source currently accepts GLAZE UI Stable 1.4.0. "
     "Update the Browser Glaze adoption contract and acceptance evidence before changing the build baseline.")
 endif()
 
@@ -177,6 +177,10 @@ add_executable(goreecloud_browser_runtime_smoke apps/browser/runtime_smoke.cpp)
 target_link_libraries(goreecloud_browser_runtime_smoke PRIVATE goreecloud_browser_core)
 goreecloud_apply_warnings(goreecloud_browser_runtime_smoke)
 
+add_executable(goreecloud_browser_glaze_contract_smoke apps/browser/glaze_contract_smoke.cpp)
+target_link_libraries(goreecloud_browser_glaze_contract_smoke PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(goreecloud_browser_glaze_contract_smoke)
+
 add_executable(goreecloud_browser_media_hover_smoke apps/browser/media_hover_smoke.cpp)
 target_link_libraries(goreecloud_browser_media_hover_smoke PRIVATE goreecloud_browser_core)
 goreecloud_apply_warnings(goreecloud_browser_media_hover_smoke)
@@ -214,6 +218,7 @@ endif()
 
 if(BUILD_TESTING)
   add_test(NAME goreecloud_browser_runtime_smoke COMMAND goreecloud_browser_runtime_smoke)
+  add_test(NAME goreecloud_browser_glaze_contract_smoke COMMAND goreecloud_browser_glaze_contract_smoke)
   add_test(NAME goreecloud_browser_media_hover_smoke COMMAND goreecloud_browser_media_hover_smoke)
   add_test(NAME goreecloud_browser_download_manager_smoke COMMAND goreecloud_browser_download_manager_smoke)
   add_test(NAME goreecloud_browser_download_storage_smoke COMMAND goreecloud_browser_download_storage_smoke)
@@ -237,7 +242,7 @@ install(FILES assets/branding/goreecloud-browser.svg
         RENAME io.goreecloud.Browser.svg)
 
 message(STATUS "GoreeCloud Browser ${PROJECT_VERSION} channel=${GOREECLOUD_RELEASE_CHANNEL}")
-message(STATUS "Glaze UI Stable ${GOREECLOUD_GLAZE_UI_STABLE_VERSION} @ ${GOREECLOUD_GLAZE_UI_STABLE_REVISION}")
+message(STATUS "GLAZE UI Stable ${GOREECLOUD_GLAZE_UI_STABLE_VERSION} @ ${GOREECLOUD_GLAZE_UI_STABLE_REVISION}")
 message(STATUS "Chromium adapter: ${GOREECLOUD_ENABLE_CHROMIUM}")
 message(STATUS "CEF runtime: ${GOREECLOUD_ENABLE_CEF}")
 message(STATUS "Linux GTK beta host: ${GOREECLOUD_ENABLE_LINUX_GTK_HOST}")
