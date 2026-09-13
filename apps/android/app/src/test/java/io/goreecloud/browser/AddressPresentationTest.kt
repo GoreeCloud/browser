@@ -21,6 +21,14 @@ class AddressPresentationTest {
     }
 
     @Test
+    fun condensedAddressPreservesFragmentIdentity() {
+        assertEquals(
+            "example.com/path?q=browser#results",
+            AddressPresentation.condensed("https://example.com/path?q=browser#results"),
+        )
+    }
+
+    @Test
     fun condensedAddressKeepsExplicitPortVisible() {
         assertEquals(
             "example.com:8443/path",
@@ -31,8 +39,8 @@ class AddressPresentationTest {
     @Test
     fun condensedUnicodeHostUsesCanonicalAsciiALabel() {
         assertEquals(
-            "xn--r8jz45g.xn--zckzah/path?q=1",
-            AddressPresentation.condensed("https://例え.テスト/path?q=1"),
+            "xn--r8jz45g.xn--zckzah/path?q=1#section",
+            AddressPresentation.condensed("https://例え.テスト/path?q=1#section"),
         )
     }
 
