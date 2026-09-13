@@ -18,16 +18,19 @@ object AddressPresentation {
         val cleaned = sanitizeText(url)
         if (cleaned.isEmpty()) return ""
 
-        val uri = runCatching { URI(cleaned) }.getOrNull()
-            ?: return truncate(cleaned)
-
-        when (uri.scheme?.lowercase()) {
+        // Handle known opaque/local schemes before URI parsing. Some valid WebView
+        // payloads (for example data:text/html with literal markup) are not valid
+        // java.net.URI strings and must still receive a safe presentation label.
+        when (cleaned.substringBefore(':', missingDelimiterValue = "").lowercase()) {
             "about" -> if (cleaned.equals("about:blank", ignoreCase = true)) return "New tab"
             "data" -> return "Local page"
             "blob" -> return "Site content"
             "file", "content" -> return "Local content"
             "goreecloud" -> return "GoreeCloud"
         }
+
+        val uri = runCatching { URI(cleaned) }.getOrNull()
+            ?: return truncate(cleaned)
 
         val host = uri.host ?: return truncate(cleaned)
         val port = uri.port.takeIf { it >= 0 }?.let { ":$it" }.orEmpty()
