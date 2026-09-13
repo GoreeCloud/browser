@@ -20,10 +20,21 @@ class NavigationResolverTest {
     }
 
     @Test
-    fun directUnicodeHostRemainsIndependentFromSearch() {
+    fun directUnicodeHostUsesCanonicalAsciiALabel() {
         val address = "https://例え.テスト/path"
         assertTrue(NavigationResolver.isAllowedWebUrl(address))
-        assertEquals(address, NavigationResolver.resolve(address))
+        assertEquals(
+            "https://xn--r8jz45g.xn--zckzah/path",
+            NavigationResolver.resolve(address),
+        )
+    }
+
+    @Test
+    fun schemeLessUnicodeHostUsesCanonicalAsciiALabel() {
+        assertEquals(
+            "https://xn--r8jz45g.xn--zckzah/path",
+            NavigationResolver.resolve("例え.テスト/path"),
+        )
     }
 
     @Test
@@ -35,6 +46,7 @@ class NavigationResolverTest {
             "https://example.com:65536",
             "https://:443/path",
             "https://user@",
+            "https://exa_mple.com/path",
             "https://example.com/\nnext",
         )
         invalid.forEach { address ->

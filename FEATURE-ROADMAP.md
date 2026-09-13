@@ -1,13 +1,13 @@
 # GoreeCloud Browser — Feature Roadmap
 
-**Status:** Active roadmap control — as of September 10, 2026  
+**Status:** Active roadmap control — as of September 12, 2026  
 **Authoritative project record:** `GoreeCloud/Projects/Project Specification — Browser`  
 **Canonical repository:** `GoreeCloud/goreecloud-browser`  
 **Drive counterpart:** `GoreeCloud/Feature Roadmap/GoreeCloud Browser/FEATURE-ROADMAP.docx`
 
 This repository roadmap mirrors the Drive-side Browser roadmap and records current planned and recommended obligations without replacing the authoritative Project Specification, repository implementation evidence, release gates, or GoreeCloud Tasks Management. A roadmap status is not production, Release Candidate, or Stable evidence by itself.
 
-Current Development checkpoint: the active GLAZE UI V1.3 Android stack reaches Draft PR #43 (`fix/schemeless-userinfo-navigation`) exact head `ce9a21c562e0131e5c89e1521a6c62373e69a545`, which passed Browser Core CI `34427023701` and Android Beta APK `34427023678`. Stacked Draft PR #44 (`docs/navigation-development-state-control`) exact head `a4a09f6377527bfa549947d24af96d460c41ce3a` adds the required repository `NOTES.md` control and passed path-applicable Browser Core CI `34524943049`. PR #44 is documentation/conformance-only and does not broaden Browser navigation, network, engine, privacy, security, or lifecycle authority.
+Current Development checkpoint: the active GLAZE UI V1.3 Android stack includes Draft PR #45 (`governance/browser-feature-roadmap-control`) exact head `72f6535ca04a810ea587f05e0e44ab022c099098`, which passed path-applicable Browser Core CI `34545259063` / #382, and stacked Draft PR #46 (`hardening/android-idn-a-label-20260912`). PR #46 exact source head `fec4d4cc6ef9e0eda7a04d034dca1faffa1f93e0` passed Browser Core CI `34733687604` / #385 and Android Beta APK `34733687633` / #148. That source boundary canonicalizes valid internationalized HTTP(S) host identity to ASCII A-labels for Browser navigation/presentation, rejects malformed STD3 host labels fail closed, preserves explicit ports/path/query/fragment, and does not claim UTS #39 confusable detection, DNS/certificate trust, reputation, or representative-device acceptance.
 
 ## Roadmap
 
@@ -16,8 +16,8 @@ Current Development checkpoint: the active GLAZE UI V1.3 Android stack reaches D
 | FR-001 | Reconcile and maintain every current planned or recommended GoreeCloud Browser feature from the authoritative project record and verified repository evidence in this roadmap. | High | Ongoing control |
 | FR-002 | Move actionable feature obligations into GoreeCloud Tasks Management when required, preserving priority, dependency, and lifecycle disposition. | High | Ongoing control |
 | FR-003 | Do not mark features implemented, complete, cancelled, or superseded without authoritative evidence and synchronized repository/Drive roadmap updates. | High | Ongoing control |
-| FR-010 | Preserve GoreeCloud Search as the sole approved query/search authority while keeping structurally valid direct HTTP(S) URL navigation independent from search. | High | Active Development boundary; current V1.3 stack has fail-closed navigation-shape and user-info handling, broader acceptance pending |
-| FR-011 | Complete Browser-owned navigation and address safety including malformed URL handling, scheme/deep-link handoff, user-info disclosure, IDN/confusable/spoofing policy, origin/certificate presentation, and bidirectional address behavior without manufacturing DNS/origin trust. | High | Partial Development hardening through PR #43; IDN/confusable and representative-device acceptance remain open |
+| FR-010 | Preserve GoreeCloud Search as the sole approved query/search authority while keeping structurally valid direct HTTP(S) URL navigation independent from search. | High | Active Development boundary; current V1.3 stack has fail-closed navigation-shape, user-info handling, and canonical internationalized-host routing; broader acceptance pending |
+| FR-011 | Complete Browser-owned navigation and address safety including malformed URL handling, scheme/deep-link handoff, user-info disclosure, IDN/confusable/spoofing policy, origin/certificate presentation, and bidirectional address behavior without manufacturing DNS/origin trust. | High | Development hardening through PR #46 adds STD3/A-label internationalized-host canonicalization and safer canonical address presentation while preserving ports/path/query/fragment. Full UTS #39 confusable/spoofing analysis, origin/certificate presentation, bidirectional-address acceptance, and representative-device acceptance remain open. |
 | FR-012 | Complete Browser-owned main-frame failure/recovery and session restoration behavior across Android recreation, process death, OEM/WebView variants, network transitions, and representative failure modes while keeping raw remote error content out of Browser-owned recovery UI. | High | Development source boundary exists; process-death/OEM/physical-device acceptance pending |
 | FR-013 | Complete GLAZE UI V1.3 / `1.3.0` Browser application migration and rendered/native-device visual, adaptive/form-factor, accessibility, large-text, contrast, localization/RTL, reduced-motion, Touch Assistance where applicable, rollback, performance, and Human Visual Excellence acceptance. | High | `applicable-migration-required`; source-level V1.3 mapping exists, application acceptance pending |
 | FR-014 | Complete Browser-owned website permission and geolocation UX with explicit Android runtime-permission mapping and applicable Privacy Shield/Wardveil policy evidence; keep requests denied while authority is unavailable. | High | Planned / fail-closed by default |
@@ -33,8 +33,8 @@ Current Development checkpoint: the active GLAZE UI V1.3 Android stack reaches D
 
 ## Recommended sequencing
 
-1. Keep the current V1.3 navigation/recovery stack and roadmap-control work as Development evidence only.
-2. Close remaining URL/IDN/confusable and process/OEM restoration safety gaps before broadening Browser permission or external-handoff authority.
+1. Keep the current V1.3 navigation/recovery and canonical-IDN stack as Development evidence only.
+2. Close remaining UTS #39/confusable/spoofing, origin/certificate presentation, bidirectional-address, and process/OEM restoration safety gaps before broadening Browser permission or external-handoff authority.
 3. Integrate Browser-owned permission UX, Wardveil download verification, Privacy Shield, Private Browsing isolation, and required Identity/Vault/Sync/Everkeep/DNS/Network/Mesh/Manager boundaries with producer-authoritative evidence.
 4. Complete GLAZE UI V1.3 rendered/accessibility/localization/RTL/large-text/adaptive/performance acceptance and sustained representative-device validation.
 5. Finish product-surface completeness, controlled production signing, upgrade/rollback/migration, release provenance, and explicit Release Candidate/production/Stable gates.

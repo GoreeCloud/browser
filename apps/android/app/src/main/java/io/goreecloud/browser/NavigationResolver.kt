@@ -1,6 +1,5 @@
 package io.goreecloud.browser
 
-import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -18,28 +17,21 @@ object NavigationResolver {
         if (input.isEmpty()) return SEARCH_HOME
 
         if (hasHttpScheme(input)) {
-            return if (isAllowedWebUrl(input)) input else SEARCH_HOME
+            return InternationalizedHostPolicy.canonicalizeHttpUrl(input) ?: SEARCH_HOME
         }
         // Scheme-less input that places an `@` in the authority position can become URI user-info
         // after Browser prepends HTTPS. Fail closed before either navigation or Search forwarding so
         // credential-shaped text is not copied into history or disclosed as a query.
         if (hasSchemeLessUserInfo(input)) return SEARCH_HOME
-        if (looksLikeHost(input)) return "https://$input"
+        if (looksLikeHost(input)) {
+            return InternationalizedHostPolicy.canonicalizeHttpUrl("https://$input") ?: SEARCH_HOME
+        }
 
         return SEARCH_ENDPOINT + encodeQuery(input)
     }
 
-    fun isAllowedWebUrl(url: String): Boolean {
-        if (!hasHttpScheme(url)) return false
-
-        val uri = runCatching { URI(url) }.getOrNull() ?: return false
-        val scheme = uri.scheme?.lowercase() ?: return false
-        if (scheme != "https" && scheme != "http") return false
-        if (uri.rawUserInfo != null) return false
-
-        val authority = uri.rawAuthority ?: return false
-        return authorityHost(authority) != null
-    }
+    fun isAllowedWebUrl(url: String): Boolean =
+        InternationalizedHostPolicy.canonicalizeHttpUrl(url) != null
 
     private fun hasHttpScheme(value: String): Boolean {
         return value.startsWith("https://", ignoreCase = true) ||
@@ -59,55 +51,12 @@ object NavigationResolver {
 
         val authority = value.substringBefore('/').substringBefore('?').substringBefore('#')
         if ('@' in authority) return false
-        val hostPart = authorityHost(authority) ?: return false
+        val hostPart = InternationalizedHostPolicy.canonicalAuthority(authority)?.host ?: return false
 
         return hostPart.equals("localhost", ignoreCase = true) ||
             hostPart.contains('.') ||
             IPV4_REGEX.matches(hostPart) ||
             (hostPart.startsWith('[') && hostPart.endsWith(']'))
-    }
-
-    /**
-     * Extract the host-like portion of a URI authority while validating only the
-     * optional port syntax/range needed by Browser routing. Host normalization,
-     * DNS resolution, IDN/confusable policy, and trust remain separate gates.
-     *
-     * Callers must reject user-info before invoking this helper for navigation
-     * classification. The helper therefore does not grant credential-bearing
-     * authority merely because a host-like suffix can be extracted.
-     */
-    private fun authorityHost(authority: String): String? {
-        val hostPort = authority.substringAfterLast('@')
-        if (hostPort.isEmpty()) return null
-
-        if (hostPort.startsWith('[')) {
-            val closingBracket = hostPort.indexOf(']')
-            if (closingBracket <= 1) return null
-
-            val host = hostPort.substring(0, closingBracket + 1)
-            val suffix = hostPort.substring(closingBracket + 1)
-            if (!validPortSuffix(suffix)) return null
-            return host
-        }
-
-        val colon = hostPort.lastIndexOf(':')
-        if (colon < 0) return hostPort
-        if (hostPort.indexOf(':') != colon) return null
-
-        val host = hostPort.substring(0, colon)
-        if (host.isEmpty()) return null
-        if (!validPortSuffix(hostPort.substring(colon))) return null
-        return host
-    }
-
-    private fun validPortSuffix(suffix: String): Boolean {
-        if (suffix.isEmpty()) return true
-        if (!suffix.startsWith(':')) return false
-
-        val portText = suffix.substring(1)
-        if (portText.isEmpty() || portText.any { !it.isDigit() }) return false
-        val port = portText.toIntOrNull() ?: return false
-        return port in 0..65535
     }
 
     private fun encodeQuery(value: String): String =
