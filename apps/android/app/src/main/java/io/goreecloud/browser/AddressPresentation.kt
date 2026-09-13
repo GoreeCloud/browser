@@ -19,6 +19,7 @@ object AddressPresentation {
             InternationalizedHostPolicy.canonicalAuthority(rawAuthority) ?: return url
         val path = uri.rawPath.orEmpty().takeUnless { it == "/" }.orEmpty()
         val query = uri.rawQuery?.let { "?$it" }.orEmpty()
-        return canonicalAuthority.authority + path + query
+        val fragment = uri.rawFragment?.let { "#$it" }.orEmpty()
+        return canonicalAuthority.authority + path + query + fragment
     }
 }
