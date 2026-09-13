@@ -19,11 +19,16 @@ import android.widget.ProgressBar
 import android.widget.TextView
 
 /**
- * Effects-free Android-native Glaze UI 2.0 mapping for Browser-owned chrome.
+ * Effects-free Android-native GLAZE UI V1.4 mapping for Browser-owned chrome.
  *
  * Native controls retain Android semantics while Browser maps the current Glaze
  * material hierarchy, target floor, focus/pressed state, spacing and appearance
  * behavior. Blur and transparency are deliberately not required for usability.
+ *
+ * V1.4 Optical Intelligence is governed separately by [GlazeBrowserOptics].
+ * This style implementation does not sample page pixels, origin identity,
+ * favicons, CSS/theme colors, browsing/query content, or remote context to style
+ * trusted Browser chrome.
  */
 class GlazeNativeStyle(private val context: Context) {
     data class Palette(
