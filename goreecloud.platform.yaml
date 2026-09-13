@@ -31,14 +31,20 @@ platform_systems:
     evidence:
       - README.md
       - SPECIFICATIONS.md
-    notes: Browser has privacy-protective source defaults and explicit Privacy Shield authority boundaries, but accepted producer-authoritative Privacy Shield runtime decisions and complete Browser privacy acceptance remain unavailable.
+      - docs/GLAZE_UI_ADOPTION.md
+      - apps/android/app/src/main/java/io/goreecloud/browser/GlazeBrowserOptics.kt
+      - include/goreecloud/browser/glaze.hpp
+    notes: Browser has privacy-protective source defaults and explicit Privacy Shield authority boundaries. The V1.4 optical policy adds no page-content, origin-identity, favicon/theme-color, query/history, telemetry, or remote-context authority to trusted Browser chrome and cannot manufacture privacy state. Accepted producer-authoritative Privacy Shield runtime decisions and complete Browser privacy acceptance remain unavailable.
   wardveil_security:
     result: applicable-blocked
     version: null
     evidence:
       - SPECIFICATIONS.md
       - docs/WARDVEIL_DOWNLOAD_SCANNING.md
-    notes: Browser contains a fail-closed source-level Wardveil download-release contract and Android downloads remain blocked rather than bypassing it, but authenticated runtime Wardveil integration, scanner health, quarantine evidence, and production security acceptance are incomplete.
+      - docs/GLAZE_UI_ADOPTION.md
+      - apps/android/app/src/main/java/io/goreecloud/browser/GlazeBrowserOptics.kt
+      - include/goreecloud/browser/glaze.hpp
+    notes: Browser contains a fail-closed source-level Wardveil download-release contract and Android downloads remain blocked rather than bypassing it. V1.4 optics cannot infer or represent security state from page appearance. Authenticated runtime Wardveil integration, scanner health, quarantine evidence, certificate/origin runtime acceptance, and production security acceptance remain incomplete.
   everkeep:
     result: applicable-blocked
     version: null
@@ -48,12 +54,16 @@ platform_systems:
     notes: Browser has source-level normal-session recovery/checkpoint boundaries and excludes Private and Isolated Private state before persistence, but accepted Everkeep backup, durable protected recovery storage, restore execution, migration, rollback, and production continuity acceptance remain incomplete.
   glaze_ui:
     result: applicable-migration-required
-    version: '2.2.0'
+    version: '1.4.0'
     evidence:
-      - README.md
-      - SPECIFICATIONS.md
       - docs/GLAZE_UI_ADOPTION.md
-    notes: Authoritative Browser main still maps Android Browser-owned presentation to the superseded Glaze UI 2.2.0 line. Current published Stable consumer authority is V1.1 / 1.1.0, so migration is required. Draft PR #18 contains a Development V1.1 source mapping, but it is unmerged and downstream acceptance is incomplete; the published 1.1.0 source also has the known immutable import-closure defect pending a corrected consumer-eligible Stable release.
+      - apps/android/app/src/main/java/io/goreecloud/browser/GlazeContract.kt
+      - apps/android/app/src/main/java/io/goreecloud/browser/GlazeBrowserOptics.kt
+      - apps/android/app/src/main/java/io/goreecloud/browser/GlazeNativeStyle.kt
+      - apps/android/app/src/test/java/io/goreecloud/browser/GlazeContractTest.kt
+      - include/goreecloud/browser/glaze.hpp
+      - include/goreecloud/browser/glaze_acceptance.hpp
+    notes: Repository-local Development source now targets current Stable GLAZE UI V1.4 / 1.4.0 at exact merged source revision 84cb3db4884042f0fa25ed6d475a127fb110f596 across Android and shared desktop/native contracts. Browser-owned trusted chrome explicitly refuses page-content/origin/favicon/theme-color-driven optics, keeps trusted-chrome Environmental Color Memory at 0%, retains effects-free accessibility fallbacks, and cannot manufacture security/privacy truth. Complete rendered/accessibility/adaptive/representative-device/application acceptance and applicable V1.4.1 human validation remain outstanding.
   mesh:
     result: applicable-blocked
     version: null
@@ -111,10 +121,10 @@ external_dependencies:
 
 compatibility:
   platform_contract: '0.2'
-  glaze_ui_required: '1.1.0'
+  glaze_ui_required: '1.4.0'
   requires:
     - goreecloud-platform-contract==0.2
-    - glaze-ui==1.1.0
+    - glaze-ui==1.4.0
   provides:
     - browser-engine-layer
     - browser-native-shell-beta
@@ -133,12 +143,17 @@ conformance:
     - docs/ANDROID_BETA.md
     - docs/GLAZE_UI_ADOPTION.md
     - docs/WARDVEIL_DOWNLOAD_SCANNING.md
+    - apps/android/app/src/main/java/io/goreecloud/browser/GlazeContract.kt
+    - apps/android/app/src/main/java/io/goreecloud/browser/GlazeBrowserOptics.kt
+    - apps/android/app/src/test/java/io/goreecloud/browser/GlazeContractTest.kt
+    - include/goreecloud/browser/glaze.hpp
+    - include/goreecloud/browser/glaze_acceptance.hpp
   blockers:
     - GoreeCloud Manager operational integration and acceptance are incomplete.
     - Producer-authoritative Privacy Shield runtime integration and complete Browser privacy acceptance are incomplete.
-    - Authenticated Wardveil Security runtime download verification, scanner health, quarantine evidence, and production security acceptance are incomplete.
+    - Authenticated Wardveil Security runtime download verification, scanner health, quarantine evidence, certificate/origin runtime acceptance, and production security acceptance are incomplete.
     - Everkeep protected durable backup, clean-environment restore, migration, rollback, and production continuity acceptance are incomplete.
-    - Authoritative Browser main still targets superseded Glaze UI 2.2.0; current published Stable V1.1 / 1.1.0 migration and downstream Browser acceptance remain incomplete, and the known immutable 1.1.0 import-closure defect still requires a corrected consumer-eligible Stable release before current conformance can be claimed.
+    - GLAZE UI V1.4 / 1.4.0 source mapping and trusted-chrome optical invariants exist across Android and shared native contracts, but complete Browser-specific rendered/accessibility/adaptive/representative-device acceptance and applicable V1.4.1 human-validation work remain outstanding.
     - GoreeCloud Mesh registration, discovery, transport, dependency/event integration, and runtime acceptance are incomplete.
     - GoreeCloud Identity profile, session, authorization, synchronization identity, and device-authorization integration are incomplete.
     - Browser does not expose accepted health/readiness interfaces for GoreeCloud Manager or platform observability.
