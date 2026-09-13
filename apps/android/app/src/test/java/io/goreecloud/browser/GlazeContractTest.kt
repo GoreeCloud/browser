@@ -8,19 +8,18 @@ import org.junit.Test
 class GlazeContractTest {
     @Test
     fun androidBrowserTargetsCurrentStableGlazeContract() {
-        assertEquals("2.2.0", GlazeContract.VERSION)
+        assertEquals("1.4.0", GlazeContract.VERSION)
         assertEquals(
-            "6731098b28dd0393faa878c70d989a221d714a20",
+            "84cb3db4884042f0fa25ed6d475a127fb110f596",
             GlazeContract.STABLE_RELEASE_REVISION,
         )
-        assertEquals(
-            "0411b0f6dd877aea30e2c5674e1acde0105fd97b",
-            GlazeContract.ACCEPTED_VISUAL_SOURCE,
-        )
+        assertEquals("1.4.1", GlazeContract.HUMAN_VISUAL_VALIDATION_FOLLOW_UP)
+        assertEquals(GlazeContract.VERSION, GlazeBrowserOptics.TARGET_VERSION)
+        assertEquals(GlazeContract.STABLE_RELEASE_REVISION, GlazeBrowserOptics.STABLE_SOURCE_REVISION)
     }
 
     @Test
-    fun touchTargetFloorsMatchGlaze22AccessibilityContract() {
+    fun touchTargetFloorsRemainAccessibleUnderV14() {
         assertEquals(48, GlazeContract.targetFloorDp(touchAssistance = false))
         assertEquals(56, GlazeContract.targetFloorDp(touchAssistance = true))
         assertTrue(GlazeContract.satisfiesGeneralTargetFloor(48))
@@ -48,7 +47,7 @@ class GlazeContractTest {
     }
 
     @Test
-    fun mobileChromeRemovesDevelopmentScaffoldingFromNormalBrowsing() {
+    fun mobileChromePreservesEffectsFreeFallback() {
         val mapping = GlazeContract.ANDROID_BROWSER_MAPPING
 
         assertTrue(mapping.noActionBar)
@@ -95,5 +94,43 @@ class GlazeContractTest {
         assertTrue(
             GlazeContract.collapsedChromeHeightDp() < GlazeContract.fixedChromeHeightDp(),
         )
+    }
+
+    @Test
+    fun pageAndOriginDataCannotDriveTrustedChromeOptics() {
+        assertFalse(GlazeBrowserOptics.PAGE_CONTENT_MAY_DRIVE_TRUSTED_CHROME)
+        assertFalse(GlazeBrowserOptics.ORIGIN_IDENTITY_MAY_DRIVE_TRUSTED_CHROME)
+        assertFalse(GlazeBrowserOptics.FAVICON_COLOR_MAY_DRIVE_TRUSTED_CHROME)
+        assertFalse(GlazeBrowserOptics.PAGE_THEME_COLOR_MAY_DRIVE_TRUSTED_CHROME)
+        assertFalse(GlazeBrowserOptics.SECURITY_STATE_MAY_BE_INFERRED_FROM_OPTICS)
+        assertFalse(GlazeBrowserOptics.PRIVACY_STATE_MAY_BE_INFERRED_FROM_OPTICS)
+        assertFalse(GlazeBrowserOptics.TELEMETRY_REQUIRED)
+        assertFalse(GlazeBrowserOptics.REMOTE_CONTEXT_REQUIRED)
+        assertEquals(0f, GlazeBrowserOptics.MAX_TRUSTED_CHROME_MEMORY_TINT_INFLUENCE, 0f)
+    }
+
+    @Test
+    fun accessibilityModesFailClosedWithoutDecorativeTint() {
+        val reducedTransparency = GlazeBrowserOptics.resolve(
+            GlazeBrowserOptics.Accessibility(reducedTransparency = true),
+        )
+        assertEquals(GlazeBrowserOptics.State.Mode.SOLID_ACCESSIBLE, reducedTransparency.mode)
+        assertEquals(0f, reducedTransparency.blurScale, 0f)
+        assertEquals(1f, reducedTransparency.semanticProtection, 0f)
+        assertFalse(reducedTransparency.decorativeTintAllowed)
+
+        val forcedColors = GlazeBrowserOptics.resolve(
+            GlazeBrowserOptics.Accessibility(forcedColors = true),
+        )
+        assertEquals(GlazeBrowserOptics.State.Mode.SOLID_ACCESSIBLE, forcedColors.mode)
+        assertEquals(0f, forcedColors.memoryTintInfluence, 0f)
+        assertFalse(forcedColors.decorativeTintAllowed)
+
+        val increasedContrast = GlazeBrowserOptics.resolve(
+            GlazeBrowserOptics.Accessibility(increasedContrast = true),
+        )
+        assertTrue(increasedContrast.frostStrength > GlazeBrowserOptics.resolve().frostStrength)
+        assertEquals(0f, increasedContrast.memoryTintInfluence, 0f)
+        assertFalse(increasedContrast.decorativeTintAllowed)
     }
 }
