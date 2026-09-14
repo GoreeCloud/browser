@@ -2,15 +2,50 @@ package io.goreecloud.browser
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GoreeCloudSearchContractTest {
     @Test
+    fun duplicateQueryCapabilitiesFailDiscoveryClosed() {
+        val evidence = capability()
+        assertNull(GoreeCloudSearchContract.selectCapability(listOf(evidence, evidence)))
+    }
+
+    @Test
+    fun oneQueryCapabilityIsSelectedFromMixedDiscoveryCollection() {
+        val expected = capability()
+        val unrelated = expected.copy(id = "search.images")
+        assertEquals(
+            expected,
+            GoreeCloudSearchContract.selectCapability(listOf(unrelated, expected)),
+        )
+    }
+
+    @Test
     fun unacceptedCapabilityFailsClosedBeforeRequestConstruction() {
         val decision = GoreeCloudSearchContract.authorize(
             query = "privacy browser",
             capability = capability(productionAccepted = false),
+            privacyAuthorization = authorization(),
+        )
+
+        assertEquals(
+            GoreeCloudSearchContract.Decision.Rejected(
+                GoreeCloudSearchContract.RejectionReason.INCOMPATIBLE_CAPABILITY,
+            ),
+            decision,
+        )
+    }
+
+    @Test
+    fun developmentServerAuthorizationEvidenceCannotBeMistakenForEnforcedProductionTransport() {
+        val decision = GoreeCloudSearchContract.authorize(
+            query = "privacy browser",
+            capability = capability(
+                privacyAuthorizationEnforcement = "not_enforced_development",
+            ),
             privacyAuthorization = authorization(),
         )
 
@@ -55,6 +90,8 @@ class GoreeCloudSearchContractTest {
         assertEquals("privacy browser", request.query)
         assertEquals("general", request.category)
         assertEquals(50, request.limit)
+        assertEquals("X-GoreeCloud-Privacy-Capability", request.authorizationHeader)
+        assertEquals("privacy-shield:capability:test", request.authorizationReference)
         assertFalse(request.endpoint.contains("privacy"))
         assertFalse(request.endpoint.contains("?q="))
     }
@@ -74,7 +111,7 @@ class GoreeCloudSearchContractTest {
 
     private fun authorization() = GoreeCloudSearchContract.PrivacyAuthorization(
         accepted = true,
-        reference = "privacy-shield:test-evidence",
+        reference = "privacy-shield:capability:test",
     )
 
     private fun capability(
@@ -82,6 +119,7 @@ class GoreeCloudSearchContractTest {
         methods: Set<String> = setOf("POST", "GET"),
         preferredMethod: String = "POST",
         preferredQueryTransport: String = "json_body",
+        privacyAuthorizationEnforcement: String = "required",
         maxResults: Int = 100,
     ) = GoreeCloudSearchContract.CapabilityEvidence(
         id = "search.query",
@@ -90,12 +128,17 @@ class GoreeCloudSearchContractTest {
         current = true,
         productionAccepted = productionAccepted,
         endpoint = "/api/v1/search",
+        discoveryEndpoint = "/api/v1/status",
+        discoveryCollection = "capability_evidence",
         methods = methods,
         preferredMethod = preferredMethod,
         preferredQueryTransport = preferredQueryTransport,
         requestMediaType = "application/json",
         responseMediaType = "application/json",
         privacyAuthorizationRequired = true,
+        privacyAuthorizationScheme = "privacy_shield_capability_token_reference",
+        privacyAuthorizationHeader = "X-GoreeCloud-Privacy-Capability",
+        privacyAuthorizationEnforcement = privacyAuthorizationEnforcement,
         maxRequestBytes = 16 * 1024,
         maxResults = maxResults,
     )
