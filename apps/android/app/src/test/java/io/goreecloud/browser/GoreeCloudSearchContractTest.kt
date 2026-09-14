@@ -102,6 +102,22 @@ class GoreeCloudSearchContractTest {
     }
 
     @Test
+    fun whitespaceCapabilityReferenceFailsClosed() {
+        assertFalse(GoreeCloudSearchContract.isCanonicalPrivacyCapabilityReference("psc_test capability"))
+    }
+
+    @Test
+    fun controlCharacterCapabilityReferenceFailsClosed() {
+        assertFalse(GoreeCloudSearchContract.isCanonicalPrivacyCapabilityReference("psc_test\u0000capability"))
+    }
+
+    @Test
+    fun oversizedCapabilityReferenceFailsClosed() {
+        val oversized = "psc_" + "a".repeat(GoreeCloudSearchContract.PRIVACY_CAPABILITY_REFERENCE_MAX_LENGTH)
+        assertFalse(GoreeCloudSearchContract.isCanonicalPrivacyCapabilityReference(oversized))
+    }
+
+    @Test
     fun acceptedEvidenceBuildsPostBodyRequestWithoutQueryInEndpoint() {
         val decision = GoreeCloudSearchContract.authorize(
             query = " privacy browser ",
