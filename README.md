@@ -1,110 +1,133 @@
 # GoreeCloud Browser
 
-GoreeCloud Browser is GoreeCloud's first-party native web browser. The browser product, user experience, data model, privacy controls, security services, synchronization behavior, session model, and GoreeCloud integrations are owned by GoreeCloud. A mature web engine is used underneath as an implementation dependency rather than as the identity of the product.
+GoreeCloud Browser is GoreeCloud's first-party native web browser. GoreeCloud owns the browser product, user experience, browser-state model, privacy controls, security integrations, synchronization behavior, session model, and first-party service boundaries. A mature web engine is used underneath as replaceable implementation infrastructure rather than as the identity of the product.
 
-## Beta status
+## Lifecycle status
 
-The repository is on the **0.1.0-beta.1** development channel. This is a build-tested GoreeCloud Browser **source and native-shell beta milestone**. The engine-independent core and Linux GTK/X11 shell have CI build gates. The CEF/Chromium render-capable desktop path remains under integration and must pass the real-runtime gates in [`docs/BETA_0_1.md`](docs/BETA_0_1.md) before a desktop artifact is described as a render-capable beta.
+**Beta development — not Stable or production approved.**
 
-The repository also includes a **real installable Android beta target**. This Glaze UI 2.2 migration branch targets the debug-signed package `io.goreecloud.browser.beta` as version `0.1.0-beta.1+android.5` / versionCode `10005` for Android API 26 and newer, targeting API 35. The Android workflow runs unit tests, Android lint, APK assembly, signature verification, package/label verification, SHA-256 generation, and GitHub Actions artifact upload. Android System WebView/Chromium is used only as the web-engine dependency; GoreeCloud owns the Android browser chrome, navigation/search policy, privacy defaults, permission behavior, Glaze UI mapping, and beta capability gates. Downloads remain fail-closed until the Android path can satisfy the existing Wardveil release contract. See [`docs/ANDROID_BETA.md`](docs/ANDROID_BETA.md).
-
-The previously integrated `+android.4` source is the accepted real-device polish iteration over the compact **Glaze UI 2.0.0 native mobile-chrome mapping**. The new `+android.5` branch is a bounded migration candidate to **Glaze UI 2.2.0 Stable**. It preserves the no-action-bar/no-development-banner shell, full-width top omnibox, vector navigation icons, separate 56dp bottom navigation toolbar, overlaid progress indicator, 48dp ordinary interaction-target floor, light/dark adaptation, focus/pressed states, effects-free fallback behavior, leading-hostname address presentation, scroll-aware top-chrome collapse, and Browser-owned menu sheet. The 2.2 contract additionally records the current Stable release revision, Application-scope shell authority, the one-dominant-panel System Glaze budget, a 56dp Touch Assistance/far-view floor where applicable, and deterministic Glaze 2.2 state priority. Browser does not relabel its local search or menu as Universal Search, Control Center, System Panel, or Critical System UI.
-
-This remains source mapping and installable-beta work, not native-device Glaze acceptance. Representative rendered visual, TalkBack/accessibility, 200% text, RTL/localization, contrast, Reduced Motion, Reduced Transparency/effects-free behavior, applicable high-contrast/forced-color behavior, form-factor, performance, Touch Assistance mapping, and sustained real-device evidence remain required.
-
-Beta does **not** mean production-approved. Stable release acceptance still requires real runtime, security, privacy, accessibility, packaging, production signing, recovery, compatibility, and sustained-use evidence. The Android APK is an installable test beta, not a production-signed or Stable artifact.
+The repository contains a build-tested GoreeCloud-owned browser core, native desktop work, and an installable Android beta target. Beta source/build success does not imply production signing, complete runtime integration, design-system acceptance, security acceptance, privacy acceptance, accessibility acceptance, or Stable qualification.
 
 ## Product identity
 
-GoreeCloud Browser is the sole normal user-facing Browser product identity. Upstream and third-party implementation technology may appear where technically, legally, operationally, diagnostically, or compliance-wise required, but it does not become GoreeCloud product branding.
-
-## Glaze UI requirement
-
-GoreeCloud Browser is built against the **latest approved Stable Glaze UI release**. The current Stable authority is **Glaze UI 2.2.0**, released from `GoreeCloud/goreecloud-glaze-ui` at Stable source revision `6731098b28dd0393faa878c70d989a221d714a20`; the accepted Glaze visual source is `0411b0f6dd877aea30e2c5674e1acde0105fd97b`.
-
-This is a moving production requirement rather than a permanent version pin. When a newer Glaze UI release becomes Stable, GoreeCloud Browser becomes migration-required until Browser-owned surfaces have adopted and validated that current Stable contract. A superseded Glaze UI baseline cannot satisfy Browser production readiness. Central Glaze Stable status also does not auto-promote Browser: repository-local source validation, rendered/native/accessibility evidence, and Browser production acceptance remain required.
-
-The last integrated Android baseline on authoritative Browser main before this branch is `+android.4`, whose source mapping targeted Glaze UI 2.0.0. That evidence remains valid history and rollback input; it is not rewritten as 2.2 conformance. This branch is the explicit repository-local migration candidate.
-
-See [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md) for the Browser-specific adoption and validation policy.
+GoreeCloud Browser is the normal user-facing product identity. Upstream engine or third-party implementation technology may appear where technically, legally, operationally, diagnostically, or compliance-wise required, but it does not become GoreeCloud product branding.
 
 ## Architectural direction
 
-GoreeCloud Browser is **not** intended to be a conventional Chromium skin or a permanently deep Chromium fork.
+GoreeCloud Browser is not intended to be a conventional Chromium skin or a permanently deep Chromium fork.
 
-The browser is structured so that GoreeCloud-owned application layers remain separated from the underlying rendering engine behind explicit interfaces. Chromium/Blink is the initial engine foundation, while the architecture leaves room for platform-native engines, alternative engines, and a future GoreeCloud-controlled engine or fork when there is a concrete technical reason to do so.
+GoreeCloud-owned application layers remain separated from the rendering engine behind explicit interfaces. Chromium/Blink and Android System WebView/Chromium are initial engine foundations. The architecture must preserve the ability to use platform-native engines, alternative engines, or future GoreeCloud-controlled engine work when a concrete privacy, security, performance, compatibility, platform, or product requirement justifies it.
 
-### Core systems
+## Core systems
 
-- **GoreeCloud Browser** — native browser application, browser chrome, tab model, profiles, preferences, history, permissions, downloads, sessions, and product experience.
-- **Browser Engine Layer** — GoreeCloud-owned abstraction between the application and the underlying web engine.
-- **Chromium/Blink** — initial rendering, JavaScript, WebAssembly, Web APIs, media, graphics, accessibility, and web-platform foundation. On Android this role is provided through Android System WebView/Chromium.
-- **Glaze UI** — authoritative GoreeCloud presentation and interaction system for Browser-owned surfaces; Browser must track the current approved Stable release.
-- **GoreeCloud Wayfinder** — first-party Browser feature family for navigation, productivity, organization, downloads, transfers, capture, sessions, synchronization, Browser utilities, content handling, and workflow integration.
-- **Media Hover** — first-party contextual media interaction layer for images, video, regions, visual search, destination-aware saving, AI/OCR workflows, source attribution, privacy enforcement, and security evidence.
-- **GoreeCloud Search** — sole and default integrated search authority for approved Browser search entry points.
-- **GoreeCloud Bookmarks** — first-class bookmarks, read-later, collections, and library subsystem.
-- **GoreeCloud Sync** — synchronization for approved Browser state while excluding indiscriminate synchronization of sensitive website state.
-- **Privacy Shield** — privacy and content-protection authority for tracking protection, filtering, URL cleaning, private-browsing protection, and related controls.
-- **Wardveil Security** — security presentation, classification, protection-state experience, and evidence-backed Browser security status.
-- **Everkeep** — encrypted browser-state backup, recovery, portability, session preservation, and long-term preservation where appropriate.
-- **GoreeCloud Identity** — browser profiles, device authorization, synchronization identity, account-bound preferences, and passkey identity integration.
-- **GoreeCloud Vault** — credentials, passkeys, secrets, secure autofill, and other protected authentication material.
-- **GoreeCloud DNS** — DNS resolution, resolver policy, DNS privacy, filtering where approved, and Browser DNS integration.
+- **GoreeCloud Browser** — browser shell, chrome, tabs, profiles, preferences, history, permissions, downloads, sessions, and navigation experience.
+- **Browser Engine Layer** — GoreeCloud-owned abstraction between Browser and the active web engine.
+- **Glaze UI** — authoritative GoreeCloud presentation and interaction system for Browser-owned surfaces.
+- **GoreeCloud Search** — sole Internet/web/current-information search authority for approved Browser search entry points.
+- **GoreeCloud Index** — universal/local federated discovery authority when Browser invokes device/application/content search.
+- **GoreeCloud Bookmarks** — bookmarks, read-later, collections, and library subsystem.
+- **GoreeCloud Sync** — synchronization for approved Browser state while excluding indiscriminate sensitive website-state sync.
+- **Privacy Shield** — privacy authorization and protection authority for Browser privacy operations.
+- **Wardveil Security** — security/protection authority and evidence-backed Browser security integration.
+- **Everkeep** — encrypted browser-state backup, recovery, portability, and continuity where applicable.
+- **GoreeCloud Identity** — profiles, device authorization, synchronization identity, and account-bound preferences.
+- **GoreeCloud Vault** — credentials, passkeys, secrets, secure autofill, and protected authentication material.
+- **GoreeCloud DNS** — DNS resolution, resolver policy, DNS privacy, and Browser DNS integration.
 - **GoreeCloud Network** — networking and private-connectivity authority.
-- **GoreeCloud Mesh** — coordination and governance layer between GoreeCloud Browser and other first-party GoreeCloud applications and services.
+- **GoreeCloud Mesh** — first-party coordination and governance layer.
+- **GoreeCloud Wayfinder** — Browser-owned navigation, productivity, organization, capture, transfer, session, and workflow feature family.
+- **Media Hover** — Browser-owned contextual media interaction layer subject to Browser privacy/security and destination boundaries.
+
+## Search and Index integration
+
+Browser must preserve a clear distinction among navigation, Internet search, and universal/local discovery.
+
+1. Valid navigable URL or explicit navigation intent → Browser navigation path.
+2. Non-URL Internet/current-information query → GoreeCloud Search delegation.
+3. Universal/local discovery intent → GoreeCloud Index invocation.
+4. Ambiguous or unsafe input → no silent execution until classification and applicable policy checks succeed.
+
+Browser must not silently fall back to a third-party search engine when GoreeCloud Search is unavailable.
+
+Remote Search delegation remains subject to applicable Privacy Shield authorization. Browser must not attach unrelated tab state, browsing history, downloads, bookmarks, local Index results, cookies, or identity information to a Search request unless a separately specified and authorized feature requires it.
+
+See [`docs/SEARCH_INDEX_INTEGRATION.md`](docs/SEARCH_INDEX_INTEGRATION.md).
 
 ## First-party capability acceptance boundary
 
-Browser authoritative main includes a fail-closed generic first-party capability consumer boundary. A service capability is considered usable through that gate only when exactly one matching record is present and is versioned, current, authoritative, available, explicitly production-accepted, and version-compatible when an exact contract is requested. Duplicate/ambiguous, stale, unversioned, non-authoritative, degraded, wrong-version, or pre-Stable producer evidence is rejected.
+Browser uses fail-closed first-party capability consumption.
 
-This consumer boundary does not create producer authority. Search, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Bookmarks, and other first-party services retain their independent contracts and lifecycle evidence.
+A production capability is usable only when the expected record is unambiguous, versioned, current, authoritative, available, explicitly production accepted, and compatible with the requested contract. Missing, duplicate, stale, non-authoritative, degraded where healthy operation is required, version-incompatible, or pre-production evidence must not be transformed into a healthy production claim.
+
+Development builds may use explicitly Development-only capability paths where repository-local evidence makes that exception visible. Development exceptions never authorize Stable promotion.
+
+Consumer validation does not create producer authority. Search, Index, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Bookmarks, and other first-party systems retain independent contracts and lifecycle evidence.
+
+## Glaze UI requirement
+
+The current official Stable consumer target published by `GoreeCloud/goreecloud-glaze-ui` is **Glaze UI V1.4 / `1.4.0`**.
+
+Previous Browser documentation named Glaze UI `2.2.0`. That value is not the current Stable authority and must not be used as present Browser conformance or release evidence.
+
+Browser is therefore **V1.4 migration-required** until Browser-owned surfaces and native mappings have been updated and validated against the current Stable contract.
+
+Glaze V1.4 requires bounded optical behavior, solid readable/critical-decision surfaces where appropriate, accessible solid fallbacks for Reduced Transparency and Forced Colors, strengthened clarity under Increased Contrast, and local deterministic optical behavior that does not require telemetry, analytics, camera access, or remote environmental sensing.
+
+Central Glaze Stable status does not automatically certify Browser. Browser-local source, rendered/native, accessibility, runtime, and representative-device evidence remain required.
+
+See [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md).
+
+## Privacy and security boundaries
+
+Browser must continue to prefer explicit authority and fail-closed behavior.
+
+- Privacy Shield controls applicable privacy authorization, purpose, minimization, destination, and retention decisions.
+- Wardveil Security controls applicable protection/security state and evidence.
+- Identity authentication is not blanket authorization for every Browser operation.
+- Vault owns protected credential/passkey material.
+- DNS and Network retain their own configuration and runtime authority.
+- Engine presence does not authorize bypassing GoreeCloud policy boundaries.
+
+No single global “protected” state should be used to imply that every Browser subsystem or external service has independently satisfied its own acceptance requirements.
+
+## Wardveil download security
+
+The Advanced Download Manager retains a fail-closed Wardveil release model.
+
+Completed transfer bytes remain in Browser-owned staging until an authoritative, current, correctly scoped clean finding is bound to the exact payload digest. Suspicious downloads are held for review. Malicious or unverifiable downloads remain blocked from ordinary release/open paths.
+
+Browser must not claim canonical Wardveil quarantine authority merely because it can request or display a quarantine handoff. Production acceptance still requires authenticated Browser↔Wardveil transport, scanner/signature health, controlled runtime malware tests, concurrency-safe staging release, and accepted Privacy Shield and Glaze behavior.
+
+Android download behavior must not create a bypass around this contract.
+
+See [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md).
 
 ## Design principles
 
 1. GoreeCloud owns the browser product layer.
 2. The rendering engine is replaceable infrastructure, not product identity.
-3. GoreeCloud-specific behavior should not be scattered through engine source code when a stable adapter boundary is practical.
-4. Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, and GoreeCloud Identity are substantive platform systems; public behavior and status must remain tied to implemented capabilities and evidence.
-5. Browser state uses GoreeCloud-owned schemas and services instead of depending on Chromium profile formats as the canonical model.
-6. Security updates from the underlying engine must remain practical to consume.
-7. Engine-specific exceptions must be documented and isolated.
-8. Planned capabilities must not be presented as production-ready until implementation and acceptance evidence exist.
-9. Security, privacy, credential, identity, DNS, networking, search, and synchronization authority boundaries remain explicit.
+3. GoreeCloud-specific behavior should remain outside deep engine forks when stable adapters are practical.
+4. Privacy Shield, Wardveil Security, Everkeep, Glaze UI, Mesh, Search, Index, and Identity are substantive platform systems with independent evidence.
+5. Browser state should use GoreeCloud-owned schemas rather than treating Chromium profile formats as canonical.
+6. Upstream engine security updates must remain practical to consume.
+7. Engine-specific exceptions must be isolated and documented.
+8. Planned capabilities must not be presented as production-ready until implementation and acceptance evidence exists.
+9. Security, privacy, credential, identity, DNS, networking, search, indexing, and synchronization authority boundaries remain explicit.
 10. Browser-owned user-facing surfaces must conform to the latest approved Stable Glaze UI release before production acceptance.
 
-## Wardveil download security
-
-The Advanced Download Manager has a source-level Wardveil Scan release gate. Completed transfer bytes remain in the Browser-owned `.goreecloud-part-*` staging file until an authoritative, current, correctly scoped Wardveil `clean` finding is bound to the exact SHA-256 digest. The staging file is re-hashed before the existing atomic final rename.
-
-Suspicious downloads are held for review. Malicious or unverifiable downloads remain blocked and cannot be opened through the download controller. A malicious result may produce a non-destructive Wardveil Quarantine handoff, but Browser does not execute canonical quarantine itself and never connects directly to ClamAV. Private Browsing retains malware verification while private download queue state remains non-persistent.
-
-This is source integration evidence, not a deployed malware-protection claim. Production acceptance still requires authenticated Browser-to-Wardveil transport, deployed scanner/signature health, controlled runtime malware tests, concurrency-safe staging release, authorized quarantine evidence, and accepted Glaze UI and Privacy Shield behavior. The Android beta blocks downloads until its own path can satisfy this contract rather than creating a bypass. See [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md).
-
-## Initial development phases
+## Development phases
 
 ### 0.x — GoreeCloud-owned browser shell
 
-Build the native application, current-Stable Glaze UI browser chrome, tabs, windows, sessions, profiles, settings, permissions UI, history, bookmarks integration, Search integration, downloads, local browser-state storage, Media Hover, and the engine adapter.
+Build and harden the native application, current-Stable Glaze UI browser chrome, tabs, windows, sessions, profiles, settings, permissions UI, history, bookmarks integration, Search integration, Index invocation, downloads, Browser-owned state storage, Media Hover, and engine adapters.
 
-### 0.x — First-party browser services
+### 0.x — First-party services
 
-Integrate GoreeCloud Sync, Identity, Vault, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Wayfinder, Mesh, and capability-gated Media Hover destinations/processors through explicit service contracts.
+Integrate Sync, Identity, Vault, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Wayfinder, Mesh, Search, Index, and capability-gated Media Hover destinations/processors through explicit service contracts.
 
 ### Later — selective engine ownership
 
-Replace, patch, or take greater control of engine subsystems only when GoreeCloud has a concrete privacy, security, performance, compatibility, platform, or product requirement.
-
-## Repository documentation
-
-The repository root includes the mandatory application documentation set:
-
-- [`README.md`](README.md) — repository entry point and current state.
-- [`SPECIFICATIONS.md`](SPECIFICATIONS.md) — version-coupled product specification.
-- [`FEATURES.md`](FEATURES.md) — functionality and implementation state.
-- [`BENEFITS.md`](BENEFITS.md) — supportable product value.
-- [`COMPETITIVE-OBJECTIVES.md`](COMPETITIVE-OBJECTIVES.md) — benchmark and differentiation objectives.
-- [`USER-MANUAL.md`](USER-MANUAL.md) — current user-facing behavior and beta operating guidance.
+Replace, patch, or take greater control of engine subsystems only where GoreeCloud has a concrete requirement that justifies the maintenance cost and risk.
 
 ## Repository layout
 
@@ -116,24 +139,40 @@ browser/engine/               Browser Engine Layer interfaces
 browser/engine/chromium/      Chromium adapter implementation
 browser/services/             GoreeCloud service contracts and adapters
 browser/storage/              GoreeCloud-owned browser data stores
-browser/ui/                   Current-Stable Glaze UI browser components
+browser/ui/                   Browser-owned Glaze UI components
 include/goreecloud/browser/   Public C++ interfaces
 src/                          Implementation and platform hosts
 docs/                         Architecture and engineering documentation
 packaging/                    Linux, Flatpak, Windows, and other packaging work
 ```
 
-## Status
+## Documentation
 
-GoreeCloud Browser **0.1.0-beta.1** is in active development and is not production-approved. The beta milestone establishes build-tested Browser-owned architecture, a visible Linux native shell, and a CI-built installable Android test APK target. The `+android.5` Glaze UI 2.2 migration remains a candidate until exact-head CI and application-specific rendered/native/accessibility evidence are complete. Unless explicitly identified as implemented and validated, documented capabilities remain product requirements or planned capabilities rather than claims of production readiness.
-
-See:
-
-- [`docs/BETA_0_1.md`](docs/BETA_0_1.md) — beta scope, render-capable gates, deferred work, and promotion requirements.
-- [`docs/ANDROID_BETA.md`](docs/ANDROID_BETA.md) — Android package, mobile chrome, Glaze mapping, runtime restrictions, CI evidence, signing boundary, and promotion requirements.
-- [`docs/MEDIA_HOVER.md`](docs/MEDIA_HOVER.md) — Media Hover interaction, search/AI/OCR, destination, privacy, security, accessibility, and integration contract.
-- [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md) — download release, evidence binding, fail-closed security states, privacy, quarantine, and production-acceptance boundaries.
+- [`SPECIFICATIONS.md`](SPECIFICATIONS.md) — product specification.
+- [`FEATURES.md`](FEATURES.md) — functionality and implementation state.
+- [`BENEFITS.md`](BENEFITS.md) — supportable product value.
+- [`COMPETITIVE-OBJECTIVES.md`](COMPETITIVE-OBJECTIVES.md) — benchmark and differentiation objectives.
+- [`USER-MANUAL.md`](USER-MANUAL.md) — current user-facing behavior and beta guidance.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architectural boundaries and ownership model.
 - [`docs/ENGINE_LAYER.md`](docs/ENGINE_LAYER.md) — Browser Engine Layer contracts.
-- [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md) — current-Stable Glaze UI adoption and acceptance policy.
-- [`docs/PRODUCT_INVENTORY.md`](docs/PRODUCT_INVENTORY.md) — planned inventory, feature requirements, authority boundaries, and production-acceptance direction.
+- [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md) — current-Stable Glaze adoption policy.
+- [`docs/SEARCH_INDEX_INTEGRATION.md`](docs/SEARCH_INDEX_INTEGRATION.md) — Browser/Search/Index delegation and authority contract.
+- [`docs/MEDIA_HOVER.md`](docs/MEDIA_HOVER.md) — Media Hover contract.
+- [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md) — download security contract.
+- [`docs/PRODUCT_INVENTORY.md`](docs/PRODUCT_INVENTORY.md) — planned inventory and authority boundaries.
+
+## Stable acceptance
+
+Browser remains non-Stable until the supported release revision has current evidence for:
+
+- web-engine/runtime behavior;
+- security and privacy enforcement;
+- current Glaze UI adoption;
+- accessibility;
+- packaging and production signing;
+- recovery and continuity;
+- compatibility and migration;
+- Search and Index integration boundaries;
+- representative real-device and sustained-use validation.
+
+Passing source or CI checks proves only the revision and scope exercised by those checks. It does not by itself authorize Stable promotion.
