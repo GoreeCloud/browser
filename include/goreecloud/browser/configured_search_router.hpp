@@ -15,20 +15,60 @@ namespace goreecloud::browser {
 class ConfiguredGoreeCloudSearchRouter final : public GoreeCloudSearchRouter {
  public:
   explicit ConfiguredGoreeCloudSearchRouter(std::string endpoint)
-      : endpoint_(std::move(endpoint)) {}
+      : endpoint_(std::move(endpoint)), valid_(is_valid_endpoint(endpoint_)) {}
 
   [[nodiscard]] std::string search_url(std::string_view query) const override {
-    if (endpoint_.empty()) {
+    if (!valid_) {
       throw std::runtime_error(
-          "GoreeCloud Search is not configured; no alternate search provider is permitted");
+          "GoreeCloud Search is not configured with a valid HTTP(S) endpoint; "
+          "no alternate search provider is permitted");
     }
+
     std::string result = endpoint_;
-    result += endpoint_.find('?') == std::string::npos ? "?q=" : "&q=";
+    if (endpoint_.find('?') == std::string::npos) {
+      result += "?q=";
+    } else if (endpoint_.back() == '?' || endpoint_.back() == '&') {
+      result += "q=";
+    } else {
+      result += "&q=";
+    }
     result += percent_encode(query);
     return result;
   }
 
-  [[nodiscard]] bool configured() const noexcept { return !endpoint_.empty(); }
+  [[nodiscard]] bool configured() const noexcept { return valid_; }
+
+  [[nodiscard]] static bool is_valid_endpoint(std::string_view endpoint) noexcept {
+    if (endpoint.empty() || endpoint.find('#') != std::string_view::npos) {
+      return false;
+    }
+
+    for (const unsigned char ch : endpoint) {
+      if (std::iscntrl(ch) || std::isspace(ch)) {
+        return false;
+      }
+    }
+
+    std::size_t authority_start = 0;
+    if (endpoint.rfind("https://", 0) == 0) {
+      authority_start = 8;
+    } else if (endpoint.rfind("http://", 0) == 0) {
+      authority_start = 7;
+    } else {
+      return false;
+    }
+
+    const auto authority_end = endpoint.find_first_of("/?", authority_start);
+    const auto authority = endpoint.substr(
+        authority_start,
+        authority_end == std::string_view::npos ? std::string_view::npos
+                                                : authority_end - authority_start);
+    if (authority.empty() || authority.find('@') != std::string_view::npos) {
+      return false;
+    }
+
+    return true;
+  }
 
  private:
   [[nodiscard]] static std::string percent_encode(std::string_view value) {
@@ -45,6 +85,7 @@ class ConfiguredGoreeCloudSearchRouter final : public GoreeCloudSearchRouter {
   }
 
   std::string endpoint_;
+  bool valid_{false};
 };
 
 inline ConfiguredGoreeCloudSearchRouter search_router_from_environment() {
