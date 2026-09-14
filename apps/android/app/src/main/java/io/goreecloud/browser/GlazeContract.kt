@@ -1,16 +1,22 @@
 package io.goreecloud.browser
 
 /**
- * Browser-owned Android-native mapping metadata for Glaze UI 2.2.0 Stable.
+ * Browser-owned Android-native mapping metadata for Glaze UI V1.4 / 1.4.0 Stable.
  *
- * This records the semantic contract consumed by the Android shell. It is source
- * mapping evidence only; rendered/native-device visual and accessibility
- * acceptance remain separate promotion gates.
+ * V1.4 inherits the V1.3 ergonomic, adaptive-navigation, system-shell, material,
+ * accessibility, and degradation foundations while adding the local deterministic
+ * Optical Engine contract. This is source-mapping evidence only; rendered/native-
+ * device visual and accessibility acceptance remain separate promotion gates.
  */
 object GlazeContract {
-    const val VERSION = "2.2.0"
-    const val STABLE_RELEASE_REVISION = "6731098b28dd0393faa878c70d989a221d714a20"
-    const val ACCEPTED_VISUAL_SOURCE = "0411b0f6dd877aea30e2c5674e1acde0105fd97b"
+    const val VERSION = "1.4.0"
+    const val SOURCE_INTEGRATION_ANCHOR = "a20374734dae6a119b28448f5e6b3232253b6da7"
+
+    // Compatibility names retained for existing Browser source consumers. Both
+    // resolve to the current V1.4 source-integration authority rather than an
+    // invented downstream release identity.
+    const val STABLE_RELEASE_REVISION = SOURCE_INTEGRATION_ANCHOR
+    const val ACCEPTED_VISUAL_SOURCE = SOURCE_INTEGRATION_ANCHOR
 
     const val GENERAL_TARGET_DP = 48
     const val TOUCH_ASSISTANCE_TARGET_DP = 56
@@ -26,8 +32,13 @@ object GlazeContract {
     const val AUTO_HIDE_SCROLL_THRESHOLD_DP = 72
     const val SCROLL_DIRECTION_SLOP_DP = 6
 
+    // Browser-local conservative composition budget. V1.4 does not grant
+    // Browser authority to turn ordinary app chrome into system UI.
     const val MAX_DOMINANT_GLAZE_PANELS = 1
     const val MAX_SMALL_FLOATING_GLAZE_CONTROLS = 3
+
+    // V1.4 environmental color memory is decorative and capped by Glaze at 8%.
+    const val MAX_ENVIRONMENTAL_MEMORY_INFLUENCE = 0.08
 
     enum class MaterialLevel {
         Canvas,
@@ -58,9 +69,9 @@ object GlazeContract {
     }
 
     /**
-     * Glaze UI 2.2 system-level hierarchy. Browser-owned chrome remains within
-     * Application scope; it does not relabel local Browser search/menu surfaces
-     * as Universal Search, Control Center, System Panel, or Critical System UI.
+     * Inherited V1.3 system-shell hierarchy. Browser-owned chrome remains within
+     * Application scope; local Browser search/menu surfaces do not become Control
+     * Center, system panels, or other platform-authoritative UI.
      */
     enum class ShellSurface {
         Workspace,
@@ -80,6 +91,18 @@ object GlazeContract {
         Loading,
         Error,
     }
+
+    enum class OpticalMode {
+        Standard,
+        IncreasedContrast,
+        SolidAccessible,
+    }
+
+    data class OpticalAccessibilitySignals(
+        val forcedColors: Boolean = false,
+        val reducedTransparency: Boolean = false,
+        val increasedContrast: Boolean = false,
+    )
 
     data class AndroidBrowserMapping(
         val canvas: MaterialLevel,
@@ -139,7 +162,20 @@ object GlazeContract {
         mapping.dominantGlazePanels in 0..MAX_DOMINANT_GLAZE_PANELS &&
             mapping.smallFloatingGlazeControls in 0..MAX_SMALL_FLOATING_GLAZE_CONTROLS
 
-    /** Higher value means higher Glaze UI 2.2 presentation priority. */
+    /** Accessibility and task completion outrank V1.4 optical decoration. */
+    fun opticalMode(signals: OpticalAccessibilitySignals): OpticalMode = when {
+        signals.forcedColors || signals.reducedTransparency -> OpticalMode.SolidAccessible
+        signals.increasedContrast -> OpticalMode.IncreasedContrast
+        else -> OpticalMode.Standard
+    }
+
+    fun allowsBackdropEffects(signals: OpticalAccessibilitySignals): Boolean =
+        opticalMode(signals) != OpticalMode.SolidAccessible
+
+    fun allowsDecorativeEnvironmentalTint(signals: OpticalAccessibilitySignals): Boolean =
+        opticalMode(signals) == OpticalMode.Standard
+
+    /** Higher value means higher Browser presentation priority. */
     fun statePriority(state: InteractionState): Int = when (state) {
         InteractionState.Rest -> 0
         InteractionState.Hover -> 1
