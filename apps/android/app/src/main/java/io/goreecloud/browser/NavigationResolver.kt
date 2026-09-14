@@ -5,21 +5,38 @@ import java.nio.charset.StandardCharsets
 
 /**
  * GoreeCloud-owned resolution policy for the Android unified address/search bar.
- * Direct URLs remain independent from search. Non-URL input is sent only to
- * GoreeCloud Search; no alternate provider or silent fallback is permitted.
+ * Direct URLs remain independent from search. Non-URL input is classified as a
+ * Search intent before a remote destination is produced so Privacy Shield and
+ * Search capability gates have an explicit pre-delegation decision boundary.
  */
 object NavigationResolver {
     const val SEARCH_HOME = "https://search.goreecloud.com/"
     private const val SEARCH_ENDPOINT = "https://search.goreecloud.com/search?q="
 
-    fun resolve(rawInput: String): String {
+    sealed interface Intent {
+        data object Home : Intent
+        data class Navigate(val url: String) : Intent
+        data class Search(val query: String, val url: String) : Intent
+    }
+
+    fun classify(rawInput: String): Intent {
         val input = rawInput.trim()
-        if (input.isEmpty()) return SEARCH_HOME
+        if (input.isEmpty()) return Intent.Home
 
-        if (hasHttpScheme(input)) return input
-        if (looksLikeHost(input)) return "https://$input"
+        if (hasHttpScheme(input)) return Intent.Navigate(input)
+        if (looksLikeHost(input)) return Intent.Navigate("https://$input")
 
-        return SEARCH_ENDPOINT + encodeQuery(input)
+        return Intent.Search(
+            query = input,
+            url = SEARCH_ENDPOINT + encodeQuery(input),
+        )
+    }
+
+    /** Compatibility helper for existing Browser callers. */
+    fun resolve(rawInput: String): String = when (val intent = classify(rawInput)) {
+        Intent.Home -> SEARCH_HOME
+        is Intent.Navigate -> intent.url
+        is Intent.Search -> intent.url
     }
 
     fun isAllowedWebUrl(url: String): Boolean = hasHttpScheme(url)
