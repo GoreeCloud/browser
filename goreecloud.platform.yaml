@@ -1,4 +1,4 @@
-schema_version: '0.2'
+schema_version: '0.3'
 
 component:
   type: application
@@ -82,6 +82,14 @@ platform_systems:
       - README.md
       - SPECIFICATIONS.md
     notes: GoreeCloud Identity remains authoritative for Browser profiles, synchronization identity, device authorization, account-bound preferences, authentication, and authorization; accepted runtime Identity integration is incomplete.
+  sync:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - SPECIFICATIONS.md
+      - docs/BETA_0_1.md
+    notes: Browser profile synchronization concepts, session recovery/checkpoints, engine portability, and local state migration do not establish GoreeCloud Sync acceptance. No accepted change tracking, authorized replication, version/conflict reconciliation, offline resume, cross-device continuity, or Sync runtime integration exists. Sync remains distinct from GoreeCloud Identity ownership and Everkeep backup/recovery.
 
 health:
   health_endpoint: null
@@ -93,6 +101,7 @@ continuity:
     requirements:
       - Protect approved durable normal-profile Browser state through the accepted Everkeep recovery model while excluding Private and Isolated Private browsing state from ordinary persistence and backup.
       - Keep credentials, passkeys, reusable secrets, and other Vault-owned protected material outside ordinary Browser backup payloads unless an explicitly protected recovery contract requires them.
+      - Keep GoreeCloud Sync replication and cross-device continuity state distinct from Everkeep backup truth.
   restore:
     required: true
     requirements:
@@ -120,10 +129,10 @@ external_dependencies:
     version_constraint: null
 
 compatibility:
-  platform_contract: '0.2'
+  platform_contract: '0.3'
   glaze_ui_required: '1.4.0'
   requires:
-    - goreecloud-platform-contract==0.2
+    - goreecloud-platform-contract==0.3
     - glaze-ui==1.4.0
   provides:
     - browser-engine-layer
@@ -156,6 +165,7 @@ conformance:
     - GLAZE UI V1.4 / 1.4.0 source mapping and trusted-chrome optical invariants exist across Android and shared native contracts, but complete Browser-specific rendered/accessibility/adaptive/representative-device acceptance and applicable V1.4.1 human-validation work remain outstanding.
     - GoreeCloud Mesh registration, discovery, transport, dependency/event integration, and runtime acceptance are incomplete.
     - GoreeCloud Identity profile, session, authorization, synchronization identity, and device-authorization integration are incomplete.
+    - GoreeCloud Sync change tracking, authorized replication, version/conflict reconciliation, offline resume, and cross-device continuity acceptance are incomplete.
     - Browser does not expose accepted health/readiness interfaces for GoreeCloud Manager or platform observability.
     - Desktop render-capable CEF/Chromium integration and its real-runtime acceptance remain incomplete.
     - Android production signing, representative-device acceptance, accessibility, localization/RTL, migration, update, rollback, and release provenance remain incomplete.
