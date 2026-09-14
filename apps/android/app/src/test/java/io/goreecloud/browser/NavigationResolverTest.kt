@@ -32,6 +32,14 @@ class NavigationResolverTest {
     }
 
     @Test
+    fun bareHostWithPortRemainsDirectNavigation() {
+        assertEquals(
+            NavigationResolver.Intent.Navigate("https://example.com:8443/path"),
+            NavigationResolver.classify("example.com:8443/path"),
+        )
+    }
+
+    @Test
     fun textQueryIsClassifiedBeforeRemoteSearchDestinationIsUsed() {
         val intent = NavigationResolver.classify(" privacy browser ")
         assertEquals(
@@ -45,6 +53,34 @@ class NavigationResolverTest {
             "https://search.goreecloud.com/search?q=privacy%20browser",
             NavigationResolver.resolve("privacy browser"),
         )
+    }
+
+    @Test
+    fun credentialBearingWebUrlFailsClosedInsteadOfNavigatingOrSearching() {
+        val raw = "https://user:pass@example.com/private"
+        assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
+        assertEquals("", NavigationResolver.resolve(raw))
+        assertFalse(NavigationResolver.isAllowedWebUrl(raw))
+    }
+
+    @Test
+    fun malformedHttpUrlFailsClosedInsteadOfBecomingSearch() {
+        val raw = "https://"
+        assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
+        assertEquals("", NavigationResolver.resolve(raw))
+    }
+
+    @Test
+    fun explicitUnsupportedSchemesFailClosedInsteadOfBecomingSearch() {
+        for (raw in listOf(
+            "file:///sdcard/example.html",
+            "javascript:alert(1)",
+            "intent://example",
+            "mailto:user@example.com",
+        )) {
+            assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
+            assertEquals("", NavigationResolver.resolve(raw))
+        }
     }
 
     @Test
