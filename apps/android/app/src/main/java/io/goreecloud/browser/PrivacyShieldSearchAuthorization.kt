@@ -13,10 +13,33 @@ import java.time.Instant
  * Search operation.
  */
 object PrivacyShieldSearchAuthorization {
+    const val REQUESTER_ID = "goreecloud-browser"
+    const val REQUESTER_TYPE = "application"
+    const val RESOURCE_ID = "goreecloud.search.query"
+    const val RESOURCE_CLASSIFICATION = "query_text"
     const val REQUIRED_OPERATION = GoreeCloudSearchContract.CAPABILITY_ID
+    const val REQUIRED_PURPOSE = "internet_search"
     const val REQUIRED_PROCESSING_ZONE = "private_goreecloud"
     const val REQUIRED_DESTINATION = GoreeCloudSearchContract.SEARCH_ORIGIN
     const val REQUIRED_RETENTION_MODE = "none"
+
+    /**
+     * Canonical Search-specific authorization intent. The concrete Privacy
+     * Shield runtime transport supplies a unique request_id and serializes this
+     * into the authoritative decision-request contract.
+     */
+    data class RequestIntent(
+        val requesterId: String = REQUESTER_ID,
+        val requesterType: String = REQUESTER_TYPE,
+        val resourceId: String = RESOURCE_ID,
+        val resourceClassification: String = RESOURCE_CLASSIFICATION,
+        val operation: String = REQUIRED_OPERATION,
+        val purpose: String = REQUIRED_PURPOSE,
+        val processingZone: String = REQUIRED_PROCESSING_ZONE,
+        val destination: String = REQUIRED_DESTINATION,
+        val retentionMode: String = REQUIRED_RETENTION_MODE,
+        val externalDisclosure: Boolean = false,
+    )
 
     data class DecisionEvidence(
         val decisionId: String,
@@ -49,6 +72,8 @@ object PrivacyShieldSearchAuthorization {
         EXPIRED_OR_INVALID_EXPIRY,
         CAPABILITY_TOKEN_REQUIRED,
     }
+
+    fun requestIntent(): RequestIntent = RequestIntent()
 
     fun evaluate(
         decision: DecisionEvidence,
