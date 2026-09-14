@@ -7,10 +7,27 @@ import org.junit.Test
 
 class PrivacyShieldSearchAuthorizationTest {
     private val now = Instant.parse("2026-09-14T12:00:00Z")
+    private val request = PrivacyShieldSearchAuthorization.requestIntent("privacy-request-123")
+
+    @Test
+    fun canonicalRequestCarriesStableCorrelationIdentity() {
+        assertEquals("privacy-request-123", request.requestId)
+        assertEquals("goreecloud-browser", request.requesterId)
+        assertEquals("application", request.requesterType)
+        assertEquals("goreecloud.search.query", request.resourceId)
+        assertEquals("query_text", request.resourceClassification)
+        assertEquals("search.query", request.operation)
+        assertEquals("internet_search", request.purpose)
+        assertEquals("private_goreecloud", request.processingZone)
+        assertEquals("https://search.goreecloud.com", request.destination)
+        assertEquals("none", request.retentionMode)
+        assertEquals(false, request.externalDisclosure)
+    }
 
     @Test
     fun exactAllowDecisionProducesCapabilityTokenAuthorization() {
         val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
             decision = allowedDecision(),
             now = now,
         )
@@ -22,8 +39,41 @@ class PrivacyShieldSearchAuthorizationTest {
     }
 
     @Test
+    fun decisionForDifferentRequestFailsClosed() {
+        val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
+            decision = allowedDecision().copy(requestId = "privacy-request-other"),
+            now = now,
+        )
+
+        assertEquals(
+            PrivacyShieldSearchAuthorization.Evaluation.Rejected(
+                PrivacyShieldSearchAuthorization.RejectionReason.REQUEST_ID_MISMATCH,
+            ),
+            evaluation,
+        )
+    }
+
+    @Test
+    fun nonCanonicalRequestFailsClosed() {
+        val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request.copy(destination = "https://example.com"),
+            decision = allowedDecision(),
+            now = now,
+        )
+
+        assertEquals(
+            PrivacyShieldSearchAuthorization.Evaluation.Rejected(
+                PrivacyShieldSearchAuthorization.RejectionReason.INVALID_REQUEST_INTENT,
+            ),
+            evaluation,
+        )
+    }
+
+    @Test
     fun constrainedAllowFailsClosedUntilObligationsCanBeEnforced() {
         val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
             decision = allowedDecision().copy(
                 outcome = "ALLOW_WITH_CONSTRAINTS",
                 obligations = setOf("redact-sensitive-terms"),
@@ -42,6 +92,7 @@ class PrivacyShieldSearchAuthorizationTest {
     @Test
     fun wrongDestinationFailsClosed() {
         val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
             decision = allowedDecision().copy(
                 permittedDestinations = setOf("https://example.com"),
             ),
@@ -59,6 +110,7 @@ class PrivacyShieldSearchAuthorizationTest {
     @Test
     fun expiredDecisionFailsClosed() {
         val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
             decision = allowedDecision().copy(expiresAt = "2026-09-14T11:59:59Z"),
             now = now,
         )
@@ -74,6 +126,7 @@ class PrivacyShieldSearchAuthorizationTest {
     @Test
     fun missingCapabilityTokenReferenceFailsClosed() {
         val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
             decision = allowedDecision().copy(capabilityTokenReference = null),
             now = now,
         )
@@ -88,6 +141,7 @@ class PrivacyShieldSearchAuthorizationTest {
 
     private fun allowedDecision() = PrivacyShieldSearchAuthorization.DecisionEvidence(
         decisionId = "privacy-shield:decision:123",
+        requestId = request.requestId,
         outcome = "ALLOW",
         permittedOperations = setOf("search.query"),
         processingZone = "private_goreecloud",
