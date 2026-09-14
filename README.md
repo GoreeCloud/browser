@@ -18,15 +18,16 @@ GoreeCloud Browser is not intended to be a conventional Chromium skin or a perma
 
 GoreeCloud-owned application layers remain separated from the rendering engine behind explicit interfaces. Chromium/Blink and Android System WebView/Chromium are initial engine foundations. The architecture must preserve the ability to use platform-native engines, alternative engines, or future GoreeCloud-controlled engine work when a concrete privacy, security, performance, compatibility, platform, or product requirement justifies it.
 
-## Core systems
+## Core systems and services
 
 - **GoreeCloud Browser** — browser shell, chrome, tabs, profiles, preferences, history, permissions, downloads, sessions, and navigation experience.
 - **Browser Engine Layer** — GoreeCloud-owned abstraction between Browser and the active web engine.
+- **GoreeCloud Manager** — bounded operational visibility and administration where accepted Browser integration exists.
 - **Glaze UI** — authoritative GoreeCloud presentation and interaction system for Browser-owned surfaces.
 - **GoreeCloud Search** — sole Internet/web/current-information search authority for approved Browser search entry points.
 - **GoreeCloud Index** — universal/local federated discovery authority when Browser invokes device/application/content search.
 - **GoreeCloud Bookmarks** — bookmarks, read-later, collections, and library subsystem.
-- **GoreeCloud Sync** — synchronization for approved Browser state while excluding indiscriminate sensitive website-state sync.
+- **GoreeCloud Sync** — synchronization application/service capability for approved Browser state while excluding indiscriminate sensitive website-state sync.
 - **Privacy Shield** — privacy authorization and protection authority for Browser privacy operations.
 - **Wardveil Security** — security/protection authority and evidence-backed Browser security integration.
 - **Everkeep** — encrypted browser-state backup, recovery, portability, and continuity where applicable.
@@ -37,6 +38,8 @@ GoreeCloud-owned application layers remain separated from the rendering engine b
 - **GoreeCloud Mesh** — first-party coordination and governance layer.
 - **GoreeCloud Wayfinder** — Browser-owned navigation, productivity, organization, capture, transfer, session, and workflow feature family.
 - **Media Hover** — Browser-owned contextual media interaction layer subject to Browser privacy/security and destination boundaries.
+
+The seven Integral Platform Systems are GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, and GoreeCloud Identity. Search, Index, Sync, Vault, DNS, Network, Bookmarks, and other first-party products/services keep their own authority and acceptance contracts; they are not reclassified as Integral Platform Systems by Browser integration.
 
 ## Search and Index integration
 
@@ -61,7 +64,7 @@ A production capability is usable only when the expected record is unambiguous, 
 
 Development builds may use explicitly Development-only capability paths where repository-local evidence makes that exception visible. Development exceptions never authorize Stable promotion.
 
-Consumer validation does not create producer authority. Search, Index, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Bookmarks, and other first-party systems retain independent contracts and lifecycle evidence.
+Consumer validation does not create producer authority. Search, Index, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Bookmarks, and other first-party systems and services retain independent contracts and lifecycle evidence.
 
 ## Glaze UI requirement
 
@@ -84,6 +87,7 @@ Browser must continue to prefer explicit authority and fail-closed behavior.
 - Privacy Shield controls applicable privacy authorization, purpose, minimization, destination, and retention decisions.
 - Wardveil Security controls applicable protection/security state and evidence.
 - Identity authentication is not blanket authorization for every Browser operation.
+- Manager administration or operational visibility does not transfer Browser product authority.
 - Vault owns protected credential/passkey material.
 - DNS and Network retain their own configuration and runtime authority.
 - Engine presence does not authorize bypassing GoreeCloud policy boundaries.
@@ -107,7 +111,7 @@ See [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md).
 1. GoreeCloud owns the browser product layer.
 2. The rendering engine is replaceable infrastructure, not product identity.
 3. GoreeCloud-specific behavior should remain outside deep engine forks when stable adapters are practical.
-4. Privacy Shield, Wardveil Security, Everkeep, Glaze UI, Mesh, Search, Index, and Identity are substantive platform systems with independent evidence.
+4. The seven Integral Platform Systems—GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, and GoreeCloud Identity—retain substantive independent authority and evidence requirements; Search, Index, Sync, and other first-party products/services remain separate capabilities with their own contracts.
 5. Browser state should use GoreeCloud-owned schemas rather than treating Chromium profile formats as canonical.
 6. Upstream engine security updates must remain practical to consume.
 7. Engine-specific exceptions must be isolated and documented.
@@ -123,7 +127,7 @@ Build and harden the native application, current-Stable Glaze UI browser chrome,
 
 ### 0.x — First-party services
 
-Integrate Sync, Identity, Vault, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Wayfinder, Mesh, Search, Index, and capability-gated Media Hover destinations/processors through explicit service contracts.
+Integrate Sync, Identity, Vault, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Wayfinder, Mesh, Manager, Search, Index, and capability-gated Media Hover destinations/processors through explicit service contracts and authority boundaries.
 
 ### Later — selective engine ownership
 
