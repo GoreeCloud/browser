@@ -41,6 +41,7 @@ object GoreeCloudSearchContract {
         val privacyAuthorizationScheme: String,
         val privacyAuthorizationHeader: String,
         val privacyAuthorizationEnforcement: String,
+        val authenticatedRequesterRequired: Boolean,
         val maxRequestBytes: Int,
         val maxResults: Int,
     )
@@ -129,6 +130,7 @@ object GoreeCloudSearchContract {
             capability.privacyAuthorizationScheme == PRIVACY_AUTHORIZATION_SCHEME &&
             capability.privacyAuthorizationHeader == PRIVACY_AUTHORIZATION_HEADER &&
             capability.privacyAuthorizationEnforcement == PRIVACY_AUTHORIZATION_ENFORCEMENT &&
+            capability.authenticatedRequesterRequired &&
             capability.maxRequestBytes == MAX_REQUEST_BYTES &&
             capability.maxResults >= 1
 }
