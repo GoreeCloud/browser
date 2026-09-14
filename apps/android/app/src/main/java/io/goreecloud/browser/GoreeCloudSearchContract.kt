@@ -20,6 +20,9 @@ object GoreeCloudSearchContract {
     const val PRIVACY_AUTHORIZATION_SCHEME = "privacy_shield_capability_token_reference"
     const val PRIVACY_AUTHORIZATION_HEADER = "X-GoreeCloud-Privacy-Capability"
     const val PRIVACY_AUTHORIZATION_ENFORCEMENT = "required"
+    const val REQUESTER_AUTHENTICATION_AUTHORITY = "goreecloud-identity"
+    const val REQUESTER_AUTHENTICATION_SCHEME = "bearer"
+    const val REQUESTER_AUTHENTICATION_HEADER = "Authorization"
     const val MAX_REQUEST_BYTES = 16 * 1024
     const val PRIVACY_CAPABILITY_REFERENCE_MAX_LENGTH = 512
     private const val GENERAL_CATEGORY = "general"
@@ -46,6 +49,9 @@ object GoreeCloudSearchContract {
         val authenticatedRequesterRequired: Boolean,
         val maxRequestBytes: Int,
         val maxResults: Int,
+        val authenticatedRequesterAuthority: String? = null,
+        val authenticatedRequesterScheme: String? = null,
+        val authenticatedRequesterHeader: String? = null,
     )
 
     data class PrivacyAuthorization(
@@ -163,6 +169,9 @@ object GoreeCloudSearchContract {
             capability.privacyAuthorizationHeader == PRIVACY_AUTHORIZATION_HEADER &&
             capability.privacyAuthorizationEnforcement == PRIVACY_AUTHORIZATION_ENFORCEMENT &&
             capability.authenticatedRequesterRequired &&
+            capability.authenticatedRequesterAuthority == REQUESTER_AUTHENTICATION_AUTHORITY &&
+            capability.authenticatedRequesterScheme == REQUESTER_AUTHENTICATION_SCHEME &&
+            capability.authenticatedRequesterHeader == REQUESTER_AUTHENTICATION_HEADER &&
             capability.maxRequestBytes == MAX_REQUEST_BYTES &&
             capability.maxResults >= 1
 
