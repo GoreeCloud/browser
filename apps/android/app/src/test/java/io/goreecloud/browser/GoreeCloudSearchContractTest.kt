@@ -83,11 +83,33 @@ class GoreeCloudSearchContractTest {
     }
 
     @Test
+    fun noncanonicalPrivacyAuthorizationReferenceFailsClosed() {
+        val decision = GoreeCloudSearchContract.authorize(
+            query = "privacy browser",
+            capability = capability(),
+            privacyAuthorization = GoreeCloudSearchContract.PrivacyAuthorization(
+                accepted = true,
+                reference = "privacy-shield:capability:test",
+            ),
+        )
+
+        assertEquals(
+            GoreeCloudSearchContract.Decision.Rejected(
+                GoreeCloudSearchContract.RejectionReason.PRIVACY_AUTHORIZATION_REQUIRED,
+            ),
+            decision,
+        )
+    }
+
+    @Test
     fun acceptedEvidenceBuildsPostBodyRequestWithoutQueryInEndpoint() {
         val decision = GoreeCloudSearchContract.authorize(
             query = " privacy browser ",
             capability = capability(maxResults = 50),
-            privacyAuthorization = authorization(),
+            privacyAuthorization = GoreeCloudSearchContract.PrivacyAuthorization(
+                accepted = true,
+                reference = " psc_test ",
+            ),
             requestedLimit = 80,
         )
 
