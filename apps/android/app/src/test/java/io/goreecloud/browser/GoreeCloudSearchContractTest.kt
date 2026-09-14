@@ -67,6 +67,25 @@ class GoreeCloudSearchContractTest {
     }
 
     @Test
+    fun mismatchedRequesterAuthenticationCarrierFailsClosed() {
+        assertFalse(
+            GoreeCloudSearchContract.isCompatible(
+                capability(authenticatedRequesterAuthority = "untrusted-authority"),
+            ),
+        )
+        assertFalse(
+            GoreeCloudSearchContract.isCompatible(
+                capability(authenticatedRequesterScheme = "basic"),
+            ),
+        )
+        assertFalse(
+            GoreeCloudSearchContract.isCompatible(
+                capability(authenticatedRequesterHeader = "X-GoreeCloud-Requester"),
+            ),
+        )
+    }
+
+    @Test
     fun missingPrivacyAuthorizationFailsClosed() {
         val decision = GoreeCloudSearchContract.authorize(
             query = "privacy browser",
@@ -168,6 +187,9 @@ class GoreeCloudSearchContractTest {
         preferredQueryTransport: String = "json_body",
         privacyAuthorizationEnforcement: String = "required",
         authenticatedRequesterRequired: Boolean = true,
+        authenticatedRequesterAuthority: String = GoreeCloudSearchContract.REQUESTER_AUTHENTICATION_AUTHORITY,
+        authenticatedRequesterScheme: String = GoreeCloudSearchContract.REQUESTER_AUTHENTICATION_SCHEME,
+        authenticatedRequesterHeader: String = GoreeCloudSearchContract.REQUESTER_AUTHENTICATION_HEADER,
         maxResults: Int = 100,
     ) = GoreeCloudSearchContract.CapabilityEvidence(
         id = "search.query",
@@ -190,5 +212,8 @@ class GoreeCloudSearchContractTest {
         authenticatedRequesterRequired = authenticatedRequesterRequired,
         maxRequestBytes = 16 * 1024,
         maxResults = maxResults,
+        authenticatedRequesterAuthority = authenticatedRequesterAuthority,
+        authenticatedRequesterScheme = authenticatedRequesterScheme,
+        authenticatedRequesterHeader = authenticatedRequesterHeader,
     )
 }
