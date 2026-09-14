@@ -1,6 +1,7 @@
 package io.goreecloud.browser
 
 import java.time.Instant
+import java.util.UUID
 
 /**
  * Narrow Browser adapter for the canonical Privacy Shield authorization
@@ -24,11 +25,13 @@ object PrivacyShieldSearchAuthorization {
     const val REQUIRED_RETENTION_MODE = "none"
 
     /**
-     * Canonical Search-specific authorization intent. The concrete Privacy
-     * Shield runtime transport supplies a unique request_id and serializes this
-     * into the authoritative decision-request contract.
+     * Canonical Search-specific authorization intent. The request identifier is
+     * created before Privacy Shield is called so the returned decision can be
+     * proven to belong to this exact operation rather than merely looking
+     * compatible with it.
      */
     data class RequestIntent(
+        val requestId: String,
         val requesterId: String = REQUESTER_ID,
         val requesterType: String = REQUESTER_TYPE,
         val resourceId: String = RESOURCE_ID,
@@ -43,6 +46,7 @@ object PrivacyShieldSearchAuthorization {
 
     data class DecisionEvidence(
         val decisionId: String,
+        val requestId: String,
         val outcome: String,
         val permittedOperations: Set<String>,
         val processingZone: String,
@@ -62,7 +66,9 @@ object PrivacyShieldSearchAuthorization {
     }
 
     enum class RejectionReason {
+        INVALID_REQUEST_INTENT,
         INVALID_DECISION_ID,
+        REQUEST_ID_MISMATCH,
         OUTCOME_NOT_ALLOW,
         OPERATION_NOT_PERMITTED,
         PROCESSING_ZONE_NOT_PERMITTED,
@@ -73,14 +79,25 @@ object PrivacyShieldSearchAuthorization {
         CAPABILITY_TOKEN_REQUIRED,
     }
 
-    fun requestIntent(): RequestIntent = RequestIntent()
+    fun requestIntent(requestId: String = UUID.randomUUID().toString()): RequestIntent {
+        val normalizedRequestId = requestId.trim()
+        require(normalizedRequestId.isNotEmpty()) { "Privacy Shield request ID must not be blank" }
+        return RequestIntent(requestId = normalizedRequestId)
+    }
 
     fun evaluate(
+        request: RequestIntent,
         decision: DecisionEvidence,
         now: Instant = Instant.now(),
     ): Evaluation {
+        if (!isCanonicalRequest(request)) {
+            return Evaluation.Rejected(RejectionReason.INVALID_REQUEST_INTENT)
+        }
         if (decision.decisionId.isBlank()) {
             return Evaluation.Rejected(RejectionReason.INVALID_DECISION_ID)
+        }
+        if (decision.requestId != request.requestId) {
+            return Evaluation.Rejected(RejectionReason.REQUEST_ID_MISMATCH)
         }
         if (decision.outcome != "ALLOW") {
             // ALLOW_WITH_CONSTRAINTS remains fail-closed until Browser has a
@@ -121,4 +138,17 @@ object PrivacyShieldSearchAuthorization {
             ),
         )
     }
+
+    private fun isCanonicalRequest(request: RequestIntent): Boolean =
+        request.requestId.isNotBlank() &&
+            request.requesterId == REQUESTER_ID &&
+            request.requesterType == REQUESTER_TYPE &&
+            request.resourceId == RESOURCE_ID &&
+            request.resourceClassification == RESOURCE_CLASSIFICATION &&
+            request.operation == REQUIRED_OPERATION &&
+            request.purpose == REQUIRED_PURPOSE &&
+            request.processingZone == REQUIRED_PROCESSING_ZONE &&
+            request.destination == REQUIRED_DESTINATION &&
+            request.retentionMode == REQUIRED_RETENTION_MODE &&
+            !request.externalDisclosure
 }
