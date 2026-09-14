@@ -9,16 +9,20 @@ GoreeCloud Browser is an original GoreeCloud-owned native web browser. GoreeClou
 - Browser channel: `0.1.0-beta.1`
 - Production approved: No
 - Stable: No
-- Current mandatory Glaze UI target: `2.2.0`
-- Glaze UI Stable release revision: `6731098b28dd0393faa878c70d989a221d714a20`
-- Android Glaze UI 2.2 source mapping: migration candidate on `+android.5`; native-device acceptance pending
+- Current mandatory Glaze UI target: `1.4.0`
+- Glaze UI Stable promotion revision: `84cb3db4884042f0fa25ed6d475a127fb110f596`
+- Current Stable hardening revision reviewed for Browser migration: `ee057ce9e729296aeaeda182d01db89f52bd66f3`
+- Android Glaze UI V1.4 source mapping: Development migration candidate on `+android.5`; rendered/native-device application acceptance pending
+- Platform Contract: `0.3`, using the seven authoritative Integral Platform Systems
 - Canonical source repository: `GoreeCloud/goreecloud-browser`
+
+The seven Integral Platform Systems are GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, and GoreeCloud Identity. GoreeCloud Search, GoreeCloud Index, GoreeCloud Sync, Vault, DNS, Network, Bookmarks, and other first-party products/services remain separate capability or authority relationships and must not be represented as additional Integral Platform Systems.
 
 ## Android beta
 
 - User-facing identity: GoreeCloud Browser Beta
 - Debug-beta package: `io.goreecloud.browser.beta`
-- Debug-beta version on this migration branch: `0.1.0-beta.1+android.5`
+- Debug-beta version on the current Development line: `0.1.0-beta.1+android.5`
 - Android versionCode: `10005`
 - Minimum Android: API 26
 - Compile/target API: 35
@@ -55,15 +59,22 @@ A capability is usable through this generic Browser gate only when the service i
 
 The consumer boundary does not manufacture producer authority, automatically wire every first-party service adapter, establish a live production integration, or qualify Browser as Stable.
 
-## Android navigation contract
+## Android navigation and Search contract
 
-The unified address/search field resolves input according to Browser-owned policy:
+The unified address/search field resolves input through Browser-owned classification before remote action:
 
-1. Empty input opens GoreeCloud Search home.
-2. Explicit HTTP/HTTPS URLs navigate directly.
-3. Bare host input is upgraded to HTTPS.
-4. Other text is sent only to GoreeCloud Search.
-5. Non-web schemes are not accepted as ordinary Browser web navigation.
+1. Empty input resolves to the local GoreeCloud Search Home surface.
+2. Accepted HTTP/HTTPS URLs or supported bare-host input resolve to Browser navigation.
+3. Non-URL Internet/current-information text becomes local GoreeCloud Search intent only.
+4. Unsupported, malformed, ambiguous, or credential-bearing input fails closed locally rather than being silently executed or converted into a remote Search query.
+
+Search classification retains normalized query text as local intent and does not manufacture a query-bearing `?q=` URL. The current Android Development runtime does not transmit Search queries remotely.
+
+Production Browser Search delegation requires one unambiguous `search.query` capability record from `/api/v1/status` / `capability_evidence`, POST + `json_body`, JSON request/response media types, request/result bounds, required Privacy Shield capability-reference transport, required server enforcement, and authenticated requester evidence. Current capability validation requires requester authority `goreecloud-identity`, authentication scheme `bearer`, and requester-authentication header `Authorization`.
+
+Browser creates and validates an operation-scoped Privacy Shield authorization request/decision boundary with request-ID correlation and requires a canonical opaque `psc_*` capability reference. The transport-neutral Search contract validates compatible evidence and can construct the bounded Search POST description, but it performs no network I/O and does not create a GoreeCloud Identity session, bearer credential, or accepted authenticated transport.
+
+GoreeCloud Search remains the sole approved Internet/current-information query authority for Browser search entry points. GoreeCloud Index remains the universal/local federated discovery authority. Browser must not merge Search and Index into an ambiguous authority boundary or silently fall back to a third-party search engine.
 
 ## Android mobile chrome contract
 
@@ -76,37 +87,34 @@ The installed beta uses a Browser-owned two-region mobile shell:
 - page-load progress overlaid on web content rather than allocated its own chrome row;
 - unfocused address presentation that removes the scheme while keeping the hostname at the leading edge;
 - complete URL exposure and selection when the omnibox receives focus;
-- scroll-aware top chrome that collapses after meaningful downward page scrolling and returns on upward scrolling, page-top return, omnibox focus, or new navigation;
+- scroll-aware top chrome that collapses after meaningful downward page scrolling and returns on upward scrolling, page-top return, omnibox focus, new navigation, or accessibility-state requirements;
 - Browser-owned Glaze menu presentation rather than the Android platform-default popup menu.
 
 Expanded fixed Browser chrome is 128dp before Android system bars. The collapsed scrolling state retains only the 56dp bottom navigation toolbar.
 
 ## Android Glaze UI contract
 
-The current migration branch maps Browser-owned Android chrome to Glaze UI 2.2.0 Stable and records Stable release revision `6731098b28dd0393faa878c70d989a221d714a20` plus accepted Glaze UI visual source `0411b0f6dd877aea30e2c5674e1acde0105fd97b`.
+The current Browser Development line targets **GLAZE UI V1.4 / `1.4.0`**. The canonical Stable promotion revision is `84cb3db4884042f0fa25ed6d475a127fb110f596`; Browser migration review also records current Stable hardening revision `ee057ce9e729296aeaeda182d01db89f52bd66f3`.
 
-The prior authoritative `+android.4` / main `974786cdccceac7a0198881d4bd5f4e5d4b28c58` mapping targeted Glaze UI 2.0.0. That remains historical evidence and rollback input, not current-Stable conformance.
+Historical Browser mappings to Glaze UI 2.0, 2.2, V1.2, and V1.3 remain historical implementation/rollback evidence only. They do not satisfy the current V1.4 consumer requirement and must not be relabeled as current acceptance.
 
-The Android shell maps native controls to:
+Browser-owned Android presentation must preserve the V1.4 rules applicable to this product:
 
-- Canvas for the root application background and top chrome;
-- Soft Glaze for the omnibox and Browser menu sheet;
-- Surface for the address-field role, bottom navigation, and Browser menu actions;
-- Application scope in the Glaze UI 2.2 System Shell hierarchy; Browser-owned menu/search chrome does not claim Universal Search, Control Center, System Panel, or Critical System authority;
-- Calm expression and Balanced clarity for this beta shell;
-- a 48dp minimum effective target for ordinary touch-oriented interactive controls;
-- a recorded 56dp target floor for Touch Assistance/far-view contexts where applicable, without claiming an unwired Android Touch Assistance authority mapping;
-- a bounded ordinary composition of at most one dominant Glaze panel and up to three small floating Glaze controls;
-- Glaze UI 2.2 interaction-state priority with disabled state above error, pressed, focus, selected, hover, and rest;
-- semantic native labels and focus/pressed states;
-- effects-free operation without requiring blur/transparency;
-- native light/dark appearance adaptation;
-- Browser-owned vector icons;
-- explicit no-action-bar and no-development-banner normal-chrome contracts;
-- an explicit prohibition on using the platform-default `PopupMenu` as the Browser menu surface;
-- an explicit scroll-aware top-chrome contract.
+- neutral Frost/glass remains a bounded material foundation rather than semantic authority;
+- Browser chrome is Application scope and must not claim Universal Search, Control Center, System Panel, Critical System UI, or other platform authority;
+- ordinary interactive controls retain at least the normal 48dp floor, with the 56dp assisted target available where the applicable accessibility/input mode requires it;
+- readable and critical-decision content remains solid where appropriate;
+- Reduced Transparency and Forced Colors fail to accessible solid presentation;
+- Increased Contrast suppresses decorative optical treatment where required and strengthens clarity;
+- Reduced Motion must not be bypassed by Browser animation behavior;
+- environmental tinting, warmth, chromatic depth, and color-memory influence remain decorative and bounded;
+- optical behavior must not be driven by typed query content, navigation URLs, browsing history, credentials, cookies, account identity, protected platform evidence, telemetry, analytics, camera access, or remote environmental sensing;
+- semantic labels, focus, pressed, selected, disabled, loading, warning, and error states remain understandable without relying on optical effects;
+- native/effects-free operation must remain possible without blur/transparency.
 
-This source mapping is not equivalent to native-device Glaze acceptance. Production acceptance requires exact-revision rendered visual review, accessibility/TalkBack evidence, 200% text, contrast, Reduced Motion, Reduced Transparency/effects-free behavior, applicable forced-color/high-contrast behavior, RTL/localization, input, responsive/form-factor, performance, Touch Assistance mapping where supported, and representative real-device evidence.
+Glaze UI may present Browser state but cannot manufacture Privacy Shield authorization, Wardveil security state, Everkeep continuity, GoreeCloud Identity authority, Search/Index authority, Mesh coordination, Sync state, or successful Browser workflow state.
+
+This source mapping is not equivalent to Browser application acceptance. Production acceptance requires exact-revision rendered/native visual review, TalkBack/screen-reader and broader accessibility evidence, 200% text or supported equivalent, RTL/localization, Reduced Motion, Reduced Transparency, Increased Contrast, Forced Colors or platform equivalent, input/form-factor behavior, representative device coverage, performance/sustained-use evidence, and applicable V1.4.1 human/manual/physical-device qualification.
 
 ## Security boundary
 
@@ -120,9 +128,9 @@ Android System WebView remains responsible for its engine/platform security mech
 
 Privacy Shield is the authoritative privacy and data-use governance system. The beta currently uses privacy-protective defaults including third-party-cookie blocking and denied permission/geolocation requests.
 
-The native session-recovery core also excludes Private and Isolated Private windows before persistence. This exclusion is a source-level privacy invariant, not a claim that the complete private-browsing runtime has reached production acceptance.
+The native session-recovery core excludes Private and Isolated Private windows before persistence. Search delegation additionally requires an operation-scoped accepted Privacy Shield decision and canonical capability reference before any production remote query path may proceed.
 
-Complete Privacy Shield consent, filtering, private-browsing, diagnostics, policy, and user-control acceptance remains pending.
+These are source-level privacy invariants, not a claim that complete private-browsing, Search authorization transport, or broader Browser Privacy Shield runtime acceptance has reached production.
 
 ## Continuity boundary
 
@@ -130,23 +138,28 @@ Everkeep is the authoritative resilience, recovery, preservation, portability, a
 
 ## Identity and integration boundaries
 
-GoreeCloud Identity is authoritative for identity/authentication/authorization. GoreeCloud Mesh is authoritative for platform coordination and capability discovery. GoreeCloud Search is the sole approved integrated query authority for Browser search entry points. GoreeCloud Vault, Sync, DNS, Network, Bookmarks, Wayfinder, and other GoreeCloud services remain separate capability authorities according to their contracts.
+GoreeCloud Identity is authoritative for identity, authentication, authorization, requester/service identity, accounts, devices, credentials, and sessions. The Search capability boundary may require Identity-backed requester authentication metadata, but capability validation alone does not create an authenticated Browser session or transport credential.
+
+GoreeCloud Mesh is authoritative for platform coordination and capability discovery. GoreeCloud Search is the sole approved Internet/current-information query authority for Browser search entry points. GoreeCloud Index is the local/universal federated discovery authority. GoreeCloud Vault, Sync, DNS, Network, Bookmarks, Wayfinder, and other GoreeCloud products/services remain separate capability authorities according to their contracts.
+
+GoreeCloud Sync remains separately governed from the seven Integral Platform Systems. Browser must define accepted Sync datasets before runtime synchronization and must exclude Private/Isolated Private state, credentials, passkeys, reusable secrets, unrelated protected evidence, and other prohibited state from ordinary synchronization.
 
 ## Production promotion blockers
 
 At minimum, Stable Android promotion remains blocked by:
 
 - controlled signing and update/rollback key operations;
-- complete Glaze UI 2.2 native-device visual/accessibility/form-factor acceptance on the exact Browser adoption revision;
+- complete GLAZE UI V1.4 rendered/native-device visual/accessibility/form-factor acceptance on the exact Browser adoption revision;
 - authenticated Wardveil download verification/release integration;
-- accepted Privacy Shield runtime integration;
+- accepted Privacy Shield runtime decision/capability acquisition and evidence handling;
+- accepted GoreeCloud Identity requester authentication for protected first-party delegation;
+- Search-side capability-reference verification and required-mode enforcement before remote Search transmission;
 - accepted Everkeep recovery/continuity integration;
 - private-browsing isolation and Close & Forget evidence;
 - Browser-owned permission workflows;
-- required Identity/Vault/Sync/DNS/Network/Mesh adapters;
+- required Identity/Vault/Sync/DNS/Network/Mesh/Manager adapters;
 - representative supported-device testing;
-- accessibility, RTL/localization, and text-scaling acceptance;
-- Touch Assistance / 56dp runtime mapping where the supported Android product scope requires it;
+- accessibility, RTL/localization, large-text, reduced-effects, and input acceptance;
 - upgrade/downgrade/data-migration acceptance;
 - release provenance and operational recovery evidence.
 
