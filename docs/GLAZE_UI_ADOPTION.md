@@ -4,55 +4,128 @@ GoreeCloud Browser tracks the **latest approved Stable Glaze UI release**.
 
 ## Current baseline
 
-- Glaze UI Stable version: `2.2.0`
+- Glaze UI Stable version: `1.4.0`
 - Canonical repository: `GoreeCloud/goreecloud-glaze-ui`
-- Stable release revision: `6731098b28dd0393faa878c70d989a221d714a20`
-- Accepted Glaze UI visual source: `0411b0f6dd877aea30e2c5674e1acde0105fd97b`
+- Stable promotion revision: `84cb3db4884042f0fa25ed6d475a127fb110f596`
+- Current Stable hardening revision reviewed for this migration: `ee057ce9e729296aeaeda182d01db89f52bd66f3`
 - Browser policy: `latest-approved-stable`
-- Browser Android source-mapping state on this branch: migration candidate
-- Browser production eligibility from this migration alone: No
+- Browser conformance state: **migration required / not yet accepted**
+- Browser production eligibility from this documentation update alone: **No**
 
-This is an adoption baseline, not a permanent pin. A newer Stable promotion makes Browser migration-required until source contracts, native mappings, and product-specific acceptance are updated.
+This is a moving adoption target, not a permanent pin. Any newer Stable Glaze UI promotion makes Browser migration-required until Browser-owned surfaces, native mappings, automated checks, and application-specific acceptance evidence are updated.
 
-Glaze UI 2.2.0 was promoted after Browser's previously integrated 2.0.0 mapping. The central design-system release does not auto-promote Browser. The `+android.5` branch therefore records repository-local adoption work and must obtain its own exact-source automated and native/device evidence.
+The previous Browser documentation named Glaze UI `2.2.0`. That value is not the current Stable authority published by `GoreeCloud/goreecloud-glaze-ui` and must not be used as Browser release evidence. Historical Browser mappings remain useful implementation history only; they do not establish current conformance.
 
-## Preserved Glaze UI 2.x contracts
+## Glaze UI V1.4 design requirements
 
-Browser retains the material hierarchy of Canvas, Surface, Soft Glaze, Glaze, Deep Glaze, and Live Glaze; native/platform authority; readable solid content; bounded Glaze interaction chrome; Balanced clarity; Calm expression; visible focus/pressed behavior; semantic accessibility labels; light/dark adaptation; vector Browser icons; and effects-free operation that does not require blur, transparency, or animation.
+Browser must preserve the current Glaze design rules on every Browser-owned surface:
 
-General touch-oriented targets remain at least 48dp. Glaze UI 2.2 also establishes a 56dp floor for Touch Assistance/far-view contexts where applicable. Browser now records both floors in its Android contract. The current Android shell does **not** claim that a product-wide Touch Assistance runtime preference or OS mapping is already wired merely because the 56dp contract is represented.
+- neutral glass remains the material foundation;
+- optical adaptation is contextual, bounded, and subordinate to meaning, accessibility, privacy, security, and task completion;
+- readable and critical-decision content remains solid where appropriate;
+- glazed material is reserved for bounded interaction, navigation, search, command, control, and feedback chrome;
+- Content-Aware Frost and other optical behavior must not reduce text or control readability;
+- Semantic Blur Protection must preserve information hierarchy and actionable state;
+- environmental tinting, warmth, chromatic depth, and color-memory behavior remain bounded and decorative;
+- Forced Colors and Reduced Transparency collapse optical behavior to an accessible solid mode;
+- Increased Contrast suppresses decorative optical behavior where required and strengthens clarity;
+- optical/context behavior must not require telemetry, analytics, camera access, or remote environmental sensing.
 
-Appearance, material, motion, and color are presentation contracts only. They cannot manufacture Wardveil security state, Privacy Shield privacy state, Everkeep continuity state, Mesh coordination state, Identity authorization, or Browser workflow success.
-
-## Glaze UI 2.2 migration review
-
-The Browser Android mapping explicitly evaluates the 2.2 additions relevant to the current beta scope:
-
-- **System Shell hierarchy:** Browser-owned chrome remains in Application scope. Local Browser menu and omnibox/search behavior are not relabeled as Universal Search, Control Center, System Panel, or Critical System UI.
-- **System Glaze budget:** the source contract permits at most one dominant Glaze panel and up to three small floating Glaze controls for the ordinary mapped composition. The current Browser mapping remains inside that bound.
-- **Target geometry:** 48dp is the ordinary touch floor; 56dp is recorded for Touch Assistance/far-view contexts where applicable.
-- **State priority:** Browser records the Glaze UI 2.2 semantic ordering so disabled state outranks error, pressed, focus, selected, hover, and rest. Loading remains a distinct application state without weakening disabled/error authority.
-- **Solid content / glazed interaction:** web/content reading planes remain solid; Soft Glaze remains bounded to transient Browser-owned interaction chrome such as the omnibox and menu sheet.
-- **Accessibility fallbacks:** effects-free behavior remains a first-class path rather than a degraded product mode.
-- **Universal Search / Control Center:** not claimed by this Android Browser slice. GoreeCloud Search remains the query authority for non-URL Browser input; that service relationship is not the same thing as adopting Glaze UI's system-level Universal Search shell.
-- **Signature and Intelligence components:** no new claim is made merely because 2.2 defines them. Browser must adopt them only where a real product relationship requires them and their semantics are implemented.
-
-## Production rule
-
-A superseded Glaze UI release cannot satisfy Browser production readiness. Design-system Stable status also does not automatically certify Browser.
-
-Before a Stable Browser release, representative Browser-owned task flows must demonstrate current-Stable conformance on supported platform families, layout classes, input modalities, accessibility modes, localization/directionality cases, safe-area/hinge constraints, and representative hardware that apply to the client.
-
-For this Android migration specifically, source tests and a successful CI APK are necessary but not sufficient. Exact-revision visual review, TalkBack/accessibility semantics, 200% text, Reduced Motion, Reduced Transparency/effects-free behavior, Increased Contrast, Forced Colors or closest platform-equivalent behavior, RTL/localization, Touch Assistance mapping where supported, orientation/form-factor behavior, and performance remain acceptance gates.
+Browser must not claim that Glaze optical behavior itself provides Privacy Shield authorization, Wardveil security state, Everkeep continuity, Mesh coordination, Identity authorization, Search authority, or successful Browser workflow state.
 
 ## Browser-owned scope
 
-The requirement covers browser chrome, navigation, unified address/search, tabs, New Tab, Home, Settings, Downloads, Library, Bookmarks, Private Browsing landing surfaces, Browser-owned print/PDF controls, media actions, Clipboard Manager, Reader Mode, context menus, Proxy Manager, Network and DNS settings, memory controls, Wayfinder features, and GoreeCloud service integrations.
+The requirement covers Browser-owned user-facing surfaces, including:
 
-OS-owned, certificate, permission, engine-critical, and Developer Tools surfaces may preserve required native or engine presentation where replacement would reduce security, accessibility, or compatibility. That exception cannot be used to keep ordinary GoreeCloud-owned UI on an older design language.
+- application shell and window chrome;
+- omnibox and search/navigation suggestions;
+- tabs, tab groups, windows, and session surfaces;
+- New Tab and Home;
+- settings and permissions UI;
+- Downloads and Advanced Download Manager;
+- Library, Bookmarks, History, and read-later surfaces;
+- Private Browsing landing and state presentation;
+- Reader Mode and Browser-owned print/PDF controls;
+- Media Hover and destination-selection surfaces;
+- context menus and Browser-owned sheets/popovers;
+- Wayfinder features;
+- Proxy, DNS, Network, privacy, and security settings owned by Browser;
+- GoreeCloud Search and GoreeCloud Index invocation surfaces;
+- Browser-owned Wardveil, Privacy Shield, Everkeep, Identity, Mesh, Sync, Vault, DNS, and Network integration presentation.
+
+OS-owned, certificate, permission, engine-critical, and Developer Tools surfaces may preserve required native or engine presentation where replacement would reduce security, accessibility, or compatibility. That exception cannot be used to leave ordinary GoreeCloud-owned UI on a superseded design baseline.
+
+## Migration requirements
+
+The V1.4 migration must include more than documentation replacement. Browser must audit and update, where applicable:
+
+1. shared tokens and material definitions;
+2. Browser-native Android mappings;
+3. Linux/desktop Glaze presentation mappings;
+4. web/native hybrid surfaces owned by Browser;
+5. optical-state fallback behavior;
+6. Reduced Transparency, Increased Contrast, Forced Colors or closest platform-equivalent behavior;
+7. Reduced Motion behavior;
+8. focus, hover, pressed, selected, disabled, loading, warning, and error states;
+9. touch, keyboard, mouse, stylus, remote/far-view, and accessibility target sizing where supported;
+10. layout behavior across supported form factors, safe areas, and text scaling;
+11. localization and RTL behavior;
+12. performance on representative hardware.
+
+No legacy or previously mapped Glaze version may be relabeled as V1.4 merely because its appearance is similar.
+
+## Optical privacy and security boundary
+
+Glaze V1.4 permits local deterministic optical adaptation. Browser must source any contextual input through an explicit Browser-owned adapter and must subject that adapter to applicable Privacy Shield and Wardveil review before use.
+
+Browser must not introduce camera, microphone, remote analytics, cross-site tracking, browsing-history profiling, or hidden telemetry merely to drive visual effects.
+
+Environmental memory tint is decorative state only. It must not become identity evidence, security evidence, behavior profiling, or a durable cross-site fingerprint.
+
+## Search and Index surfaces
+
+Browser search and Index integration must follow [`SEARCH_INDEX_INTEGRATION.md`](SEARCH_INDEX_INTEGRATION.md).
+
+The omnibox and other Browser-owned search/navigation surfaces are Browser UI and therefore require Browser-local Glaze V1.4 acceptance even though GoreeCloud Search or GoreeCloud Index may own the underlying query authority.
+
+## Acceptance requirements
+
+A Browser revision may claim current Glaze conformance only after repository-local evidence demonstrates the applicable V1.4 contract across supported platform families.
+
+At minimum, acceptance should cover:
+
+- source/token mapping validation;
+- representative rendered/native visual review;
+- keyboard navigation and visible focus;
+- TalkBack/screen-reader semantics where supported;
+- 200% text or supported large-text equivalent;
+- Reduced Motion;
+- Reduced Transparency / solid fallback;
+- Increased Contrast;
+- Forced Colors or closest supported platform equivalent;
+- RTL and localization;
+- touch and pointer target behavior;
+- orientation and form-factor behavior;
+- representative performance and sustained-use behavior.
+
+Glaze V1.4.0 Stable itself explicitly defers some subjective/manual/physical-device qualification to the V1.4.1 hardening follow-up. Browser must not represent those deferred design-system checks as already passed for Browser.
+
+## Production rule
+
+A superseded or invented Glaze UI version cannot satisfy Browser production readiness. Central Glaze Stable status also does not automatically certify Browser.
+
+Browser remains non-Stable wherever required V1.4 migration or Browser-specific acceptance evidence is incomplete.
 
 ## Upgrade and rollback process
 
-For each future Glaze UI Stable promotion, Browser must record the new semantic version and exact reviewed revision, audit changed contracts, update local metadata and native mappings, run Browser-specific acceptance, validate representative supported clients, and remain development-only wherever required adoption evidence is incomplete.
+For every future Stable Glaze promotion, Browser must:
 
-The Glaze UI 2.2 design-system rollback reference is 2.1.0. Browser's last integrated Android mapping before this migration was 2.0.0 in authoritative Browser main `974786cdccceac7a0198881d4bd5f4e5d4b28c58` / beta `+android.4`. Neither historical baseline qualifies Browser against current Stable 2.2.0. Rollback evidence is retained for diagnosis and recovery; history is not rewritten to imply earlier 2.2 conformance.
+1. record the new semantic version and reviewed Glaze revision;
+2. audit changed design-system contracts;
+3. update Browser-local mappings and metadata;
+4. run Browser-specific automated and runtime acceptance;
+5. validate representative supported clients;
+6. preserve the previous accepted Browser mapping as a rollback reference;
+7. remain migration-required until the new current-Stable evidence is accepted.
+
+Rollback history is diagnostic and recovery evidence only. It never makes an older Glaze baseline current.
