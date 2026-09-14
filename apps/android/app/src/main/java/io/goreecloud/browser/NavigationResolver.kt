@@ -1,26 +1,23 @@
 package io.goreecloud.browser
 
 import java.net.URI
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import java.util.Locale
 
 /**
  * GoreeCloud-owned resolution policy for the Android unified address/search bar.
  * Direct URLs remain independent from search. Non-URL input is classified as a
- * Search intent before a remote destination is produced so Privacy Shield and
+ * Search intent before any remote request is constructed so Privacy Shield and
  * Search capability gates have an explicit pre-delegation decision boundary.
  * Explicitly unsafe or malformed navigation-shaped input is blocked rather than
  * silently reinterpreted as a Search query.
  */
 object NavigationResolver {
     const val SEARCH_HOME = "https://search.goreecloud.com/"
-    private const val SEARCH_ENDPOINT = "https://search.goreecloud.com/search?q="
 
     sealed interface Intent {
         data object Home : Intent
         data class Navigate(val url: String) : Intent
-        data class Search(val query: String, val url: String) : Intent
+        data class Search(val query: String) : Intent
         data class Blocked(val input: String) : Intent
     }
 
@@ -43,17 +40,19 @@ object NavigationResolver {
             return Intent.Blocked(input)
         }
 
-        return Intent.Search(
-            query = input,
-            url = SEARCH_ENDPOINT + encodeQuery(input),
-        )
+        // Query text remains transport-neutral here. A separate accepted Search
+        // contract must authorize and construct any remote POST request.
+        return Intent.Search(query = input)
     }
 
-    /** Compatibility helper for existing Browser callers. Blocked input resolves to no URL. */
+    /**
+     * Compatibility helper for URL-only callers. Search and blocked input do not
+     * resolve to a URL because free-text queries must never be embedded in one.
+     */
     fun resolve(rawInput: String): String = when (val intent = classify(rawInput)) {
         Intent.Home -> SEARCH_HOME
         is Intent.Navigate -> intent.url
-        is Intent.Search -> intent.url
+        is Intent.Search -> ""
         is Intent.Blocked -> ""
     }
 
@@ -90,9 +89,6 @@ object NavigationResolver {
             host.contains('.') ||
             IPV4_REGEX.matches(host)
     }
-
-    private fun encodeQuery(value: String): String =
-        URLEncoder.encode(value, StandardCharsets.UTF_8.name()).replace("+", "%20")
 
     private val IPV4_REGEX = Regex("""^(?:\d{1,3}\.){3}\d{1,3}$""")
     private val EXPLICIT_SCHEME_REGEX = Regex("""^[A-Za-z][A-Za-z0-9+.-]*:""")
