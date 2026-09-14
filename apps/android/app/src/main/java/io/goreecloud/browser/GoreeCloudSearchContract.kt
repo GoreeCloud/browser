@@ -52,8 +52,20 @@ object GoreeCloudSearchContract {
         val accepted: Boolean,
         /** Reference to the Privacy Shield capability token, not raw policy state. */
         val reference: String? = null,
-    )
+    ) {
+        override fun toString(): String =
+            "PrivacyAuthorization(" +
+                "accepted=$accepted, " +
+                "reference=${if (reference == null) "null" else "<redacted>"}" +
+                ")"
+    }
 
+    /**
+     * Transport-ready Search description. Query text and the operation-scoped
+     * capability reference are intentionally excluded from debug rendering so
+     * logs and crash diagnostics cannot silently become browsing/search-history
+     * or authorization-material storage.
+     */
     data class PostRequest(
         val endpoint: String,
         val method: String,
@@ -63,7 +75,19 @@ object GoreeCloudSearchContract {
         val limit: Int,
         val authorizationHeader: String,
         val authorizationReference: String,
-    )
+    ) {
+        override fun toString(): String =
+            "PostRequest(" +
+                "endpoint=$endpoint, " +
+                "method=$method, " +
+                "mediaType=$mediaType, " +
+                "query=<redacted>, " +
+                "category=$category, " +
+                "limit=$limit, " +
+                "authorizationHeader=$authorizationHeader, " +
+                "authorizationReference=<redacted>" +
+                ")"
+    }
 
     sealed interface Decision {
         data class Allowed(val request: PostRequest) : Decision
