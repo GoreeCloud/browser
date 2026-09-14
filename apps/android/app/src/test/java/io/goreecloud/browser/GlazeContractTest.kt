@@ -8,19 +8,23 @@ import org.junit.Test
 class GlazeContractTest {
     @Test
     fun androidBrowserTargetsCurrentStableGlazeContract() {
-        assertEquals("2.2.0", GlazeContract.VERSION)
+        assertEquals("1.4.0", GlazeContract.VERSION)
         assertEquals(
-            "6731098b28dd0393faa878c70d989a221d714a20",
+            "a20374734dae6a119b28448f5e6b3232253b6da7",
+            GlazeContract.SOURCE_INTEGRATION_ANCHOR,
+        )
+        assertEquals(
+            GlazeContract.SOURCE_INTEGRATION_ANCHOR,
             GlazeContract.STABLE_RELEASE_REVISION,
         )
         assertEquals(
-            "0411b0f6dd877aea30e2c5674e1acde0105fd97b",
+            GlazeContract.SOURCE_INTEGRATION_ANCHOR,
             GlazeContract.ACCEPTED_VISUAL_SOURCE,
         )
     }
 
     @Test
-    fun touchTargetFloorsMatchGlaze22AccessibilityContract() {
+    fun inheritedTouchTargetFloorsRemainBounded() {
         assertEquals(48, GlazeContract.targetFloorDp(touchAssistance = false))
         assertEquals(56, GlazeContract.targetFloorDp(touchAssistance = true))
         assertTrue(GlazeContract.satisfiesGeneralTargetFloor(48))
@@ -30,7 +34,39 @@ class GlazeContractTest {
     }
 
     @Test
-    fun mobileChromePreservesApplicationAuthorityAndGlazeBudget() {
+    fun v14OpticalAccessibilityPrecedenceFailsSafe() {
+        val forcedColors = GlazeContract.OpticalAccessibilitySignals(forcedColors = true)
+        val reducedTransparency = GlazeContract.OpticalAccessibilitySignals(reducedTransparency = true)
+        val increasedContrast = GlazeContract.OpticalAccessibilitySignals(increasedContrast = true)
+        val normal = GlazeContract.OpticalAccessibilitySignals()
+
+        assertEquals(GlazeContract.OpticalMode.SolidAccessible, GlazeContract.opticalMode(forcedColors))
+        assertEquals(GlazeContract.OpticalMode.SolidAccessible, GlazeContract.opticalMode(reducedTransparency))
+        assertEquals(GlazeContract.OpticalMode.IncreasedContrast, GlazeContract.opticalMode(increasedContrast))
+        assertEquals(GlazeContract.OpticalMode.Standard, GlazeContract.opticalMode(normal))
+
+        assertFalse(GlazeContract.allowsBackdropEffects(forcedColors))
+        assertFalse(GlazeContract.allowsBackdropEffects(reducedTransparency))
+        assertFalse(GlazeContract.allowsDecorativeEnvironmentalTint(increasedContrast))
+        assertTrue(GlazeContract.allowsBackdropEffects(normal))
+        assertTrue(GlazeContract.allowsDecorativeEnvironmentalTint(normal))
+        assertEquals(0.08, GlazeContract.MAX_ENVIRONMENTAL_MEMORY_INFLUENCE, 0.0)
+    }
+
+    @Test
+    fun solidAccessibleModeOutranksIncreasedContrast() {
+        val combined = GlazeContract.OpticalAccessibilitySignals(
+            reducedTransparency = true,
+            increasedContrast = true,
+        )
+
+        assertEquals(GlazeContract.OpticalMode.SolidAccessible, GlazeContract.opticalMode(combined))
+        assertFalse(GlazeContract.allowsBackdropEffects(combined))
+        assertFalse(GlazeContract.allowsDecorativeEnvironmentalTint(combined))
+    }
+
+    @Test
+    fun mobileChromePreservesApplicationAuthorityAndBrowserBudget() {
         val mapping = GlazeContract.ANDROID_BROWSER_MAPPING
 
         assertEquals(GlazeContract.MaterialLevel.Canvas, mapping.canvas)
