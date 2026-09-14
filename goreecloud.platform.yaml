@@ -74,13 +74,6 @@ platform_systems:
       - SPECIFICATIONS.md
       - docs/SEARCH_INDEX_INTEGRATION.md
     notes: GoreeCloud Identity remains authoritative for Browser profiles, synchronization identity, device authorization, account-bound preferences, authentication, requester identity, and authorization; accepted runtime Identity integration and direct-service authentication for protected Search delegation remain incomplete.
-  sync:
-    result: applicable-blocked
-    version: null
-    evidence:
-      - README.md
-      - SPECIFICATIONS.md
-    notes: GoreeCloud Sync is authoritative for synchronization of approved Browser-owned durable state. Browser privacy boundaries require Private and Isolated Private browsing state, credentials, passkeys, reusable secrets, unrelated protected platform evidence, and other excluded data to remain outside ordinary synchronization. Accepted dataset contracts, runtime registration, authenticated synchronization, reconciliation, deletion/conflict behavior, and cross-device acceptance remain incomplete.
 
 health:
   health_endpoint: null
@@ -150,7 +143,7 @@ conformance:
     - Current Stable GLAZE UI V1.4 / 1.4.0 is the required Browser baseline and Development source targets it, but Browser-specific rendered/native, accessibility, localization/RTL, representative-device/form-factor, performance, and production acceptance evidence remain incomplete.
     - GoreeCloud Mesh registration, discovery, transport, dependency/event integration, and runtime acceptance are incomplete.
     - GoreeCloud Identity profile, session, authorization, synchronization identity, device authorization, requester/service identity, direct-service authentication, and runtime acceptance are incomplete.
-    - GoreeCloud Sync dataset contracts, runtime registration, authenticated synchronization, reconciliation, deletion/conflict behavior, and cross-device acceptance are incomplete; excluded private/credential/security state must not be synchronized by default.
+    - GoreeCloud Sync remains a separate application/service capability; dataset contracts, runtime registration, authenticated synchronization, reconciliation, deletion/conflict behavior, and cross-device acceptance are incomplete, and excluded private/credential/security state must not be synchronized by default.
     - Browser does not expose accepted health/readiness interfaces for GoreeCloud Manager or platform observability.
     - Desktop render-capable CEF/Chromium integration and its real-runtime acceptance remain incomplete.
     - Android production signing, representative-device acceptance, accessibility, localization/RTL, migration, update, rollback, and release provenance remain incomplete.
