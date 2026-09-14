@@ -58,6 +58,15 @@ class GoreeCloudSearchContractTest {
     }
 
     @Test
+    fun capabilityWithoutAuthenticatedRequesterRequirementFailsClosed() {
+        assertFalse(
+            GoreeCloudSearchContract.isCompatible(
+                capability(authenticatedRequesterRequired = false),
+            ),
+        )
+    }
+
+    @Test
     fun missingPrivacyAuthorizationFailsClosed() {
         val decision = GoreeCloudSearchContract.authorize(
             query = "privacy browser",
@@ -91,7 +100,7 @@ class GoreeCloudSearchContractTest {
         assertEquals("general", request.category)
         assertEquals(50, request.limit)
         assertEquals("X-GoreeCloud-Privacy-Capability", request.authorizationHeader)
-        assertEquals("privacy-shield:capability:test", request.authorizationReference)
+        assertEquals("psc_test", request.authorizationReference)
         assertFalse(request.endpoint.contains("privacy"))
         assertFalse(request.endpoint.contains("?q="))
     }
@@ -111,7 +120,7 @@ class GoreeCloudSearchContractTest {
 
     private fun authorization() = GoreeCloudSearchContract.PrivacyAuthorization(
         accepted = true,
-        reference = "privacy-shield:capability:test",
+        reference = "psc_test",
     )
 
     private fun capability(
@@ -120,6 +129,7 @@ class GoreeCloudSearchContractTest {
         preferredMethod: String = "POST",
         preferredQueryTransport: String = "json_body",
         privacyAuthorizationEnforcement: String = "required",
+        authenticatedRequesterRequired: Boolean = true,
         maxResults: Int = 100,
     ) = GoreeCloudSearchContract.CapabilityEvidence(
         id = "search.query",
@@ -139,6 +149,7 @@ class GoreeCloudSearchContractTest {
         privacyAuthorizationScheme = "privacy_shield_capability_token_reference",
         privacyAuthorizationHeader = "X-GoreeCloud-Privacy-Capability",
         privacyAuthorizationEnforcement = privacyAuthorizationEnforcement,
+        authenticatedRequesterRequired = authenticatedRequesterRequired,
         maxRequestBytes = 16 * 1024,
         maxResults = maxResults,
     )
