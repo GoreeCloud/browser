@@ -17,10 +17,7 @@ class GoreeCloudSearchContractTest {
     fun oneQueryCapabilityIsSelectedFromMixedDiscoveryCollection() {
         val expected = capability()
         val unrelated = expected.copy(id = "search.images")
-        assertEquals(
-            expected,
-            GoreeCloudSearchContract.selectCapability(listOf(unrelated, expected)),
-        )
+        assertEquals(expected, GoreeCloudSearchContract.selectCapability(listOf(unrelated, expected)))
     }
 
     @Test
@@ -29,8 +26,8 @@ class GoreeCloudSearchContractTest {
             query = "privacy browser",
             capability = capability(productionAccepted = false),
             privacyAuthorization = authorization(),
+            requesterAuthentication = requesterAuthentication(),
         )
-
         assertEquals(
             GoreeCloudSearchContract.Decision.Rejected(
                 GoreeCloudSearchContract.RejectionReason.INCOMPATIBLE_CAPABILITY,
@@ -43,12 +40,10 @@ class GoreeCloudSearchContractTest {
     fun developmentServerAuthorizationEvidenceCannotBeMistakenForEnforcedProductionTransport() {
         val decision = GoreeCloudSearchContract.authorize(
             query = "privacy browser",
-            capability = capability(
-                privacyAuthorizationEnforcement = "not_enforced_development",
-            ),
+            capability = capability(privacyAuthorizationEnforcement = "not_enforced_development"),
             privacyAuthorization = authorization(),
+            requesterAuthentication = requesterAuthentication(),
         )
-
         assertEquals(
             GoreeCloudSearchContract.Decision.Rejected(
                 GoreeCloudSearchContract.RejectionReason.INCOMPATIBLE_CAPABILITY,
@@ -59,30 +54,14 @@ class GoreeCloudSearchContractTest {
 
     @Test
     fun capabilityWithoutAuthenticatedRequesterRequirementFailsClosed() {
-        assertFalse(
-            GoreeCloudSearchContract.isCompatible(
-                capability(authenticatedRequesterRequired = false),
-            ),
-        )
+        assertFalse(GoreeCloudSearchContract.isCompatible(capability(authenticatedRequesterRequired = false)))
     }
 
     @Test
     fun mismatchedRequesterAuthenticationCarrierFailsClosed() {
-        assertFalse(
-            GoreeCloudSearchContract.isCompatible(
-                capability(authenticatedRequesterAuthority = "untrusted-authority"),
-            ),
-        )
-        assertFalse(
-            GoreeCloudSearchContract.isCompatible(
-                capability(authenticatedRequesterScheme = "basic"),
-            ),
-        )
-        assertFalse(
-            GoreeCloudSearchContract.isCompatible(
-                capability(authenticatedRequesterHeader = "X-GoreeCloud-Requester"),
-            ),
-        )
+        assertFalse(GoreeCloudSearchContract.isCompatible(capability(authenticatedRequesterAuthority = "untrusted-authority")))
+        assertFalse(GoreeCloudSearchContract.isCompatible(capability(authenticatedRequesterScheme = "basic")))
+        assertFalse(GoreeCloudSearchContract.isCompatible(capability(authenticatedRequesterHeader = "X-GoreeCloud-Requester")))
     }
 
     @Test
@@ -91,8 +70,8 @@ class GoreeCloudSearchContractTest {
             query = "privacy browser",
             capability = capability(),
             privacyAuthorization = GoreeCloudSearchContract.PrivacyAuthorization(accepted = false),
+            requesterAuthentication = requesterAuthentication(),
         )
-
         assertEquals(
             GoreeCloudSearchContract.Decision.Rejected(
                 GoreeCloudSearchContract.RejectionReason.PRIVACY_AUTHORIZATION_REQUIRED,
@@ -110,14 +89,48 @@ class GoreeCloudSearchContractTest {
                 accepted = true,
                 reference = "privacy-shield:capability:test",
             ),
+            requesterAuthentication = requesterAuthentication(),
         )
-
         assertEquals(
             GoreeCloudSearchContract.Decision.Rejected(
                 GoreeCloudSearchContract.RejectionReason.PRIVACY_AUTHORIZATION_REQUIRED,
             ),
             decision,
         )
+    }
+
+    @Test
+    fun missingRequesterAuthenticationFailsClosed() {
+        val decision = GoreeCloudSearchContract.authorize(
+            query = "privacy browser",
+            capability = capability(),
+            privacyAuthorization = authorization(),
+        )
+        assertEquals(
+            GoreeCloudSearchContract.Decision.Rejected(
+                GoreeCloudSearchContract.RejectionReason.REQUESTER_AUTHENTICATION_REQUIRED,
+            ),
+            decision,
+        )
+    }
+
+    @Test
+    fun malformedRequesterAuthenticationFailsClosed() {
+        val malformed = listOf("", "opaque credential", "opaque\u0000credential")
+        for (credential in malformed) {
+            val decision = GoreeCloudSearchContract.authorize(
+                query = "privacy browser",
+                capability = capability(),
+                privacyAuthorization = authorization(),
+                requesterAuthentication = GoreeCloudSearchContract.RequesterAuthentication(credential),
+            )
+            assertEquals(
+                GoreeCloudSearchContract.Decision.Rejected(
+                    GoreeCloudSearchContract.RejectionReason.REQUESTER_AUTHENTICATION_REQUIRED,
+                ),
+                decision,
+            )
+        }
     }
 
     @Test
@@ -145,6 +158,7 @@ class GoreeCloudSearchContractTest {
                 accepted = true,
                 reference = " psc_test ",
             ),
+            requesterAuthentication = requesterAuthentication(),
             requestedLimit = 80,
         )
 
@@ -158,8 +172,13 @@ class GoreeCloudSearchContractTest {
         assertEquals(50, request.limit)
         assertEquals("X-GoreeCloud-Privacy-Capability", request.authorizationHeader)
         assertEquals("psc_test", request.authorizationReference)
+        assertEquals("Authorization", request.requesterAuthorizationHeader)
+        assertEquals("Bearer opaque.identity.credential", request.requesterAuthorizationValue)
         assertFalse(request.endpoint.contains("privacy"))
         assertFalse(request.endpoint.contains("?q="))
+        assertFalse(request.toString().contains("opaque.identity.credential"))
+        assertFalse(request.toString().contains("psc_test"))
+        assertFalse(request.toString().contains("privacy browser"))
     }
 
     @Test
@@ -178,6 +197,10 @@ class GoreeCloudSearchContractTest {
     private fun authorization() = GoreeCloudSearchContract.PrivacyAuthorization(
         accepted = true,
         reference = "psc_test",
+    )
+
+    private fun requesterAuthentication() = GoreeCloudSearchContract.RequesterAuthentication(
+        bearerCredential = "opaque.identity.credential",
     )
 
     private fun capability(
