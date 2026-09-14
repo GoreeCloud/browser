@@ -40,19 +40,13 @@ class NavigationResolverTest {
     }
 
     @Test
-    fun textQueryIsClassifiedBeforeRemoteSearchDestinationIsUsed() {
+    fun textQueryIsClassifiedWithoutConstructingRemoteSearchUrl() {
         val intent = NavigationResolver.classify(" privacy browser ")
         assertEquals(
-            NavigationResolver.Intent.Search(
-                query = "privacy browser",
-                url = "https://search.goreecloud.com/search?q=privacy%20browser",
-            ),
+            NavigationResolver.Intent.Search(query = "privacy browser"),
             intent,
         )
-        assertEquals(
-            "https://search.goreecloud.com/search?q=privacy%20browser",
-            NavigationResolver.resolve("privacy browser"),
-        )
+        assertEquals("", NavigationResolver.resolve("privacy browser"))
     }
 
     @Test
