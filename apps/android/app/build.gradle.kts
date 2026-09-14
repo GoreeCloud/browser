@@ -59,7 +59,7 @@ dependencies {
 // Android Beta 0.1 is a real installable test surface, but not a production
 // approval. The Android System WebView/Chromium runtime is an engine dependency;
 // GoreeCloud owns the mobile chrome, navigation policy, privacy defaults, and
-// product behavior. Production signing, complete Glaze UI 2.2 native-device
+// product behavior. Production signing, complete Glaze UI V1.4 native-device
 // acceptance, Wardveil download release, private browsing isolation,
 // updates/rollback, and real-device sustained-use evidence remain explicit
 // promotion gates.
