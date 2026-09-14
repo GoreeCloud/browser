@@ -341,6 +341,7 @@ class BrowserActivityV2 : Activity() {
             NavigationResolver.Intent.Home -> showStartPage()
             is NavigationResolver.Intent.Navigate -> navigateToUrl(intent.url)
             is NavigationResolver.Intent.Search -> showSearchAuthorizationRequired(intent.query)
+            is NavigationResolver.Intent.Blocked -> showBlockedNavigation(intent.input)
         }
     }
 
@@ -373,6 +374,24 @@ class BrowserActivityV2 : Activity() {
             <p>This Development build has not accepted the runtime Privacy Shield authorization and compatible GoreeCloud Search capability evidence required for remote Search delegation.</p>
             <p>Your query was not sent to GoreeCloud Search.</p>
             <p class="query">$escaped</p><p>You can still enter a complete website address in the address bar.</p>
+            </main></body></html>
+        """.trimIndent()
+        webView.loadDataWithBaseURL(START_BASE_URL, html, "text/html", "UTF-8", null)
+        refreshChrome()
+    }
+
+    private fun showBlockedNavigation(input: String) {
+        currentUrl = INTERNAL_HOME
+        addressField.clearFocus()
+        hideKeyboard()
+        val escaped = android.text.TextUtils.htmlEncode(input)
+        val html = """
+            <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+            <style>${baseCss()}</style></head><body><main>
+            <div class="mark">G</div><h1>Navigation blocked</h1>
+            <p>Browser rejected this input because it is not a valid safe HTTP(S) destination and must not be silently reinterpreted as a Search query.</p>
+            <p>The input was not opened and was not sent to GoreeCloud Search.</p>
+            <p class="query">$escaped</p>
             </main></body></html>
         """.trimIndent()
         webView.loadDataWithBaseURL(START_BASE_URL, html, "text/html", "UTF-8", null)
