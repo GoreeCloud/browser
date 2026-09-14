@@ -21,6 +21,7 @@ object GoreeCloudSearchContract {
     const val PRIVACY_AUTHORIZATION_HEADER = "X-GoreeCloud-Privacy-Capability"
     const val PRIVACY_AUTHORIZATION_ENFORCEMENT = "required"
     const val MAX_REQUEST_BYTES = 16 * 1024
+    const val PRIVACY_CAPABILITY_REFERENCE_MAX_LENGTH = 512
     private const val GENERAL_CATEGORY = "general"
     private const val PRIVACY_CAPABILITY_REFERENCE_PREFIX = "psc_"
 
@@ -141,8 +142,11 @@ object GoreeCloudSearchContract {
             capability.maxRequestBytes == MAX_REQUEST_BYTES &&
             capability.maxResults >= 1
 
-    private fun isCanonicalPrivacyCapabilityReference(reference: String): Boolean =
+    fun isCanonicalPrivacyCapabilityReference(reference: String): Boolean =
         reference.startsWith(PRIVACY_CAPABILITY_REFERENCE_PREFIX) &&
             reference.length > PRIVACY_CAPABILITY_REFERENCE_PREFIX.length &&
-            reference.none(Char::isWhitespace)
+            reference.length <= PRIVACY_CAPABILITY_REFERENCE_MAX_LENGTH &&
+            reference.none { character ->
+                character.isWhitespace() || Character.isISOControl(character.code)
+            }
 }
