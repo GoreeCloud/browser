@@ -25,7 +25,7 @@ class PrivacyShieldSearchAuthorizationTest {
     }
 
     @Test
-    fun exactAllowDecisionProducesCapabilityTokenAuthorization() {
+    fun canonicalConstrainedDecisionProducesCapabilityReferenceAuthorization() {
         val evaluation = PrivacyShieldSearchAuthorization.evaluate(
             request = request,
             decision = allowedDecision(),
@@ -35,7 +35,7 @@ class PrivacyShieldSearchAuthorizationTest {
         assertTrue(evaluation is PrivacyShieldSearchAuthorization.Evaluation.Accepted)
         val accepted = evaluation as PrivacyShieldSearchAuthorization.Evaluation.Accepted
         assertEquals(true, accepted.authorization.accepted)
-        assertEquals("privacy-shield:capability:123", accepted.authorization.reference)
+        assertEquals("psc_test-capability-123", accepted.authorization.reference)
     }
 
     @Test
@@ -71,19 +71,52 @@ class PrivacyShieldSearchAuthorizationTest {
     }
 
     @Test
-    fun constrainedAllowFailsClosedUntilObligationsCanBeEnforced() {
+    fun unconstrainedAllowFailsClosedForPrivateGoreeCloudSearch() {
+        val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
+            decision = allowedDecision().copy(outcome = "ALLOW"),
+            now = now,
+        )
+
+        assertEquals(
+            PrivacyShieldSearchAuthorization.Evaluation.Rejected(
+                PrivacyShieldSearchAuthorization.RejectionReason.OUTCOME_NOT_SUPPORTED,
+            ),
+            evaluation,
+        )
+    }
+
+    @Test
+    fun unknownConstraintObligationFailsClosed() {
         val evaluation = PrivacyShieldSearchAuthorization.evaluate(
             request = request,
             decision = allowedDecision().copy(
-                outcome = "ALLOW_WITH_CONSTRAINTS",
-                obligations = setOf("redact-sensitive-terms"),
+                obligations = PrivacyShieldSearchAuthorization.REQUIRED_OBLIGATIONS + "redact-sensitive-terms",
             ),
             now = now,
         )
 
         assertEquals(
             PrivacyShieldSearchAuthorization.Evaluation.Rejected(
-                PrivacyShieldSearchAuthorization.RejectionReason.OUTCOME_NOT_ALLOW,
+                PrivacyShieldSearchAuthorization.RejectionReason.UNSUPPORTED_OBLIGATIONS,
+            ),
+            evaluation,
+        )
+    }
+
+    @Test
+    fun missingCanonicalConstraintObligationFailsClosed() {
+        val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
+            decision = allowedDecision().copy(
+                obligations = PrivacyShieldSearchAuthorization.REQUIRED_OBLIGATIONS - "enforce_processing_zone",
+            ),
+            now = now,
+        )
+
+        assertEquals(
+            PrivacyShieldSearchAuthorization.Evaluation.Rejected(
+                PrivacyShieldSearchAuthorization.RejectionReason.UNSUPPORTED_OBLIGATIONS,
             ),
             evaluation,
         )
@@ -139,16 +172,32 @@ class PrivacyShieldSearchAuthorizationTest {
         )
     }
 
+    @Test
+    fun nonCanonicalCapabilityReferenceFailsClosed() {
+        val evaluation = PrivacyShieldSearchAuthorization.evaluate(
+            request = request,
+            decision = allowedDecision().copy(capabilityTokenReference = "privacy-shield:capability:123"),
+            now = now,
+        )
+
+        assertEquals(
+            PrivacyShieldSearchAuthorization.Evaluation.Rejected(
+                PrivacyShieldSearchAuthorization.RejectionReason.CAPABILITY_TOKEN_REQUIRED,
+            ),
+            evaluation,
+        )
+    }
+
     private fun allowedDecision() = PrivacyShieldSearchAuthorization.DecisionEvidence(
         decisionId = "privacy-shield:decision:123",
         requestId = request.requestId,
-        outcome = "ALLOW",
+        outcome = "ALLOW_WITH_CONSTRAINTS",
         permittedOperations = setOf("search.query"),
         processingZone = "private_goreecloud",
         permittedDestinations = setOf("https://search.goreecloud.com"),
         retentionMode = "none",
-        obligations = emptySet(),
+        obligations = PrivacyShieldSearchAuthorization.REQUIRED_OBLIGATIONS,
         expiresAt = "2026-09-14T12:05:00Z",
-        capabilityTokenReference = "privacy-shield:capability:123",
+        capabilityTokenReference = "psc_test-capability-123",
     )
 }
