@@ -132,7 +132,7 @@ object PrivacyShieldSearchAuthorization {
         }
         val capabilityReference = decision.capabilityTokenReference
             ?.trim()
-            ?.takeIf { it.startsWith("psc_") && it.length > 4 }
+            ?.takeIf(GoreeCloudSearchContract::isCanonicalPrivacyCapabilityReference)
             ?: return Evaluation.Rejected(RejectionReason.CAPABILITY_TOKEN_REQUIRED)
 
         return Evaluation.Accepted(
