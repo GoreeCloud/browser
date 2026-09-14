@@ -10,10 +10,16 @@ package io.goreecloud.browser
 object GoreeCloudSearchContract {
     const val CAPABILITY_ID = "search.query"
     const val CONTRACT_VERSION = "1"
+    const val DISCOVERY_ENDPOINT = "/api/v1/status"
+    const val DISCOVERY_COLLECTION = "capability_evidence"
     const val ENDPOINT = "/api/v1/search"
+    const val SEARCH_ORIGIN = "https://search.goreecloud.com"
     const val METHOD = "POST"
     const val QUERY_TRANSPORT = "json_body"
     const val MEDIA_TYPE = "application/json"
+    const val PRIVACY_AUTHORIZATION_SCHEME = "privacy_shield_capability_token_reference"
+    const val PRIVACY_AUTHORIZATION_HEADER = "X-GoreeCloud-Privacy-Capability"
+    const val PRIVACY_AUTHORIZATION_ENFORCEMENT = "required"
     const val MAX_REQUEST_BYTES = 16 * 1024
     private const val GENERAL_CATEGORY = "general"
 
@@ -24,18 +30,24 @@ object GoreeCloudSearchContract {
         val current: Boolean,
         val productionAccepted: Boolean,
         val endpoint: String,
+        val discoveryEndpoint: String,
+        val discoveryCollection: String,
         val methods: Set<String>,
         val preferredMethod: String,
         val preferredQueryTransport: String,
         val requestMediaType: String,
         val responseMediaType: String,
         val privacyAuthorizationRequired: Boolean,
+        val privacyAuthorizationScheme: String,
+        val privacyAuthorizationHeader: String,
+        val privacyAuthorizationEnforcement: String,
         val maxRequestBytes: Int,
         val maxResults: Int,
     )
 
     data class PrivacyAuthorization(
         val accepted: Boolean,
+        /** Reference to the Privacy Shield capability token, not raw policy state. */
         val reference: String? = null,
     )
 
@@ -46,6 +58,7 @@ object GoreeCloudSearchContract {
         val query: String,
         val category: String,
         val limit: Int,
+        val authorizationHeader: String,
         val authorizationReference: String,
     )
 
@@ -58,6 +71,15 @@ object GoreeCloudSearchContract {
         EMPTY_QUERY,
         PRIVACY_AUTHORIZATION_REQUIRED,
         INCOMPATIBLE_CAPABILITY,
+    }
+
+    /**
+     * Selects the one unambiguous Search query capability from a discovery
+     * collection. Missing or duplicate records fail closed.
+     */
+    fun selectCapability(capabilities: List<CapabilityEvidence>): CapabilityEvidence? {
+        val matches = capabilities.filter { it.id == CAPABILITY_ID }
+        return matches.singleOrNull()
     }
 
     fun authorize(
@@ -83,6 +105,7 @@ object GoreeCloudSearchContract {
                 query = normalizedQuery,
                 category = GENERAL_CATEGORY,
                 limit = requestedLimit.coerceIn(1, capability.maxResults),
+                authorizationHeader = PRIVACY_AUTHORIZATION_HEADER,
                 authorizationReference = privacyAuthorization.reference,
             ),
         )
@@ -94,6 +117,8 @@ object GoreeCloudSearchContract {
             capability.authoritative &&
             capability.current &&
             capability.productionAccepted &&
+            capability.discoveryEndpoint == DISCOVERY_ENDPOINT &&
+            capability.discoveryCollection == DISCOVERY_COLLECTION &&
             capability.endpoint == ENDPOINT &&
             METHOD in capability.methods &&
             capability.preferredMethod == METHOD &&
@@ -101,6 +126,9 @@ object GoreeCloudSearchContract {
             capability.requestMediaType == MEDIA_TYPE &&
             capability.responseMediaType == MEDIA_TYPE &&
             capability.privacyAuthorizationRequired &&
+            capability.privacyAuthorizationScheme == PRIVACY_AUTHORIZATION_SCHEME &&
+            capability.privacyAuthorizationHeader == PRIVACY_AUTHORIZATION_HEADER &&
+            capability.privacyAuthorizationEnforcement == PRIVACY_AUTHORIZATION_ENFORCEMENT &&
             capability.maxRequestBytes == MAX_REQUEST_BYTES &&
             capability.maxResults >= 1
 }
