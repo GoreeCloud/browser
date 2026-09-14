@@ -8,6 +8,7 @@
 - **GoreeCloud Browser** owns navigation, browser chrome, tabs, page lifecycle, permissions, history, downloads, and executable web-destination handling.
 - **GoreeCloud Search** is the sole authoritative Internet/web/current-information search service for approved Browser search entry points.
 - **GoreeCloud Index** is the universal/local federated discovery authority. Browser may invoke Index for device/application/content discovery, but Browser must not merge Index and Search into an ambiguous authority boundary.
+- **Privacy Shield** remains authoritative for data-operation authorization, capability references, expiry/revocation/replay state, and privacy obligations.
 
 ## Omnibox classification
 
@@ -41,6 +42,7 @@ Before a production Browser path delegates a query, the selected Search capabili
 - bound to authorization scheme `privacy_shield_capability_token_reference`;
 - bound to authorization header `X-GoreeCloud-Privacy-Capability`;
 - explicit that authorization enforcement is `required`;
+- explicit that authenticated requester identity is required;
 - bound to the accepted request-size and result-count limits.
 
 Development builds may use non-production or legacy-GET Search evidence only through an explicit Development-only path that cannot be mistaken for Stable acceptance.
@@ -49,7 +51,7 @@ The current Search Development service advertises `privacy_authorization_enforce
 
 Production Browser must use the bounded JSON POST request contract so query text is not required to appear in request URLs. GET compatibility in Search is not permission for production Browser to silently downgrade transport privacy.
 
-Browser contains a transport-neutral `GoreeCloudSearchContract` boundary that validates the production capability plus a concrete Privacy Shield capability-token reference before producing a POST request description. That object performs no network I/O by itself, so adding it does not enable remote Search prematurely.
+Browser contains a transport-neutral `GoreeCloudSearchContract` boundary that validates the production capability plus a canonical Privacy Shield capability reference before producing a POST request description. That object performs no network I/O by itself, so adding it does not enable remote Search prematurely.
 
 ## Privacy Shield decision boundary
 
@@ -66,22 +68,41 @@ Browser creates a unique Privacy Shield `request_id` before decision acquisition
 - retention mode `none`;
 - `external_disclosure=false` for the Browser-to-first-party-Search boundary.
 
-The Browser Search authorization adapter validates the canonical Privacy Shield decision response rather than trusting a generic boolean. The returned decision must echo the same `request_id`; authorization evidence created for another request is rejected even if every other field appears compatible. For remote Search, the decision must also:
+The Browser Search authorization adapter validates the canonical Privacy Shield decision response rather than trusting a generic boolean. The returned decision must echo the same `request_id`; authorization evidence created for another request is rejected even if every other field appears compatible.
 
-- be an unconstrained `ALLOW`;
+For private GoreeCloud Search processing, Privacy Shield intentionally returns `ALLOW_WITH_CONSTRAINTS`. Browser accepts only that exact outcome and only the exact obligation set currently supported by the cross-product contract:
+
+- `record_privacy_evidence`;
+- `generate_privacy_receipt`;
+- `enforce_processing_zone`.
+
+The decision must also:
+
 - permit operation `search.query`;
 - permit processing zone `private_goreecloud`;
 - permit destination `https://search.goreecloud.com`;
 - permit retention mode `none`;
-- contain no obligations Browser cannot enforce;
+- contain exactly the supported obligation set above—no missing or additional obligation;
 - remain unexpired when an expiry is supplied;
-- provide a non-empty `capability_token_reference`.
+- provide a canonical non-empty `psc_*` capability reference.
 
-`ALLOW_WITH_CONSTRAINTS` remains fail-closed until Browser has complete enforcement for the returned obligations. Browser forwards only the capability-token reference through the Search authorization header; it must not copy raw Privacy Shield policy or decision state into the Search request.
+An unconditional `ALLOW`, a different constrained outcome, or any altered obligation set fails closed. Browser does not weaken a constrained Privacy Shield decision into a generic allow.
+
+Browser forwards only the opaque capability reference through the Search authorization header. The final Search request-construction boundary validates `psc_*` again, normalizes surrounding whitespace, and rejects embedded whitespace/noncanonical values even if an upstream caller bypasses the canonical decision adapter.
 
 Browser must not attach unrelated local state such as tab inventory, browsing history, downloads, bookmarks, cookies, local Index results, or account identifiers unless a separately specified and authorized feature requires the field.
 
-The current Android Development implementation deliberately remains non-transmitting because Search has not yet advertised server-side Privacy Shield authorization enforcement as production-ready. It does not fabricate approval from endpoint health or network availability.
+The current Android Development implementation deliberately remains non-transmitting because Search has not yet advertised server-side Privacy Shield authorization enforcement and authenticated requester identity as production-ready. It does not fabricate approval from endpoint health or network availability.
+
+## Search-side reference verification
+
+Production Browser must not treat possession of a `psc_*` reference as proof that Search will enforce it. Search must advertise and prove server-side reference enforcement and authenticated requester identity.
+
+Search's planned verifier uses Privacy Shield's version-1 capability-reference verification contract. Privacy Shield remains the authority for resolving the opaque reference, validating signed-token state, expiry, revocation, replay policy, requester/resource/purpose/operation/zone/destination/retention claims, and single-use consumption.
+
+Browser does not receive Privacy Shield signing keys and does not send raw signed capability tokens to Search.
+
+The verification consumer identity `goreecloud-search` and the original requester identity `goreecloud-browser` are separate concepts. Search must authenticate itself to Privacy Shield, and Search must independently derive the Browser requester identity from an authenticated transport/runtime boundary rather than trusting an arbitrary Browser-supplied identity field.
 
 ## Result opening
 
@@ -97,8 +118,8 @@ When Browser invokes GoreeCloud Index, the handoff is an invocation boundary rat
 
 - Search unavailable/incompatible → do not silently switch engines.
 - Search capability discovery missing/duplicated → do not transmit query remotely.
-- Privacy decision unavailable, denied, constrained-but-unenforceable, expired, mismatched to the request ID, or missing a capability token → do not transmit query remotely.
-- Search capability non-production, GET-only, query-URL, authorization-unenforced, or media-type incompatible in a production path → do not transmit query remotely.
+- Privacy decision unavailable, denied, wrong outcome, wrong obligation set, expired, mismatched to the request ID, or missing a canonical capability reference → do not transmit query remotely.
+- Search capability non-production, GET-only, query-URL, authorization-unenforced, requester-authentication-unproven, or media-type incompatible in a production path → do not transmit query remotely.
 - Index unavailable → retain ordinary Browser navigation/search behavior without fabricating local results.
 - Degraded Search → preserve valid results only where the Search contract allows, while preserving degraded status.
 - Invalid result URL → do not navigate.
@@ -111,4 +132,4 @@ The Android source contract targets Glaze UI V1.4 / `1.4.0`, including V1.4 opti
 
 ## Stability boundary
 
-Source wiring alone is not Stable evidence. Stable Browser acceptance requires current Search/Index contracts, accepted Privacy Shield decision acquisition with request correlation, Search-side authorization enforcement, Wardveil-relevant navigation/security behavior, accessibility, representative runtime validation, and Browser-local release evidence.
+Source wiring alone is not Stable evidence. Stable Browser acceptance requires current Search/Index contracts, accepted Privacy Shield decision acquisition with request correlation, exact constrained-obligation handling, Search-side versioned capability-reference enforcement, authenticated requester identity, Wardveil-relevant navigation/security behavior, accessibility, representative runtime validation, and Browser-local release evidence.
