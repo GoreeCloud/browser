@@ -16,9 +16,32 @@ object NavigationResolver {
 
     sealed interface Intent {
         data object Home : Intent
-        data class Navigate(val url: String) : Intent
-        data class Search(val query: String) : Intent
-        data class Blocked(val input: String) : Intent
+
+        /**
+         * The resolved URL remains available to the navigation runtime but is
+         * excluded from debug rendering so ordinary logs cannot become a
+         * browsing-history store.
+         */
+        data class Navigate(val url: String) : Intent {
+            override fun toString(): String = "Navigate(url=<redacted>)"
+        }
+
+        /**
+         * Search text remains available to the Search authorization boundary but
+         * is excluded from debug rendering so ordinary logs cannot become a
+         * search-history store.
+         */
+        data class Search(val query: String) : Intent {
+            override fun toString(): String = "Search(query=<redacted>)"
+        }
+
+        /**
+         * Blocked raw input may itself contain sensitive typed text. Preserve it
+         * for local policy handling while redacting it from diagnostics.
+         */
+        data class Blocked(val input: String) : Intent {
+            override fun toString(): String = "Blocked(input=<redacted>)"
+        }
     }
 
     fun classify(rawInput: String): Intent {
