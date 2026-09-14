@@ -7,11 +7,11 @@ import java.util.UUID
  * Narrow Browser adapter for the canonical Privacy Shield authorization
  * decision contract used by remote GoreeCloud Search delegation.
  *
- * Browser does not treat a generic ALLOW bit as sufficient. The decision must
- * authorize the exact Search operation, private GoreeCloud processing zone and
- * destination, contain no obligations Browser cannot yet enforce, remain
- * unexpired, and provide a capability-token reference that can travel with the
- * Search operation.
+ * Private GoreeCloud processing is intentionally represented by Privacy Shield
+ * as ALLOW_WITH_CONSTRAINTS. Browser accepts only the exact Search constraint
+ * set that is satisfied by Privacy Shield authority-side evidence/receipt work
+ * plus Search-side processing-zone enforcement. Any additional obligation fails
+ * closed until Browser/Search have explicit enforcement for it.
  */
 object PrivacyShieldSearchAuthorization {
     const val REQUESTER_ID = "goreecloud-browser"
@@ -23,6 +23,12 @@ object PrivacyShieldSearchAuthorization {
     const val REQUIRED_PROCESSING_ZONE = "private_goreecloud"
     const val REQUIRED_DESTINATION = GoreeCloudSearchContract.SEARCH_ORIGIN
     const val REQUIRED_RETENTION_MODE = "none"
+    const val REQUIRED_OUTCOME = "ALLOW_WITH_CONSTRAINTS"
+    val REQUIRED_OBLIGATIONS: Set<String> = setOf(
+        "record_privacy_evidence",
+        "generate_privacy_receipt",
+        "enforce_processing_zone",
+    )
 
     /**
      * Canonical Search-specific authorization intent. The request identifier is
@@ -69,7 +75,7 @@ object PrivacyShieldSearchAuthorization {
         INVALID_REQUEST_INTENT,
         INVALID_DECISION_ID,
         REQUEST_ID_MISMATCH,
-        OUTCOME_NOT_ALLOW,
+        OUTCOME_NOT_SUPPORTED,
         OPERATION_NOT_PERMITTED,
         PROCESSING_ZONE_NOT_PERMITTED,
         DESTINATION_NOT_PERMITTED,
@@ -99,10 +105,8 @@ object PrivacyShieldSearchAuthorization {
         if (decision.requestId != request.requestId) {
             return Evaluation.Rejected(RejectionReason.REQUEST_ID_MISMATCH)
         }
-        if (decision.outcome != "ALLOW") {
-            // ALLOW_WITH_CONSTRAINTS remains fail-closed until Browser has a
-            // complete obligation-enforcement path for this operation.
-            return Evaluation.Rejected(RejectionReason.OUTCOME_NOT_ALLOW)
+        if (decision.outcome != REQUIRED_OUTCOME) {
+            return Evaluation.Rejected(RejectionReason.OUTCOME_NOT_SUPPORTED)
         }
         if (REQUIRED_OPERATION !in decision.permittedOperations) {
             return Evaluation.Rejected(RejectionReason.OPERATION_NOT_PERMITTED)
@@ -116,7 +120,7 @@ object PrivacyShieldSearchAuthorization {
         if (decision.retentionMode != REQUIRED_RETENTION_MODE) {
             return Evaluation.Rejected(RejectionReason.RETENTION_NOT_PERMITTED)
         }
-        if (decision.obligations.isNotEmpty()) {
+        if (decision.obligations != REQUIRED_OBLIGATIONS) {
             return Evaluation.Rejected(RejectionReason.UNSUPPORTED_OBLIGATIONS)
         }
         if (decision.expiresAt != null) {
@@ -128,7 +132,7 @@ object PrivacyShieldSearchAuthorization {
         }
         val capabilityReference = decision.capabilityTokenReference
             ?.trim()
-            ?.takeIf(String::isNotEmpty)
+            ?.takeIf { it.startsWith("psc_") && it.length > 4 }
             ?: return Evaluation.Rejected(RejectionReason.CAPABILITY_TOKEN_REQUIRED)
 
         return Evaluation.Accepted(
