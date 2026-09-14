@@ -13,12 +13,14 @@
 
 Browser must classify input before executing a remote search:
 
-1. accepted navigable URL or explicit navigation intent → Browser navigation;
-2. non-URL query → GoreeCloud Search delegation;
+1. accepted navigable HTTP(S) URL or explicit navigation intent → Browser navigation;
+2. non-URL query → GoreeCloud Search delegation candidate;
 3. local/universal discovery intent routed to Index → Index handoff;
-4. ambiguous or unsafe input → no silent execution until classification and applicable policy checks succeed.
+4. ambiguous, malformed, credential-bearing, unsupported-scheme, or otherwise unsafe input → blocked locally rather than silently executed or converted into a remote Search query.
 
 The Browser must not implement a hidden fallback to a third-party search engine when GoreeCloud Search is unavailable.
+
+The current Android Development shell already performs typed Home / Navigate / Search / Blocked classification. Search and Blocked inputs stop on Browser-owned local pages; they are not transmitted remotely by the current runtime.
 
 ## Search capability gate
 
@@ -30,9 +32,12 @@ Before a production Browser path delegates a query, Browser must validate one un
 - authoritative;
 - available;
 - explicitly production accepted for Stable/production use;
-- bound to the expected endpoint and result limits.
+- bound to the expected endpoint and result limits;
+- POST-capable with POST identified as the preferred first-party method.
 
-Development builds may use non-production Search evidence only through an explicit Development-only path that cannot be mistaken for Stable acceptance.
+Development builds may use non-production or legacy-GET Search evidence only through an explicit Development-only path that cannot be mistaken for Stable acceptance.
+
+Production Browser must prefer the bounded JSON POST request contract so query text is not required to appear in request URLs. GET compatibility in Search is not permission for production Browser to silently downgrade transport privacy.
 
 ## Privacy Shield boundary
 
@@ -40,9 +45,13 @@ A non-URL query is not permission to transmit data. Before remote delegation, Br
 
 Browser must not attach unrelated local state such as tab inventory, browsing history, downloads, bookmarks, cookies, local Index results, or account identifiers unless a separately specified and authorized feature requires the field.
 
+The current Android Development implementation deliberately fails closed because the accepted runtime Privacy Shield + Search capability adapter path is not yet implemented. It does not fabricate approval from endpoint health or network availability.
+
 ## Result opening
 
 Search owns search-result generation; Browser owns navigation to a selected result. Before navigation, Browser must validate the destination using Browser-owned URL/security policy. Search result presence is not permission to bypass Browser navigation restrictions.
+
+Current Android navigation validation rejects malformed HTTP(S), missing-host URLs, embedded user-info credentials, and non-HTTP(S) explicit schemes before navigation.
 
 ## Index handoff
 
@@ -52,6 +61,7 @@ When Browser invokes GoreeCloud Index, the handoff is an invocation boundary rat
 
 - Search unavailable/incompatible → do not silently switch engines.
 - Privacy decision unavailable/denied → do not transmit query remotely.
+- Search capability non-production or GET-only in a production path → do not transmit query remotely.
 - Index unavailable → retain ordinary Browser navigation/search behavior without fabricating local results.
 - Degraded Search → preserve valid results only where the Search contract allows, while preserving degraded status.
 - Invalid result URL → do not navigate.
@@ -59,6 +69,8 @@ When Browser invokes GoreeCloud Index, the handoff is an invocation boundary rat
 ## Glaze UI
 
 All Browser-owned omnibox, search suggestions, result-opening affordances, Search error states, and Index invocation surfaces must conform to the latest approved Stable Glaze UI release. Search or Index conformance never substitutes for Browser-local Glaze acceptance.
+
+The Android source contract targets Glaze UI V1.4 / `1.4.0`, including V1.4 optical accessibility precedence and an effects-free opaque fallback. This remains source/automated evidence rather than rendered/native-device acceptance.
 
 ## Stability boundary
 
