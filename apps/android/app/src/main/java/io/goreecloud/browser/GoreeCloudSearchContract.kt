@@ -22,6 +22,7 @@ object GoreeCloudSearchContract {
     const val PRIVACY_AUTHORIZATION_ENFORCEMENT = "required"
     const val MAX_REQUEST_BYTES = 16 * 1024
     private const val GENERAL_CATEGORY = "general"
+    private const val PRIVACY_CAPABILITY_REFERENCE_PREFIX = "psc_"
 
     data class CapabilityEvidence(
         val id: String,
@@ -91,7 +92,13 @@ object GoreeCloudSearchContract {
     ): Decision {
         val normalizedQuery = query.trim()
         if (normalizedQuery.isEmpty()) return Decision.Rejected(RejectionReason.EMPTY_QUERY)
-        if (!privacyAuthorization.accepted || privacyAuthorization.reference.isNullOrBlank()) {
+
+        val authorizationReference = privacyAuthorization.reference?.trim()
+        if (
+            !privacyAuthorization.accepted ||
+            authorizationReference.isNullOrEmpty() ||
+            !isCanonicalPrivacyCapabilityReference(authorizationReference)
+        ) {
             return Decision.Rejected(RejectionReason.PRIVACY_AUTHORIZATION_REQUIRED)
         }
         if (!isCompatible(capability)) {
@@ -107,7 +114,7 @@ object GoreeCloudSearchContract {
                 category = GENERAL_CATEGORY,
                 limit = requestedLimit.coerceIn(1, capability.maxResults),
                 authorizationHeader = PRIVACY_AUTHORIZATION_HEADER,
-                authorizationReference = privacyAuthorization.reference,
+                authorizationReference = authorizationReference,
             ),
         )
     }
@@ -133,4 +140,9 @@ object GoreeCloudSearchContract {
             capability.authenticatedRequesterRequired &&
             capability.maxRequestBytes == MAX_REQUEST_BYTES &&
             capability.maxResults >= 1
+
+    private fun isCanonicalPrivacyCapabilityReference(reference: String): Boolean =
+        reference.startsWith(PRIVACY_CAPABILITY_REFERENCE_PREFIX) &&
+            reference.length > PRIVACY_CAPABILITY_REFERENCE_PREFIX.length &&
+            reference.none(Char::isWhitespace)
 }
