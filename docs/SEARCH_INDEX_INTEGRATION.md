@@ -55,7 +55,18 @@ Browser contains a transport-neutral `GoreeCloudSearchContract` boundary that va
 
 A non-URL query is not permission to transmit data. Before remote delegation, Browser must apply the accepted Privacy Shield decision for the specific operation and purpose.
 
-The Browser Search authorization adapter validates the canonical Privacy Shield decision response rather than trusting a generic boolean. For remote Search, the decision must:
+Browser creates a unique Privacy Shield `request_id` before decision acquisition. The canonical Search authorization request identifies:
+
+- requester `goreecloud-browser` with requester type `application`;
+- resource `goreecloud.search.query` classified as `query_text`;
+- operation `search.query`;
+- purpose `internet_search`;
+- processing zone `private_goreecloud`;
+- destination `https://search.goreecloud.com`;
+- retention mode `none`;
+- `external_disclosure=false` for the Browser-to-first-party-Search boundary.
+
+The Browser Search authorization adapter validates the canonical Privacy Shield decision response rather than trusting a generic boolean. The returned decision must echo the same `request_id`; authorization evidence created for another request is rejected even if every other field appears compatible. For remote Search, the decision must also:
 
 - be an unconstrained `ALLOW`;
 - permit operation `search.query`;
@@ -86,7 +97,7 @@ When Browser invokes GoreeCloud Index, the handoff is an invocation boundary rat
 
 - Search unavailable/incompatible → do not silently switch engines.
 - Search capability discovery missing/duplicated → do not transmit query remotely.
-- Privacy decision unavailable, denied, constrained-but-unenforceable, expired, or missing a capability token → do not transmit query remotely.
+- Privacy decision unavailable, denied, constrained-but-unenforceable, expired, mismatched to the request ID, or missing a capability token → do not transmit query remotely.
 - Search capability non-production, GET-only, query-URL, authorization-unenforced, or media-type incompatible in a production path → do not transmit query remotely.
 - Index unavailable → retain ordinary Browser navigation/search behavior without fabricating local results.
 - Degraded Search → preserve valid results only where the Search contract allows, while preserving degraded status.
@@ -100,4 +111,4 @@ The Android source contract targets Glaze UI V1.4 / `1.4.0`, including V1.4 opti
 
 ## Stability boundary
 
-Source wiring alone is not Stable evidence. Stable Browser acceptance requires current Search/Index contracts, accepted Privacy Shield decision acquisition, Search-side authorization enforcement, Wardveil-relevant navigation/security behavior, accessibility, representative runtime validation, and Browser-local release evidence.
+Source wiring alone is not Stable evidence. Stable Browser acceptance requires current Search/Index contracts, accepted Privacy Shield decision acquisition with request correlation, Search-side authorization enforcement, Wardveil-relevant navigation/security behavior, accessibility, representative runtime validation, and Browser-local release evidence.
