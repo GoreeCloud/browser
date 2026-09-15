@@ -4,21 +4,21 @@ GoreeCloud Browser tracks the **latest approved Stable Glaze UI release**.
 
 ## Current baseline
 
-- Glaze UI Stable version: `1.4.0`
+- Glaze UI Stable version: `1.4.1`
 - Canonical repository: `GoreeCloud/goreecloud-glaze-ui`
-- Stable promotion revision: `84cb3db4884042f0fa25ed6d475a127fb110f596`
-- Current Stable hardening revision reviewed for this migration: `ee057ce9e729296aeaeda182d01db89f52bd66f3`
+- Current signed Stable authority revision: `4fab9da0fad2e5c974e0e66ec88632c61745751c`
+- Immediate shared rollback baseline: `1.4.0`
 - Browser policy: `latest-approved-stable`
 - Browser conformance state: **migration required / not yet accepted**
 - Browser production eligibility from this documentation update alone: **No**
 
 This is a moving adoption target, not a permanent pin. Any newer Stable Glaze UI promotion makes Browser migration-required until Browser-owned surfaces, native mappings, automated checks, and application-specific acceptance evidence are updated.
 
-The previous Browser documentation named Glaze UI `2.2.0`. That value is not the current Stable authority published by `GoreeCloud/goreecloud-glaze-ui` and must not be used as Browser release evidence. Historical Browser mappings remain useful implementation history only; they do not establish current conformance.
+Older Browser documentation that named Glaze UI `2.2.0`, V1.3, or V1.4.0 as the current target is not current release authority. Historical Browser mappings remain useful implementation and rollback history only; they do not establish current conformance.
 
-## Glaze UI V1.4 design requirements
+## Glaze UI V1.4.1 design requirements
 
-Browser must preserve the current Glaze design rules on every Browser-owned surface:
+Browser must preserve the V1.4 Optical Intelligence model and current V1.4.1 hardening rules on every Browser-owned surface:
 
 - neutral glass remains the material foundation;
 - optical adaptation is contextual, bounded, and subordinate to meaning, accessibility, privacy, security, and task completion;
@@ -29,7 +29,8 @@ Browser must preserve the current Glaze design rules on every Browser-owned surf
 - environmental tinting, warmth, chromatic depth, and color-memory behavior remain bounded and decorative;
 - Forced Colors and Reduced Transparency collapse optical behavior to an accessible solid mode;
 - Increased Contrast suppresses decorative optical behavior where required and strengthens clarity;
-- optical/context behavior must not require telemetry, analytics, camera access, or remote environmental sensing.
+- optical/context behavior must not require telemetry, analytics, camera access, microphone access, or remote environmental sensing;
+- shared Glaze qualification must never be treated as Browser-local rendered, accessibility, device, performance, or workflow acceptance.
 
 Browser must not claim that Glaze optical behavior itself provides Privacy Shield authorization, Wardveil security state, Everkeep continuity, Mesh coordination, Identity authorization, Search authority, or successful Browser workflow state.
 
@@ -57,7 +58,7 @@ OS-owned, certificate, permission, engine-critical, and Developer Tools surfaces
 
 ## Migration requirements
 
-The V1.4 migration must include more than documentation replacement. Browser must audit and update, where applicable:
+The V1.4.1 migration must include more than documentation replacement. Browser must audit and update, where applicable:
 
 1. shared tokens and material definitions;
 2. Browser-native Android mappings;
@@ -70,13 +71,14 @@ The V1.4 migration must include more than documentation replacement. Browser mus
 9. touch, keyboard, mouse, stylus, remote/far-view, and accessibility target sizing where supported;
 10. layout behavior across supported form factors, safe areas, and text scaling;
 11. localization and RTL behavior;
-12. performance on representative hardware.
+12. performance on representative hardware;
+13. Browser-local regression review for the V1.4.1 hardening delta and immediate V1.4.0 rollback path.
 
-No legacy or previously mapped Glaze version may be relabeled as V1.4 merely because its appearance is similar.
+No legacy or previously mapped Glaze version may be relabeled as V1.4.1 merely because its appearance is similar.
 
 ## Optical privacy and security boundary
 
-Glaze V1.4 permits local deterministic optical adaptation. Browser must source any contextual input through an explicit Browser-owned adapter and must subject that adapter to applicable Privacy Shield and Wardveil review before use.
+Glaze V1.4.1 permits the bounded local deterministic optical adaptation inherited from V1.4. Browser must source any contextual input through an explicit Browser-owned adapter and must subject that adapter to applicable Privacy Shield and Wardveil review before use.
 
 Browser must not introduce camera, microphone, remote analytics, cross-site tracking, browsing-history profiling, or hidden telemetry merely to drive visual effects.
 
@@ -86,15 +88,15 @@ Environmental memory tint is decorative state only. It must not become identity 
 
 Browser search and Index integration must follow [`SEARCH_INDEX_INTEGRATION.md`](SEARCH_INDEX_INTEGRATION.md).
 
-The omnibox and other Browser-owned search/navigation surfaces are Browser UI and therefore require Browser-local Glaze V1.4 acceptance even though GoreeCloud Search or GoreeCloud Index may own the underlying query authority.
+The omnibox and other Browser-owned search/navigation surfaces are Browser UI and therefore require Browser-local Glaze V1.4.1 acceptance even though GoreeCloud Search or GoreeCloud Index may own the underlying query authority.
 
 ## Acceptance requirements
 
-A Browser revision may claim current Glaze conformance only after repository-local evidence demonstrates the applicable V1.4 contract across supported platform families.
+A Browser revision may claim current Glaze conformance only after repository-local evidence demonstrates the applicable V1.4.1 contract across supported platform families.
 
 At minimum, acceptance should cover:
 
-- source/token mapping validation;
+- exact source/token mapping validation against the signed Stable Glaze authority;
 - representative rendered/native visual review;
 - keyboard navigation and visible focus;
 - TalkBack/screen-reader semantics where supported;
@@ -106,21 +108,22 @@ At minimum, acceptance should cover:
 - RTL and localization;
 - touch and pointer target behavior;
 - orientation and form-factor behavior;
-- representative performance and sustained-use behavior.
+- representative performance and sustained-use behavior;
+- upgrade and rollback behavior from the V1.4.0 baseline.
 
-Glaze V1.4.0 Stable itself explicitly defers some subjective/manual/physical-device qualification to the V1.4.1 hardening follow-up. Browser must not represent those deferred design-system checks as already passed for Browser.
+Shared Glaze V1.4.1 Stable qualification does not auto-certify Browser. Browser-local acceptance remains separately required.
 
 ## Production rule
 
 A superseded or invented Glaze UI version cannot satisfy Browser production readiness. Central Glaze Stable status also does not automatically certify Browser.
 
-Browser remains non-Stable wherever required V1.4 migration or Browser-specific acceptance evidence is incomplete.
+Browser remains non-Stable wherever required V1.4.1 migration or Browser-specific acceptance evidence is incomplete.
 
 ## Upgrade and rollback process
 
 For every future Stable Glaze promotion, Browser must:
 
-1. record the new semantic version and reviewed Glaze revision;
+1. record the new semantic version and exact reviewed Glaze revision;
 2. audit changed design-system contracts;
 3. update Browser-local mappings and metadata;
 4. run Browser-specific automated and runtime acceptance;
