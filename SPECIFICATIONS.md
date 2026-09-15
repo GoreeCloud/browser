@@ -1,7 +1,7 @@
 ---
 title: "GoreeCloud Browser — Project Specification"
 document_owner: "LaDamian Goree"
-version: "v0.10"
+version: "v0.11"
 document_status: "Under Review"
 project_status: "Active Development / nonconformant"
 classification: "Internal"
@@ -17,12 +17,12 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 
 # GoreeCloud Browser — Project Specification
 
-> **Authority and migration note:** This Markdown file is the canonical Browser project specification after verified migration from the legacy Drive DOCX. It consolidates current requirements and architecture rather than repeating the legacy document's long chronological Development narrative. Historical checkpoints remain preserved in Git history, pull-request evidence, and the explicitly superseded legacy DOCX. The format migration itself does not change implementation state. Version `v0.10` adds implementation-ready permission/private-context and Wardveil download runtime contracts in Sections 16–17.
+> **Authority and migration note:** This Markdown file is the canonical Browser project specification after verified migration from the legacy Drive DOCX. It consolidates current requirements and architecture rather than repeating the legacy document's long chronological Development narrative. Historical checkpoints remain preserved in Git history, pull-request evidence, and the explicitly superseded legacy DOCX. The format migration itself does not change implementation state. Version `v0.11` retains the permission/private-context and Wardveil download runtime contracts in Sections 16–17 and adds the implementation-ready tabs, sessions, profiles, and Webspaces runtime contract in Section 18.
 
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.10
+- **Version:** v0.11
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -586,9 +586,239 @@ Passing this matrix with a mock verifier is not production Wardveil acceptance. 
 
 The implementation principle is: **no engine callback or file-release path may bypass Browser-owned state, privacy context, or required GoreeCloud authority.**
 
-## 18. Documentation, Roadmap, and Evidence Synchronization
+## 18. Tabs, Sessions, Profiles, and Webspaces Runtime Implementation Contract
 
-`SPECIFICATIONS.md`, `FEATURE-ROADMAP.md`, the explicitly required Drive `FEATURE-ROADMAP.docx`, PR/repository evidence, and GoreeCloud Tasks Management must remain materially consistent without becoming duplicate authority for the same purpose.
+**Status:** Proposed implementation contract. Section 15 defines the target architecture; this section defines the implementation-facing runtime model and acceptance requirements. It does not claim a complete multi-tab, session-recovery, profile, or Webspaces runtime.
+
+### 18.1 Runtime Ownership
+
+Browser owns the canonical profile, privacy-context, window, tab, session-journal, checkpoint, Webspace-assignment, restoration, resource-management, and user-facing state machines. The rendering engine owns page execution/rendering state behind a replaceable adapter and must not become the authority for Browser profile identity, durable session truth, privacy-context lifetime, Webspace policy, Sync eligibility, or recovery classification.
+
+Browser Sync may synchronize explicitly eligible projections of Browser state after local state is committed. Everkeep may preserve approved recovery material through its own accepted contract. Neither Sync nor Everkeep replaces the Browser runtime state store or may resurrect state that Browser has classified as destroyed, private-only, or ineligible.
+
+### 18.2 Canonical Identifiers and Object Model
+
+Runtime objects must use stable Browser-owned identifiers with explicit schema versions. The model should include at least:
+
+- `profile_id` — stable identity for one Browser profile;
+- `privacy_context_id` plus context type `NORMAL`, `PRIVATE`, or `ISOLATED_PRIVATE`;
+- `window_id` — stable Browser window/task identity within a profile;
+- `tab_id` — stable tab identity independent from any transient engine instance;
+- optional `webspace_id` — Browser organizational/isolation policy assignment;
+- `navigation_id` or equivalent generation counter for the current committed navigation;
+- `session_epoch` — identifies one Browser runtime session/recovery generation;
+- `journal_sequence` — monotonically ordered local state-change position;
+- `checkpoint_id` — immutable durable normal-session checkpoint identity;
+- schema and migration version fields.
+
+Engine object references, WebView instances, process IDs, Android activity IDs, view handles, or memory addresses are transient implementation handles and must never be used as durable Browser identity.
+
+### 18.3 Profile Isolation Model
+
+Each tab and window must belong to exactly one `profile_id`. A Browser profile owns or scopes the applicable cookie/storage partition, history namespace, permission store, settings, Webspaces, Sync namespace, Vault delegation context, session journal, recovery material, and other profile-local state.
+
+Cross-profile object movement must be an explicit Browser operation that creates or imports eligible state into the destination profile. Reparenting a live engine instance must not silently transfer cookies, storage, permissions, credentials, private state, or authority across profiles.
+
+Deleting a profile must enter a controlled deletion lifecycle that closes its runtime objects, revokes or detaches applicable integrations, destroys profile-local state according to policy, records only the minimum permitted deletion evidence, and prevents stale checkpoints or Sync input from recreating the deleted profile without an explicit user-authorized restore/import path.
+
+### 18.4 Tab State Machine
+
+A Browser-owned tab state machine should distinguish at least:
+
+```text
+CREATED
+  → INITIALIZING
+  → ACTIVE | BACKGROUND
+  → FROZEN
+  → DISCARDED
+  → RESTORING
+  → ACTIVE | BACKGROUND
+  → CLOSING
+  → CLOSED
+```
+
+Exceptional states may include `CRASHED`, `RESTORE_FAILED`, and `ERROR` when needed for truthful recovery UX.
+
+`tab_id` survives engine recreation, ordinary freeze/discard, and accepted process-death restoration. Closing a tab invalidates outstanding permission requests, transient authority handles, pending navigations that no longer belong to a live owner, and other tab-scoped work that cannot safely outlive it.
+
+A discarded tab may retain only the minimum eligible Browser-owned restoration projection. Engine memory state is not assumed durable unless an accepted engine adapter provides a versioned compatible serialization that Browser treats as optional implementation data rather than sole session truth.
+
+### 18.5 Window and Session State Model
+
+Windows/tasks must have Browser-owned ordered tab membership, active-tab identity, profile identity, privacy-context ownership rules, and optional Webspace presentation state. A window cannot contain tabs from multiple profiles unless a future separately accepted architecture explicitly defines such a model.
+
+A runtime session should distinguish:
+
+```text
+STARTING
+RUNNING
+BACKGROUNDING
+CHECKPOINTING
+RESTORING
+CLEAN_SHUTDOWN
+ABNORMAL_TERMINATION
+```
+
+Clean shutdown and abnormal termination must be distinguishable. Browser must not offer crash/process-death restoration based solely on the existence of stale files. Restoration eligibility must be determined from the last durable journal/checkpoint state, shutdown marker, profile/context policy, schema compatibility, and integrity validation.
+
+### 18.6 Durable Normal-Session Journal
+
+Eligible Normal-context runtime changes should be recorded through a versioned append-oriented journal or equivalent transactional event store before or atomically with the durable state they authorize.
+
+Journal entries should include only the minimum state required to reconstruct Browser runtime truth, such as object identity, operation type, ordering/version information, bounded navigation/restoration metadata, Webspace assignment, and lifecycle transition. The journal must not persist reusable credentials, Vault secrets, authorization headers, private form data, or engine memory dumps merely for convenience.
+
+Journal processing must be idempotent. Duplicate replay, interrupted compaction, reordered durable writes, or process death during a state transition must not create duplicate tabs, cross-profile ownership, impossible active-tab references, or resurrection of explicitly closed state.
+
+### 18.7 Checkpoints, Compaction, and Integrity
+
+Browser should periodically materialize immutable or transactionally replaceable normal-session checkpoints so restoration does not require replaying an unbounded journal.
+
+A checkpoint should declare at least:
+
+- `checkpoint_id`;
+- `profile_id` or a clearly bounded multi-profile container when independently justified;
+- `session_epoch`;
+- schema version;
+- journal high-water mark;
+- window/tab ordering and active-tab state;
+- eligible bounded navigation/restoration projection;
+- Webspace assignment and Browser-owned presentation state needed for restoration;
+- integrity checksum/MAC where required by the local threat model;
+- creation time and compatibility metadata.
+
+Compaction must preserve the meaning of committed close/delete operations. A checkpoint created after a tab close must not retain that tab as restorable state unless a separate recently-closed feature intentionally and explicitly owns such history.
+
+Corrupt, partially written, unsupported-version, or internally inconsistent checkpoints must fail safely and must not be silently repaired by inventing Browser state.
+
+### 18.8 Process-Death and Crash Restoration
+
+At startup after abnormal termination, Browser should:
+
+1. identify the most recent compatible valid checkpoint;
+2. replay only journal entries after its high-water mark;
+3. validate profile, privacy-context, window, tab, and Webspace relationships;
+4. discard or quarantine invalid/inconsistent records rather than binding them across authority boundaries;
+5. construct Browser-owned tab/window objects before attaching engine instances;
+6. restore eligible Normal-context tabs according to resource limits and user policy;
+7. surface bounded recovery information when material state could not be restored.
+
+Restoration must be deterministic for the same validated durable input. It must not depend on network availability, Sync success, or Everkeep availability for ordinary local process-death recovery.
+
+### 18.9 Private and Isolated Private Session Semantics
+
+Private and Isolated Private tabs/windows must not enter the ordinary durable Normal session journal or checkpoint store.
+
+If temporary crash-survival state is ever introduced for a private context, it requires a separately approved design with explicit threat model, encryption/key lifetime, automatic expiry, Close & Forget destruction, and no ordinary Sync/Everkeep participation. Until such a design is accepted, private runtime state is memory/ephemeral-storage scoped and non-restorable after process death.
+
+`Close & Forget` must atomically or idempotently initiate destruction of the private context, cancel unresolved context-owned permissions/downloads/operations that cannot safely continue, destroy context storage and ephemeral session metadata, remove private tab/window objects, and prevent stale journal, engine, Sync, or callback input from recreating them.
+
+### 18.10 Webspaces Runtime Contract
+
+A Webspace is a Browser-owned organization and isolation-policy object within a profile. It may define user-visible name/icon/color, tab grouping, site/domain assignment rules, cookie/storage container mapping, permission defaults or references, Browser policy attributes, and eligible synchronization metadata.
+
+Webspaces must not become identity, credential, Privacy Shield, Wardveil, DNS, Network, or Vault authority. A Webspace policy may impose a stricter Browser-local boundary, but it may not weaken profile or privacy-context isolation or convert an unavailable external authority into an allow decision.
+
+Each tab must have either no Webspace or one explicit `webspace_id` under its owning profile. Moving a tab between Webspaces must use a defined transition. If storage/container isolation differs, Browser must create a new compatible browsing context or reload/reinstantiate through the destination container rather than silently retaining incompatible origin state.
+
+### 18.11 Profile Switching and Context Transitions
+
+Switching the visible profile must not mutate ownership of existing windows/tabs. Browser should activate a destination profile surface and suspend or background the previous profile according to policy.
+
+Normal → Private, Private → Normal, profile A → profile B, or Isolated Private → any other context are not ordinary mutable property changes on a live tab. When user intent requires opening the same URL in another context, Browser should create a new destination-context tab with a purpose-limited navigation handoff rather than transferring cookies, history, storage, permission grants, Vault handles, or private session state.
+
+### 18.12 Engine Adapter and Instance Recreation
+
+The engine adapter must expose Browser-owned lifecycle hooks for create, attach, navigate, suspend, freeze, discard, recreate, restore projection, and destroy operations. An engine crash or Android WebView/process recreation must be mapped into Browser tab/session state rather than redefining it.
+
+Browser should restore the minimum safe navigation projection first. Any engine-specific serialized state is optional and must be schema/version checked, bounded in size, scoped to the correct profile/context/tab, and rejected when incompatible or unsafe.
+
+### 18.13 Browser Sync Boundary
+
+Browser Sync must consume committed Browser projections; it must not observe half-applied local transitions or become the transaction coordinator for local runtime state.
+
+Sync-eligible state must be explicitly classified per object/domain. Private and Isolated Private runtime objects are ineligible. Remote close/delete/tombstone semantics must be reconciled without resurrecting stale local objects. Incoming state must never move a tab across profiles or privacy contexts without an explicit supported mapping and local authorization.
+
+Open-tabs/session-continuity synchronization should exchange bounded logical state, not raw engine memory, cookies, reusable credentials, private storage, or opaque local authority handles.
+
+### 18.14 Everkeep and Recovery Boundary
+
+Ordinary Browser session restoration remains a Browser-owned local runtime responsibility. Everkeep may provide broader recovery/version-history/continuity only through an explicit accepted contract.
+
+Everkeep restore must target a Browser-supported import/recovery boundary and must not directly overwrite live Browser runtime databases while the Browser is active. Restored state must be schema compatible, integrity checked, profile scoped, and classified as recovered material before becoming active runtime state.
+
+Private/Isolated Private session material remains excluded unless a separately governed privacy design explicitly authorizes preservation.
+
+### 18.15 Resource Management and Tab Discard
+
+Resource management may freeze or discard inactive tabs based on bounded signals such as recency, foreground state, memory pressure, media/activity state, user pinning, form-loss risk, accessibility needs, and platform constraints.
+
+Discard policy must be Browser-owned and observable enough to explain user-visible restoration. Tabs performing security-sensitive, user-confirmation, active-download-control, media capture, WebAuthn/passkey, or other stateful workflows should not be discarded blindly.
+
+Resource optimization must not weaken privacy isolation, drop required cleanup, or transform an unpersisted private tab into durable restorable state.
+
+### 18.16 User Experience and Accessibility
+
+The tab switcher, window/session recovery UI, profile switcher, Webspaces controls, recently closed/recovery surfaces, and error states must clearly communicate active profile/privacy context and avoid ambiguous cross-context actions.
+
+GLAZE UI requirements include keyboard/input navigation where applicable, TalkBack/screen-reader semantics, large-text/reflow support, localization/RTL, reduced effects, contrast, focus order, state announcements, and representative-device behavior.
+
+Destructive actions such as Close & Forget, profile deletion, clear-session operations, or recovery replacement must communicate their scope without falsely promising deletion from independent authorities that Browser does not control.
+
+### 18.17 Privacy-Safe Diagnostics
+
+Diagnostics may record opaque profile/window/tab/checkpoint identifiers, schema versions, lifecycle transitions, bounded restore failure categories, journal/checkpoint integrity outcomes, engine recreation counts, and timing needed to evaluate reliability.
+
+Diagnostics must not contain raw private URLs/history, cookies, authorization headers, Vault secrets, form contents, reusable Privacy Shield capability material, or full engine serialized state. Normal browsing URLs should be minimized or reduced to purpose-limited derived categories unless exact values are explicitly required and authorized for a controlled debugging workflow.
+
+### 18.18 Runtime Acceptance Matrix
+
+Production acceptance requires deterministic automated tests, fault injection, migration tests, and representative-device evidence for at least:
+
+1. Stable `tab_id` survives engine recreation while transient engine identity changes.
+2. Tabs and windows cannot cross `profile_id` ownership accidentally.
+3. Private and Isolated Private objects never enter the ordinary Normal session journal/checkpoint store.
+4. Clean shutdown does not trigger crash-recovery behavior.
+5. Process death during a journal write restores the last committed consistent state.
+6. Process death during checkpoint replacement leaves at least one valid recovery source.
+7. Duplicate journal replay is idempotent and does not duplicate tabs/windows.
+8. Closed tabs do not resurrect after compaction or stale Sync input.
+9. Active-tab/window ordering remains internally consistent after replay.
+10. Corrupt or unsupported checkpoints fail safely without cross-profile rebinding.
+11. Close & Forget cancels/destroys applicable private state and prevents stale callback resurrection.
+12. Profile deletion prevents stale local or synchronized state from silently recreating the profile.
+13. Profile switching does not transfer cookies, storage, permissions, Vault handles, or private state.
+14. Webspace moves preserve profile/privacy boundaries and recreate storage contexts when isolation changes require it.
+15. Engine crash/recreation does not redefine Browser authority or session identity.
+16. Tab discard/reload behavior is deterministic and does not lose protected in-progress workflows without policy.
+17. Browser Sync receives only committed, explicitly eligible logical projections.
+18. Incoming Sync state cannot resurrect Private/Isolated Private state or violate profile isolation.
+19. Everkeep import/recovery cannot overwrite an active live runtime store outside the accepted Browser recovery boundary.
+20. Schema upgrade/downgrade/rollback and migration tests preserve or safely reject session state as designed.
+21. Multi-window/multi-tab operation remains correct under rapid open/close/move/reorder/background/process-death sequences.
+22. Accessibility/localization/RTL/large-text/reduced-effects/representative-device review passes for tab, profile, Webspace, and recovery surfaces.
+23. Privacy-safe diagnostics reconstruct restoration failures without protected payloads or reusable credentials.
+24. Sustained-use and memory-pressure testing does not create impossible state, unbounded journals, or privacy-context leakage.
+
+Passing model/unit tests alone does not establish production runtime acceptance. Production qualification requires the exact implementation revision, Android/desktop platform evidence for supported targets, storage/migration integrity evidence, privacy/security review where applicable, and representative-device sustained-use validation.
+
+### 18.19 Implementation Sequence
+
+1. Define platform-neutral profile/privacy-context/window/tab/Webspace identifiers and immutable schema contracts.
+2. Implement the Browser-owned in-memory state graph and deterministic tab/window lifecycle tests without changing production persistence behavior.
+3. Add the versioned Normal-session journal with idempotent replay and corruption tests.
+4. Add checkpoint creation/compaction and process-death restoration behind a Development-only gate.
+5. Add profile isolation, profile-switch, profile-delete, and context-transition tests.
+6. Add Webspace assignment/container-transition logic without allowing Webspaces to weaken profile/privacy boundaries.
+7. Integrate engine recreation, freeze/discard, and resource-management adapters.
+8. Add explicit Sync projections only after local commit semantics are stable; keep Private/Isolated Private excluded.
+9. Add the accepted Browser↔Everkeep recovery/import boundary without allowing direct live-store overwrite.
+10. Complete migration, rollback, accessibility, representative-device, sustained-use, memory-pressure, and fault-injection acceptance before enabling production claims.
+
+The implementation principle is: **Browser-owned logical runtime identity and privacy boundaries survive engine recreation, process death, synchronization, and recovery; transient engine objects never become the source of truth.**
+
+## 19. Documentation, Roadmap, and Evidence Synchronization
+
+`SPECIFICATIONS.md`, `FEATURE-ROADMAP.md`, the corresponding Markdown roadmap record in `GoreeCloud/Feature Roadmap/GoreeCloud Browser`, PR/repository evidence, and GoreeCloud Tasks Management must remain materially consistent without becoming duplicate authority for the same purpose.
 
 Documentation changes may define planned architecture, implementation contracts, and acceptance criteria. They do not establish runtime implementation. When source code is added, implementation claims must be tied to exact revisions and actual validation evidence.
 
