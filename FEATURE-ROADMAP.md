@@ -66,10 +66,8 @@ The Browser authority model continues to evaluate exactly seven Integral Platfor
 
 ## Maintenance and synchronization
 
-This roadmap and the corresponding Drive FEATURE-ROADMAP.docx must remain materially synchronized with one another and with the authoritative project specification. Update both copies whenever feature scope, priority, dependency, implementation status, cancellation, supersession, recommendation, or verification state materially changes.
-
-No feature may be represented as complete, Release Candidate, production-approved, or Stable solely because it appears in this roadmap. Lifecycle claims require applicable authoritative implementation, validation, review, release, and production evidence.
+Keep the repository `FEATURE-ROADMAP.md`, the corresponding Drive `FEATURE-ROADMAP.docx`, and authoritative `SPECIFICATIONS.md` materially synchronized when scope, priority, dependencies, status, cancellation, supersession, recommendations, or verification state change. Roadmap entries alone do not prove completion, Release Candidate, production approval, or Stable status; lifecycle claims require authoritative implementation, validation, release, and production evidence.
 
 ## Reconciliation rule
 
-At each material Browser change, reconcile this roadmap against repository `SPECIFICATIONS.md`, verified repository implementation state, GoreeCloud Search authority, applicable Integral Platform Systems, separately governed GoreeCloud Sync/Vault/DNS/Network/Webspaces relationships, rendering-engine dependency boundaries, and GoreeCloud Tasks Management. Missing obligations, stale status, duplicated work, roadmap drift, or undocumented disposition changes are defects to correct.
+At each material Browser change, reconcile this roadmap with `SPECIFICATIONS.md`, verified repository state, applicable platform/service authorities, and GoreeCloud Tasks Management. Correct missing obligations, stale status, duplicate work, roadmap drift, and undocumented disposition changes.
