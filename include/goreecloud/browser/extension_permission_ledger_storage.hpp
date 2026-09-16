@@ -98,8 +98,8 @@ inline std::uint32_t extension_permission_ledger_crc32(
   for (const auto byte : bytes) {
     crc ^= byte;
     for (int bit = 0; bit < 8; ++bit) {
-      const auto mask =
-          static_cast<std::uint32_t>(0U - static_cast<std::uint32_t>(crc & 1U));
+      const auto mask = static_cast<std::uint32_t>(
+          0U - static_cast<std::uint32_t>(crc & 1U));
       crc = (crc >> 1U) ^ (0xedb88320U & mask);
     }
   }
@@ -117,15 +117,13 @@ class ExtensionPermissionLedgerByteWriter {
 
   void write_u32(std::uint32_t value) {
     for (int shift = 0; shift < 32; shift += 8) {
-      bytes_.push_back(
-          static_cast<std::uint8_t>((value >> shift) & 0xffU));
+      bytes_.push_back(static_cast<std::uint8_t>((value >> shift) & 0xffU));
     }
   }
 
   void write_u64(std::uint64_t value) {
     for (int shift = 0; shift < 64; shift += 8) {
-      bytes_.push_back(
-          static_cast<std::uint8_t>((value >> shift) & 0xffU));
+      bytes_.push_back(static_cast<std::uint8_t>((value >> shift) & 0xffU));
     }
   }
 
@@ -238,136 +236,50 @@ class ExtensionPermissionLedgerByteReader {
 
 inline std::uint8_t extension_permission_storage_code(
     ExtensionPermission permission) {
-  switch (permission) {
-    case ExtensionPermission::read_current_page:
-      return 1;
-    case ExtensionPermission::modify_current_page:
-      return 2;
-    case ExtensionPermission::selected_websites:
-      return 3;
-    case ExtensionPermission::all_websites:
-      return 4;
-    case ExtensionPermission::read_tabs:
-      return 5;
-    case ExtensionPermission::create_tabs:
-      return 6;
-    case ExtensionPermission::read_history:
-      return 7;
-    case ExtensionPermission::modify_bookmarks:
-      return 8;
-    case ExtensionPermission::manage_downloads:
-      return 9;
-    case ExtensionPermission::clipboard:
-      return 10;
-    case ExtensionPermission::display_notifications:
-      return 11;
-    case ExtensionPermission::extension_storage:
-      return 12;
-    case ExtensionPermission::network_requests:
-      return 13;
-    case ExtensionPermission::context_menu_actions:
-      return 14;
-    case ExtensionPermission::browser_ui_components:
-      return 15;
-  }
-  return 0;
+  return static_cast<std::uint8_t>(permission) + 1U;
 }
 
 inline std::optional<ExtensionPermission> parse_extension_permission_storage_code(
     std::uint8_t code) {
-  switch (code) {
-    case 1:
-      return ExtensionPermission::read_current_page;
-    case 2:
-      return ExtensionPermission::modify_current_page;
-    case 3:
-      return ExtensionPermission::selected_websites;
-    case 4:
-      return ExtensionPermission::all_websites;
-    case 5:
-      return ExtensionPermission::read_tabs;
-    case 6:
-      return ExtensionPermission::create_tabs;
-    case 7:
-      return ExtensionPermission::read_history;
-    case 8:
-      return ExtensionPermission::modify_bookmarks;
-    case 9:
-      return ExtensionPermission::manage_downloads;
-    case 10:
-      return ExtensionPermission::clipboard;
-    case 11:
-      return ExtensionPermission::display_notifications;
-    case 12:
-      return ExtensionPermission::extension_storage;
-    case 13:
-      return ExtensionPermission::network_requests;
-    case 14:
-      return ExtensionPermission::context_menu_actions;
-    case 15:
-      return ExtensionPermission::browser_ui_components;
-    default:
-      return std::nullopt;
+  if (code < 1U || code > 15U) {
+    return std::nullopt;
   }
+  return static_cast<ExtensionPermission>(code - 1U);
 }
 
 inline std::uint8_t extension_grant_scope_storage_code(
     ExtensionGrantScope scope) {
-  switch (scope) {
-    case ExtensionGrantScope::extension:
-      return 1;
-    case ExtensionGrantScope::only_when_clicked:
-      return 2;
-    case ExtensionGrantScope::current_website:
-      return 3;
-    case ExtensionGrantScope::selected_websites:
-      return 4;
-    case ExtensionGrantScope::all_websites:
-      return 5;
-  }
-  return 0;
+  return static_cast<std::uint8_t>(scope) + 1U;
 }
 
 inline std::optional<ExtensionGrantScope> parse_extension_grant_scope_storage_code(
     std::uint8_t code) {
-  switch (code) {
-    case 1:
-      return ExtensionGrantScope::extension;
-    case 2:
-      return ExtensionGrantScope::only_when_clicked;
-    case 3:
-      return ExtensionGrantScope::current_website;
-    case 4:
-      return ExtensionGrantScope::selected_websites;
-    case 5:
-      return ExtensionGrantScope::all_websites;
-    default:
-      return std::nullopt;
+  if (code < 1U || code > 5U) {
+    return std::nullopt;
   }
+  return static_cast<ExtensionGrantScope>(code - 1U);
 }
 
 inline std::uint8_t extension_grant_lifetime_storage_code(
     ExtensionGrantLifetime lifetime) {
-  switch (lifetime) {
-    case ExtensionGrantLifetime::one_hour:
-      return 1;
-    case ExtensionGrantLifetime::always:
-      return 2;
-    default:
-      return 0;
+  if (lifetime == ExtensionGrantLifetime::one_hour) {
+    return 1U;
   }
+  if (lifetime == ExtensionGrantLifetime::always) {
+    return 2U;
+  }
+  return 0U;
 }
 
 inline std::optional<ExtensionGrantLifetime>
 parse_extension_grant_lifetime_storage_code(std::uint8_t code) {
-  switch (code) {
-    case 1:
-      return ExtensionGrantLifetime::one_hour;
-    case 2:
-      return ExtensionGrantLifetime::always;
-    default:
-      return std::nullopt;
+  if (code == 1U) {
+    return ExtensionGrantLifetime::one_hour;
   }
+  if (code == 2U) {
+    return ExtensionGrantLifetime::always;
+  }
+  return std::nullopt;
 }
 
 inline bool extension_permission_lease_has_duplicate_websites(
@@ -393,11 +305,8 @@ inline bool extension_permission_lease_is_durable_candidate(
       lease.grant.lifetime != ExtensionGrantLifetime::always) {
     return false;
   }
-  if (lease.grant.lifetime == ExtensionGrantLifetime::one_hour &&
-      now_millis >= lease.expires_at_millis) {
-    return false;
-  }
-  return true;
+  return lease.grant.lifetime != ExtensionGrantLifetime::one_hour ||
+         now_millis < lease.expires_at_millis;
 }
 
 inline ExtensionPermissionLedgerSnapshotResult
@@ -453,9 +362,9 @@ encode_extension_permission_ledger_snapshot(
   ExtensionPermissionLedgerByteWriter writer;
   writer.write_bytes(kExtensionPermissionLedgerSnapshotMagic);
   writer.write_u8(kExtensionPermissionLedgerSnapshotVersion);
-  writer.write_u8(0);
-  writer.write_u8(0);
-  writer.write_u8(0);
+  writer.write_u8(0U);
+  writer.write_u8(0U);
+  writer.write_u8(0U);
   writer.write_u64(now_millis);
   if (!writer.write_string_u16(profile_id,
                                kExtensionPermissionLedgerMaxProfileBytes)) {
@@ -467,8 +376,7 @@ encode_extension_permission_ledger_snapshot(
 
   for (const auto* lease : durable) {
     writer.write_u64(lease->id);
-    writer.write_u8(extension_permission_storage_code(
-        lease->grant.permission));
+    writer.write_u8(extension_permission_storage_code(lease->grant.permission));
     writer.write_u8(extension_grant_scope_storage_code(lease->grant.scope));
     writer.write_u8(
         extension_grant_lifetime_storage_code(lease->grant.lifetime));
@@ -519,8 +427,9 @@ restore_extension_permission_ledger_snapshot(
         ExtensionPermissionLedgerStorageIssue::snapshot_too_large);
     return result;
   }
-  if (bytes.size() < kExtensionPermissionLedgerSnapshotMagic.size() + 1U +
-                         3U + 8U + 2U + 4U + 4U) {
+  constexpr std::size_t kMinimumSnapshotBytes = 4U + 1U + 3U + 8U + 2U +
+                                                4U + 4U;
+  if (bytes.size() < kMinimumSnapshotBytes) {
     add_extension_permission_ledger_storage_issue_once(
         result.issues,
         ExtensionPermissionLedgerStorageIssue::truncated_snapshot);
@@ -577,7 +486,7 @@ restore_extension_permission_ledger_snapshot(
           ExtensionPermissionLedgerStorageIssue::truncated_snapshot);
       return result;
     }
-    if (reserved != 0) {
+    if (reserved != 0U) {
       add_extension_permission_ledger_storage_issue_once(
           result.issues,
           ExtensionPermissionLedgerStorageIssue::invalid_reserved_header);
@@ -754,12 +663,16 @@ restore_extension_permission_ledger_snapshot(
 
 inline std::filesystem::path extension_permission_ledger_temp_path(
     const std::filesystem::path& path) {
-  return std::filesystem::path(path.string() + ".tmp");
+  auto result = path;
+  result += ".tmp";
+  return result;
 }
 
 inline std::filesystem::path extension_permission_ledger_backup_path(
     const std::filesystem::path& path) {
-  return std::filesystem::path(path.string() + ".bak");
+  auto result = path;
+  result += ".bak";
+  return result;
 }
 
 inline bool read_extension_permission_ledger_snapshot_file(
@@ -808,9 +721,8 @@ save_extension_permission_ledger(
     const ExtensionPermissionLedger& ledger,
     std::string_view profile_id,
     std::uint64_t now_millis) {
-  auto snapshot =
-      encode_extension_permission_ledger_snapshot(ledger, profile_id,
-                                                  now_millis);
+  auto snapshot = encode_extension_permission_ledger_snapshot(
+      ledger, profile_id, now_millis);
   if (!snapshot.accepted()) {
     return snapshot.issues;
   }
@@ -826,7 +738,7 @@ save_extension_permission_ledger(
     return {ExtensionPermissionLedgerStorageIssue::io_error};
   }
 
-  bool primary_exists = std::filesystem::exists(path, error) && !error;
+  const bool primary_exists = std::filesystem::exists(path, error) && !error;
   bool primary_valid = false;
   if (primary_exists) {
     std::vector<std::uint8_t> existing;
@@ -871,30 +783,77 @@ inline ExtensionPermissionLedgerRestoreResult load_extension_permission_ledger(
     const std::filesystem::path& path,
     std::string_view expected_profile_id,
     std::uint64_t now_millis) {
-  std::vector<std::uint8_t> bytes;
-  if (read_extension_permission_ledger_snapshot_file(path, bytes)) {
-    auto primary = restore_extension_permission_ledger_snapshot(
-        bytes, expected_profile_id, now_millis);
-    if (primary.accepted()) {
-      return primary;
-    }
+  ExtensionPermissionLedgerRestoreResult result;
+  if (!valid_extension_permission_ledger_profile_id(expected_profile_id)) {
+    add_extension_permission_ledger_storage_issue_once(
+        result.issues, ExtensionPermissionLedgerStorageIssue::invalid_profile);
+    return result;
   }
 
+  std::error_code error;
+  const bool primary_exists = std::filesystem::exists(path, error);
+  if (error) {
+    add_extension_permission_ledger_storage_issue_once(
+        result.issues, ExtensionPermissionLedgerStorageIssue::io_error);
+    return result;
+  }
   const auto backup_path = extension_permission_ledger_backup_path(path);
-  bytes.clear();
-  if (read_extension_permission_ledger_snapshot_file(backup_path, bytes)) {
-    auto backup = restore_extension_permission_ledger_snapshot(
-        bytes, expected_profile_id, now_millis);
-    if (backup.accepted()) {
-      backup.recovered_from_backup = true;
-      return backup;
+  const bool backup_exists = std::filesystem::exists(backup_path, error);
+  if (error) {
+    add_extension_permission_ledger_storage_issue_once(
+        result.issues, ExtensionPermissionLedgerStorageIssue::io_error);
+    return result;
+  }
+
+  // A profile that has never persisted extension grants starts with an empty,
+  // valid ledger. Absence is not corruption and must not manufacture authority.
+  if (!primary_exists && !backup_exists) {
+    return result;
+  }
+
+  std::optional<ExtensionPermissionLedgerRestoreResult> primary_failure;
+  if (primary_exists) {
+    std::vector<std::uint8_t> bytes;
+    if (!read_extension_permission_ledger_snapshot_file(path, bytes)) {
+      ExtensionPermissionLedgerRestoreResult failed;
+      add_extension_permission_ledger_storage_issue_once(
+          failed.issues, ExtensionPermissionLedgerStorageIssue::io_error);
+      primary_failure = std::move(failed);
+    } else {
+      auto primary = restore_extension_permission_ledger_snapshot(
+          bytes, expected_profile_id, now_millis);
+      if (primary.accepted()) {
+        return primary;
+      }
+      primary_failure = std::move(primary);
     }
   }
 
-  ExtensionPermissionLedgerRestoreResult failed;
+  if (backup_exists) {
+    std::vector<std::uint8_t> bytes;
+    if (read_extension_permission_ledger_snapshot_file(backup_path, bytes)) {
+      auto backup = restore_extension_permission_ledger_snapshot(
+          bytes, expected_profile_id, now_millis);
+      if (backup.accepted()) {
+        backup.recovered_from_backup = true;
+        return backup;
+      }
+      if (!primary_failure.has_value()) {
+        return backup;
+      }
+    } else if (!primary_failure.has_value()) {
+      add_extension_permission_ledger_storage_issue_once(
+          result.issues, ExtensionPermissionLedgerStorageIssue::io_error);
+      return result;
+    }
+  }
+
+  if (primary_failure.has_value()) {
+    return std::move(*primary_failure);
+  }
   add_extension_permission_ledger_storage_issue_once(
-      failed.issues, ExtensionPermissionLedgerStorageIssue::io_error);
-  return failed;
+      result.issues, ExtensionPermissionLedgerStorageIssue::io_error);
+  return result;
 }
 
 }  // namespace goreecloud::browser
