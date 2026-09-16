@@ -3,20 +3,23 @@
 #include <string>
 #include <vector>
 
+#include "goreecloud/browser/native_extension.hpp"
+
 namespace goreecloud::browser {
 
 enum class ExtensionSupportState {
   disabled,
-  compatibility_only,
-  goreecloud_managed,
+  foundation_only,
+  native_runtime,
 };
 
 struct ExtensionPolicy {
   ExtensionSupportState support{ExtensionSupportState::disabled};
-  bool inherited_addons_manager_exposed{false};
-  bool upstream_store_exposed{false};
-  bool recommendations_enabled{false};
-  bool sponsored_extensions_enabled{false};
+  bool developer_mode_enabled{false};
+  bool native_package_installation_enabled{false};
+  bool external_compatibility_layer_exposed{false};
+  bool centralized_store_exposed{false};
+  bool private_browsing_default_enabled{false};
 };
 
 struct ExtensionDescriptor {
@@ -32,8 +35,9 @@ class ExtensionManager {
   [[nodiscard]] virtual std::vector<ExtensionDescriptor> installed() const = 0;
 };
 
-// If installable extensions are exposed, they require a separately approved
-// GoreeCloud-owned security, permission, installation, update, review,
-// compatibility, removal, recovery, and management experience.
+// The native manifest/package/authorization foundation is intentionally
+// independent from extension execution. No installable runtime is enabled by
+// these types, and external compatibility layers/centralized stores are not
+// part of the GoreeCloud Browser extension model.
 
 }  // namespace goreecloud::browser
