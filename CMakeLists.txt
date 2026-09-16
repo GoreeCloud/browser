@@ -220,6 +220,12 @@ target_link_libraries(goreecloud_browser_extension_permission_ledger_storage_smo
 goreecloud_apply_warnings(
   goreecloud_browser_extension_permission_ledger_storage_smoke)
 
+add_executable(goreecloud_browser_extension_runtime_authority_smoke
+  apps/browser/extension_runtime_authority_smoke.cpp)
+target_link_libraries(goreecloud_browser_extension_runtime_authority_smoke
+  PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(goreecloud_browser_extension_runtime_authority_smoke)
+
 if(GOREECLOUD_ENABLE_CHROMIUM)
   add_executable(goreecloud_browser_chromium_smoke apps/browser/chromium_smoke.cpp)
   target_link_libraries(goreecloud_browser_chromium_smoke PRIVATE goreecloud_browser_core goreecloud_browser_chromium)
@@ -245,6 +251,8 @@ if(BUILD_TESTING)
            COMMAND goreecloud_browser_extension_package_smoke)
   add_test(NAME goreecloud_browser_extension_permission_ledger_storage_smoke
            COMMAND goreecloud_browser_extension_permission_ledger_storage_smoke)
+  add_test(NAME goreecloud_browser_extension_runtime_authority_smoke
+           COMMAND goreecloud_browser_extension_runtime_authority_smoke)
   if(GOREECLOUD_ENABLE_CHROMIUM AND NOT GOREECLOUD_ENABLE_CEF)
     add_test(NAME goreecloud_browser_chromium_smoke COMMAND goreecloud_browser_chromium_smoke)
   endif()
