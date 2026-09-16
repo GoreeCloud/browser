@@ -270,7 +270,8 @@ class ExtensionRuntimeAuthority {
   }
 
  private:
-  auto find_session(std::string_view runtime_instance_id) {
+  std::vector<ExtensionRuntimeSession>::iterator find_session(
+      std::string_view runtime_instance_id) {
     return std::find_if(
         sessions_.begin(), sessions_.end(),
         [runtime_instance_id](const ExtensionRuntimeSession& candidate) {
@@ -278,7 +279,8 @@ class ExtensionRuntimeAuthority {
         });
   }
 
-  auto find_token(std::uint64_t token_id) {
+  std::vector<ExtensionRuntimeCapabilityToken>::iterator find_token(
+      std::uint64_t token_id) {
     return std::find_if(tokens_.begin(), tokens_.end(),
                         [token_id](const ExtensionRuntimeCapabilityToken& token) {
                           return token.id == token_id;
