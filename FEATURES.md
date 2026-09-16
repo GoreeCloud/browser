@@ -12,14 +12,26 @@ This file records Browser functionality and implementation state. A listed featu
 - Browser-owned Sync submission/retrieval contracts with privacy-safe tombstones, capability/schema validation, pagination, record-ID bounds, and signer-shape validation.
 - Advanced Download Manager core with staged transfer and source-level Wardveil release-gate architecture.
 - Privacy-safe native session-recovery checkpoint/candidate core that excludes Private and Isolated Private windows before persistence, validates bounded persisted window/tab topology and active-tab references, and only considers the newest checkpoint so older crash state cannot silently resurface after a newer clean or private-only session.
-- Native extension foundation with Browser-owned manifest/API version constants, `.gcex` package-inventory and path validation, a closed known-permission vocabulary with human-readable labels, and fail-closed authorization primitives for declaration, exact website scope, profile binding, temporary grant lifetime, and private-browsing opt-in.
 - Media Hover architecture and first-party Browser feature contracts.
 
 The first-party capability gate is a consumer-side contract only. A healthy transport, a recognized service, or current authoritative producer evidence is insufficient by itself: Browser will not treat a capability as usable through this gate until the producer evidence explicitly states production acceptance. Browser does not create or strengthen Search, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, or Bookmarks authority.
 
 The session-recovery core is not yet a user-ready recovery implementation. Durable authenticated-encrypted checkpoint storage, protected platform key integration, Browser lifecycle wiring, restore execution, Glaze recovery UI, Everkeep continuity integration, and runtime acceptance remain pending.
 
-The native extension foundation is source-level validation and authorization groundwork only. It does not parse or install real `.gcex` archives, verify package signatures, execute extension code, provide a sandbox/process runtime, persist or consume grants, implement wildcard/site-pattern matching, expose privileged Extension APIs, provide extension networking/storage/UI surfaces, or establish production extension behavior. External extension compatibility layers and a centralized GoreeCloud extension store are not part of this foundation.
+## Native extension Development source foundation
+
+Exact implementation source `10cfb5baad6081382c02ea5067d115a7f43b2185` adds the first Browser-owned native-extension foundation:
+
+- Manifest/API version 1 constants and GoreeCloud-native manifest data structures.
+- `.gcex` package-inventory validation with fail-closed package-path, manifest-entry, duplicate-entry, and entry-point checks.
+- A closed native extension-permission vocabulary with human-readable permission labels.
+- Fail-closed permission authorization for declared capability, exact website scope, profile binding, private-browsing opt-in, and explicit grant scope/lifetime classes.
+- `ExtensionPermissionLedger` state for one-shot consumption, exact one-hour timestamp expiry, tab/session-bound grants, website-scope closure, explicit lease revocation, and profile-wide revocation.
+- CTest smoke coverage for malformed/undeclared permission and package cases plus temporary-permission lifecycle behavior.
+
+On exact source `10cfb5baad6081382c02ea5067d115a7f43b2185`, Platform Contract #54 and Android Beta APK #232 completed successfully. GoreeCloud Browser Core CI #473 remains queued, so this section is Development source evidence and is not represented as full exact-head Core CI acceptance.
+
+This native extension foundation does not parse or install real `.gcex` archives, verify package signatures, execute extension code, provide a sandbox/process runtime, durably persist/recover permission leases, implement wildcard/site-pattern matching, expose privileged Extension APIs, provide extension networking/storage/UI surfaces, or establish production extension behavior. External extension compatibility layers and a centralized GoreeCloud extension store are not part of this foundation.
 
 ## Android beta — implemented
 
