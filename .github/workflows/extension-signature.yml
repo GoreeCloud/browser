@@ -37,6 +37,7 @@ jobs:
           grep -F "Version: 1.0.22" browser/third_party/libsodium/SOURCE_INFO
           grep -F "Upstream Commit: 77e1ce5d6dee871c49ef211222ba18ef0c486bda" browser/third_party/libsodium/SOURCE_INFO
           grep -F "License: ISC" browser/third_party/libsodium/SOURCE_INFO
+          grep -F "upstream_commit: 77e1ce5d6dee871c49ef211222ba18ef0c486bda" browser/third_party/THIRD_PARTY_MANIFEST.yaml
           test -s browser/third_party/libsodium/LICENSE
 
       - name: Install libsodium build prerequisites
@@ -50,17 +51,18 @@ jobs:
           make --jobs 2
           make install
 
-      - name: Compile GCEX signature verifier smoke test
+      - name: Configure GCEX signature verification harness
         working-directory: browser
         run: |
-          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror \
-            -Iinclude \
-            -I"$GITHUB_WORKSPACE/libsodium-install/include" \
-            apps/browser/extension_signature_smoke.cpp \
-            src/extension_signature_sodium.cpp \
-            "$GITHUB_WORKSPACE/libsodium-install/lib/libsodium.a" \
-            -o goreecloud-browser-extension-signature-smoke
+          cmake -S cmake/extension-signature -B build-extension-signature \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/libsodium-install" \
+            -DBUILD_TESTING=ON
+
+      - name: Build GCEX signature verifier
+        working-directory: browser
+        run: cmake --build build-extension-signature --parallel
 
       - name: Run GCEX signature verifier smoke test
         working-directory: browser
-        run: ./goreecloud-browser-extension-signature-smoke
+        run: ctest --test-dir build-extension-signature --output-on-failure
