@@ -1,0 +1,15 @@
+Name: libsodium
+Project: libsodium
+Version: 1.0.22
+Upstream Repository: https://github.com/jedisct1/libsodium
+Upstream Tag: 1.0.22
+Upstream Annotated Tag Object: fe3fa3dd583d9487e1cc32b0f5ef0f516949c836
+Upstream Commit: 77e1ce5d6dee871c49ef211222ba18ef0c486bda
+License: ISC
+Integration Type: Optional system/source-built library behind GoreeCloud Browser extension-signature adapter
+Vendored Source: No
+Modified: No
+Purpose: SHA-256 package digest and Ed25519 detached-signature verification for the bounded GCEX signature Development contract
+Imported/Reviewed: 2026-09-16
+GoreeCloud Component: GoreeCloud Browser
+Security Boundary: Cryptographic signature validity only; does not establish developer identity, safety, privacy quality, installation authority, execution authority, or verified_signature trust.
