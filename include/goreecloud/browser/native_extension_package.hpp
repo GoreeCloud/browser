@@ -253,8 +253,7 @@ class NativeExtensionByteReader {
 
 inline ExtensionArchiveDecodeResult decode_native_extension_archive(
     std::string_view package_name,
-    std::span<const std::uint8_t> bytes,
-    ExtensionTrustState trust_state = ExtensionTrustState::unsigned_package) {
+    std::span<const std::uint8_t> bytes) {
   ExtensionArchiveDecodeResult result;
 
   if (!package_name.ends_with(kNativeExtensionPackageSuffix)) {
@@ -325,7 +324,7 @@ inline ExtensionArchiveDecodeResult decode_native_extension_archive(
 
   NativeExtensionArchive archive;
   archive.inventory.package_name = std::string(package_name);
-  archive.inventory.trust_state = trust_state;
+  archive.inventory.trust_state = ExtensionTrustState::unsigned_package;
   archive.inventory.entries.reserve(entry_count);
   archive.files.reserve(entry_count);
 
@@ -615,11 +614,10 @@ inline ExtensionManifestDecodeResult decode_native_extension_manifest(
 
 inline NativeExtensionPackageLoadResult decode_native_extension_package(
     std::string_view package_name,
-    std::span<const std::uint8_t> bytes,
-    ExtensionTrustState trust_state = ExtensionTrustState::unsigned_package) {
+    std::span<const std::uint8_t> bytes) {
   NativeExtensionPackageLoadResult result;
   auto archive_result =
-      decode_native_extension_archive(package_name, bytes, trust_state);
+      decode_native_extension_archive(package_name, bytes);
   result.archive_issues = archive_result.issues;
   if (!archive_result.accepted()) {
     return result;
@@ -657,8 +655,7 @@ inline NativeExtensionPackageLoadResult decode_native_extension_package(
 }
 
 inline NativeExtensionPackageLoadResult read_native_extension_package(
-    const std::filesystem::path& path,
-    ExtensionTrustState trust_state = ExtensionTrustState::unsigned_package) {
+    const std::filesystem::path& path) {
   NativeExtensionPackageLoadResult result;
   std::error_code error;
   const auto file_size = std::filesystem::file_size(path, error);
@@ -691,8 +688,7 @@ inline NativeExtensionPackageLoadResult read_native_extension_package(
 
   return decode_native_extension_package(
       path.filename().string(),
-      std::span<const std::uint8_t>(bytes.data(), bytes.size()),
-      trust_state);
+      std::span<const std::uint8_t>(bytes.data(), bytes.size()));
 }
 
 }  // namespace goreecloud::browser
