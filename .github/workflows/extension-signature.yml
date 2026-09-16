@@ -51,11 +51,11 @@ jobs:
           make --jobs 2
           make install
 
-      - name: Configure GCEX signature verification harness
+      - name: Configure GCEX signature verification harness with assertions enabled
         working-directory: browser
         run: |
           cmake -S cmake/extension-signature -B build-extension-signature \
-            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/libsodium-install" \
             -DBUILD_TESTING=ON
 
