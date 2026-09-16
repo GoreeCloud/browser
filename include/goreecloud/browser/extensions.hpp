@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "goreecloud/browser/extension_permission_ledger.hpp"
+#include "goreecloud/browser/extension_permission_ledger_storage.hpp"
 #include "goreecloud/browser/native_extension.hpp"
 #include "goreecloud/browser/native_extension_package.hpp"
 
@@ -40,7 +41,9 @@ class ExtensionManager {
 // The native manifest/package/authorization foundation is intentionally
 // independent from extension execution. The bounded .gcex reader and manifest
 // decoder validate package bytes but do not install, execute, or trust an
-// extension. External compatibility layers and centralized stores are not part
-// of the GoreeCloud Browser extension model.
+// extension. Durable permission-ledger storage persists only bounded
+// profile-scoped grant state; it does not create extension-runtime authority.
+// External compatibility layers and centralized stores are not part of the
+// GoreeCloud Browser extension model.
 
 }  // namespace goreecloud::browser
