@@ -1,6 +1,6 @@
 ---
 title: "GoreeCloud Browser — Native Extension Platform"
-version: "v0.1"
+version: "v0.2"
 status: "Proposed"
 classification: "Internal"
 document_type: "Browser Native Extension Platform Supporting Specification"
@@ -14,7 +14,7 @@ last_updated: "2026-09-16"
 
 # GoreeCloud Browser — Native Extension Platform
 
-> **Status and evidence boundary:** This document defines proposed and planned GoreeCloud Browser extension-platform architecture, security boundaries, user controls, developer tooling, packaging, APIs, update behavior, and acceptance direction. It does **not** claim that the native extension runtime, `.gcex` package format, APIs, developer SDK, management surfaces, or any other capability described here is implemented, accepted, production-approved, or Stable.
+> **Status and evidence boundary:** This document defines proposed and planned GoreeCloud Browser extension-platform architecture, security boundaries, user controls, developer tooling, packaging, APIs, update behavior, and acceptance direction. A bounded Development source implementation now exists for native manifest/package validation, temporary permission-grant lifecycle primitives, and GCEX v1 package-byte/manifest decoding. These source foundations do **not** establish an installable or executable extension runtime, package-signature trust, production approval, or Stable qualification. The byte-level Development package encoding is defined separately in `docs/GCEX_PACKAGE_FORMAT_V1.md`.
 
 GoreeCloud Browser should include its own **native extension platform**, designed specifically around GoreeCloud Browser's architecture, privacy model, security controls, Glaze UI, and broader GoreeCloud ecosystem.
 
@@ -111,11 +111,11 @@ Developer Mode must not silently weaken unrelated Browser security boundaries. D
 
 GoreeCloud Browser should define its own extension package format.
 
-The planned package format is:
+The package format is:
 
 **`.gcex` — GoreeCloud Extension Package**
 
-A package could contain:
+A package can contain:
 
 ```text
 extension.gcex
@@ -129,6 +129,8 @@ extension.gcex
 ```
 
 The package format should be documented openly so anyone can build compatible extensions.
+
+The current bounded Development byte-level package encoding is **GCEX Package Format v1**, defined in `docs/GCEX_PACKAGE_FORMAT_V1.md`. GCEX v1 is a GoreeCloud-owned binary container with raw entry payloads and strict resource/path bounds. It is not ZIP, TAR, CRX, XPI, or a compatibility wrapper around another browser-extension package format. Compression, encryption, installation, signature verification, trust decisions, and execution are not established by GCEX v1 decoding.
 
 The package format should support deterministic validation of structure, manifest content, declared capabilities, package integrity, signatures when present, and compatibility metadata before installation.
 
@@ -161,6 +163,8 @@ The manifest could define:
 Capabilities not declared in the manifest should be unavailable to the extension.
 
 Manifest validation should fail safely on malformed, unsupported, ambiguous, or incompatible declarations rather than silently broadening capability.
+
+The current GCEX v1 Development decoder uses a strict UTF-8 line-oriented `key=value` manifest encoding for the implemented v1 fields. Unknown keys, malformed lines, duplicate scalar keys, missing required scalar keys, invalid control characters, unsupported manifest/API versions, invalid IDs/versions, unknown/duplicate permissions, invalid/duplicate site declarations, and missing package entry points fail closed. This encoding is a source-level package/manifest contract only and does not authorize installation or execution.
 
 ## 7. Permission-Based Security
 
