@@ -11,6 +11,7 @@
 
 using goreecloud::browser::ExtensionArchiveIssue;
 using goreecloud::browser::ExtensionManifestDecodeIssue;
+using goreecloud::browser::ExtensionTrustState;
 using goreecloud::browser::ExtensionValidationIssue;
 
 namespace {
@@ -88,6 +89,8 @@ int main() {
   assert(decoded.package->manifest.id == "org.example.reader-helper");
   assert(decoded.package->manifest.entry_points.size() == 2);
   assert(decoded.package->archive.files.size() == 3);
+  assert(decoded.package->archive.inventory.trust_state ==
+         ExtensionTrustState::unsigned_package);
 
   const auto temp_path = std::filesystem::temp_directory_path() /
                          "goreecloud-browser-extension-package-smoke.gcex";
@@ -104,6 +107,8 @@ int main() {
   std::filesystem::remove(temp_path, remove_error);
   assert(from_disk.accepted());
   assert(from_disk.package->manifest.name == "Reader Helper");
+  assert(from_disk.package->archive.inventory.trust_state ==
+         ExtensionTrustState::unsigned_package);
 
   const auto wrong_suffix =
       goreecloud::browser::decode_native_extension_package(
