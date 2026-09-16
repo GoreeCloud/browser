@@ -26,7 +26,7 @@ bool signature_namespace_path(std::string_view path) {
 
 bool sha256_update(crypto_hash_sha256_state& state,
                    std::span<const std::uint8_t> bytes) {
-  return crypto_hash_sha256_update(state, bytes.data(), bytes.size()) == 0;
+  return crypto_hash_sha256_update(&state, bytes.data(), bytes.size()) == 0;
 }
 
 bool sha256_update_u8(crypto_hash_sha256_state& state, std::uint8_t value) {
