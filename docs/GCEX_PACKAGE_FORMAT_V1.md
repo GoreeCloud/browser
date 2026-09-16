@@ -1,6 +1,6 @@
 ---
 title: "GoreeCloud Browser — GCEX Package Format v1"
-version: "v0.1"
+version: "v0.2"
 status: "Development"
 classification: "Internal"
 document_type: "Native Extension Package Implementation Contract"
@@ -174,10 +174,10 @@ It does **not** mean:
 - Browser APIs are available.
 - The package is production-approved.
 
-The reader accepts a caller-supplied trust-state data value only as metadata. Cryptographic signature verification and provenance remain a later independent milestone.
+The GCEX v1 archive/package reader has no caller-controlled trust-state input. Every successfully decoded package is initialized as `unsigned_package`. A later, independently implemented provenance/signature-verification boundary must be the only authority permitted to promote a package to `signed_package` or `verified_signature`; loading bytes alone can never do so. `local_development` remains a separate development-source state rather than a trust result produced by packaged-byte decoding.
 
 ## 10. Current verification target
 
-`goreecloud_browser_extension_package_smoke` is the deterministic source test for this contract. It covers an accepted in-memory package, a real temporary on-disk `.gcex` read, suffix rejection, invalid magic, traversal rejection, duplicate entries, missing manifest, unknown manifest keys, duplicate scalar keys, missing required manifest keys, unsupported manifest versions, unknown permissions, and oversized declared entries.
+`goreecloud_browser_extension_package_smoke` is the deterministic source test for this contract. It covers an accepted in-memory package, a real temporary on-disk `.gcex` read, explicit assertions that both decode paths remain `unsigned_package`, suffix rejection, invalid magic, traversal rejection, duplicate entries, missing manifest, unknown manifest keys, duplicate scalar keys, missing required manifest keys, unsupported manifest versions, unknown permissions, and oversized declared entries.
 
 Broader fuzzing, installer behavior, signature verification, process isolation, runtime execution, update/rollback, representative-device evidence, production acceptance, and Stable qualification remain separate open gates.
