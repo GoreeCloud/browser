@@ -24,6 +24,9 @@ enum class GlazeAcceptanceArea {
   localization,
   security_truth,
   privacy_truth,
+  capability_truth,
+  authority_conflicts,
+  explainable_adaptation,
 };
 
 struct GlazeAcceptanceRequirement {
@@ -43,19 +46,19 @@ inline constexpr std::array kGlazeAcceptanceRequirements{
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::navigation_capsule,
                                "Navigation capsules preserve current destination, focus order, and minimum target size across layouts."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::appearance_clarity_expression,
-                               "Appearance, clarity, and expression modes do not alter security, privacy, or functional meaning."},
+                               "Appearance, clarity, and expression modes do not alter security, privacy, capability, or functional meaning."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::iconography,
                                "Browser-owned icons follow current Glaze iconography contracts."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::motion,
                                "Motion is purposeful, interruptible, and has reduced-motion substitutions."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::accessibility,
-                               "Focus, contrast, transparency fallbacks, 48 px target floors, and assistive semantics are validated."},
+                               "Focus, contrast, transparency fallbacks, target floors, assistive semantics, and accessibility precedence are validated."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::responsive_layout,
                                "Browser chrome and owned surfaces adapt across supported Glaze layout classes."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::safe_areas,
                                "System insets, cutouts, gesture regions, hinges, and window chrome constraints are respected."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::density,
-                               "Density changes preserve hierarchy, target floors, and task usability."},
+                               "Density changes preserve hierarchy, target floors, capability truth, and task usability."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::mixed_input,
                                "Touch, pointer, keyboard, and other supported input modes retain complete interaction states."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::localization,
@@ -63,12 +66,21 @@ inline constexpr std::array kGlazeAcceptanceRequirements{
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::security_truth,
                                "Glaze presents Wardveil evidence-backed state without inventing security truth."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::privacy_truth,
-                               "Glaze presents Privacy Shield state without inventing privacy truth."},
+                               "Glaze presents Privacy Shield state without inventing privacy truth or permission."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::capability_truth,
+                               "Capability-aware controls consume authoritative capability state and never infer authorization or automatic execution."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::authority_conflicts,
+                               "Missing or conflicting provider ownership fails closed without inferred provider precedence."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::explainable_adaptation,
+                               "Unavailable, degraded, recovery, and fallback presentation remains privacy-safe, user-initiated where consequential, and free of sensitive diagnostic payloads."},
 };
 
 inline constexpr bool kGlazeAcceptanceRequiredForProduction = true;
 
-static_assert(kCurrentGlazeUiStableVersion == std::string_view{"2.0.0"});
+static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.5.0"});
+static_assert(kCurrentGlazeUiStableRevision ==
+              std::string_view{"b7fa8164bfdeaa1dc0acb21b770e7601120da04e"});
+static_assert(kGlazeUiOpticalBaselineVersion == std::string_view{"1.4.1"});
 static_assert(kGlazeAcceptanceRequiredForProduction);
 
 }  // namespace goreecloud::browser
