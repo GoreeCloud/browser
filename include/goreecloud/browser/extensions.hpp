@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "goreecloud/browser/extension_permission_ledger.hpp"
 #include "goreecloud/browser/native_extension.hpp"
 
 namespace goreecloud::browser {
