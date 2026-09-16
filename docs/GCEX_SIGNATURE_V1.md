@@ -1,6 +1,6 @@
 ---
 title: "GoreeCloud Browser — GCEX Signature Scheme v1"
-version: "v0.1"
+version: "v0.2"
 status: "Development"
 classification: "Internal"
 document_type: "Native Extension Package Signature Implementation Contract"
@@ -25,12 +25,14 @@ The first verifier uses **libsodium 1.0.22** through a narrow GoreeCloud-owned a
 
 - Upstream: `jedisct1/libsodium`
 - Upstream release: `1.0.22`
+- Upstream annotated tag object: `fe3fa3dd583d9487e1cc32b0f5ef0f516949c836`
 - Upstream release commit: `77e1ce5d6dee871c49ef211222ba18ef0c486bda`
 - License: ISC
-- Browser integration: optional native library dependency enabled by `GOREECLOUD_ENABLE_EXTENSION_SIGNATURE_SODIUM`
+- Browser integration: optional Development verification dependency used only by the standalone signature verification harness in `cmake/extension-signature/`
 - Browser does not vendor or fork libsodium source in this milestone.
+- Ordinary Browser builds do not acquire a mandatory libsodium dependency from this milestone.
 
-Repository provenance and license notice are recorded under `third_party/libsodium/`.
+Repository provenance, license notice, and machine-readable dependency metadata are recorded under `third_party/`.
 
 ## 2. Scheme identity
 
@@ -130,7 +132,17 @@ Users, developers, and organizations may distribute signed packages independentl
 
 The libsodium integration is deliberately isolated behind a GoreeCloud interface so the cryptographic provider remains replaceable.
 
-The dedicated CI lane downloads the exact `libsodium-1.0.22.tar.gz` release artifact and verifies its published SHA-256 digest before building it. The integration must not silently float to a newer release.
+The dedicated `GoreeCloud Browser Extension Signature` workflow:
+
+1. Checks out the exact Browser candidate revision.
+2. Checks out libsodium at exact upstream commit `77e1ce5d6dee871c49ef211222ba18ef0c486bda`.
+3. Verifies the repository provenance and ISC license records.
+4. Builds that exact libsodium source into a workflow-local prefix.
+5. Configures `cmake/extension-signature/` against that prefix.
+6. Builds the verifier with strict warnings-as-errors.
+7. Runs the CTest signature smoke test.
+
+The integration must not silently float to a newer dependency revision.
 
 A future dependency update must independently review:
 
@@ -157,13 +169,20 @@ A future dependency update must independently review:
 
 The test private key is deterministic test-only material and is zeroed after use. It is not a production signing identity.
 
-## 10. Open acceptance gates
+## 10. Current build/runtime boundary
+
+This milestone provides a standalone CMake verification harness for the cryptographic adapter and tests. It does **not** yet wire libsodium or signature verification into the ordinary Browser executable, Android application, installer, extension manager runtime, or production build graph.
+
+Runtime integration must be a separate change that preserves the fail-closed trust transition, remains optional where required, keeps the dependency provenance controls above, and receives its own exact-source and representative-platform evidence.
+
+## 11. Open acceptance gates
 
 This Development milestone does not establish:
 
 - Trusted developer identity or key enrollment.
 - `verified_signature` production authority.
 - Key rotation, revocation, expiry, compromise response, or transparency logs.
+- Ordinary Browser runtime integration of the verifier.
 - Package installation authorization.
 - Update-source trust or update signatures.
 - Rollback authorization.
