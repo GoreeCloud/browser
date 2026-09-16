@@ -52,6 +52,7 @@ struct ExtensionRuntimeLaunchDecision {
 
 struct ExtensionRuntimeSession {
   ExtensionRuntimeIdentity identity;
+  ExtensionManifest manifest;
   ExtensionTrustState package_trust_state{ExtensionTrustState::unsigned_package};
   ExtensionRuntimeState state{ExtensionRuntimeState::running};
 };
@@ -129,6 +130,7 @@ class ExtensionRuntimeAuthority {
 
     sessions_.push_back(ExtensionRuntimeSession{
         .identity = std::move(identity),
+        .manifest = manifest,
         .package_trust_state = package_trust_state,
         .state = ExtensionRuntimeState::running,
     });
@@ -169,8 +171,7 @@ class ExtensionRuntimeAuthority {
   }
 
   [[nodiscard]] std::optional<ExtensionRuntimeCapabilityToken>
-  issue_capability(const ExtensionManifest& manifest,
-                   ExtensionPermissionLedger& permission_ledger,
+  issue_capability(ExtensionPermissionLedger& permission_ledger,
                    const ExtensionRuntimeCapabilityRequest& request) {
     auto session = find_session(request.runtime_instance_id);
     if (session == sessions_.end() ||
@@ -178,8 +179,8 @@ class ExtensionRuntimeAuthority {
         session->identity.extension_id != request.extension_id ||
         session->identity.profile_id != request.profile_id ||
         session->identity.private_browsing != request.private_browsing ||
-        manifest.id != request.extension_id ||
-        !extension_manifest_declares_permission(manifest, request.permission) ||
+        !extension_manifest_declares_permission(session->manifest,
+                                                request.permission) ||
         next_token_id_ == 0 ||
         request.now_millis >
             std::numeric_limits<std::uint64_t>::max() -
@@ -200,7 +201,7 @@ class ExtensionRuntimeAuthority {
     lease_context.browser_session_id = request.browser_session_id;
 
     if (!permission_ledger.authorize_and_consume(
-            manifest, request.permission, lease_context)) {
+            session->manifest, request.permission, lease_context)) {
       return std::nullopt;
     }
 
