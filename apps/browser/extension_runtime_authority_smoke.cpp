@@ -132,6 +132,28 @@ int main() {
     return 1;
   }
 
+  // The manifest accepted at registration is immutable runtime authority.
+  // A same-ID manifest cannot be substituted later to broaden permissions.
+  auto broader_manifest = manifest;
+  broader_manifest.requested_permissions.push_back("network.request");
+  ExtensionPermissionLedger substitution_ledger;
+  if (!require(substitution_ledger.add(make_always_lease(
+                   10, ExtensionPermission::network_requests,
+                   "profile-personal", false)),
+               "substitution grant fixture should be valid")) {
+    return 1;
+  }
+  auto broader_request =
+      make_request(manifest.id, "profile-personal", "runtime-1", 900);
+  broader_request.permission = ExtensionPermission::network_requests;
+  if (!require(validate_extension_manifest(broader_manifest).accepted(),
+               "same-ID broader manifest fixture should itself be valid") ||
+      !require(!authority.issue_capability(substitution_ledger, broader_request)
+                    .has_value(),
+               "runtime must reject permission absent from registered manifest")) {
+    return 1;
+  }
+
   ExtensionPermissionLedger ledger;
   if (!require(ledger.add(make_always_lease(
                    1, ExtensionPermission::read_tabs, "profile-personal", false)),
@@ -140,7 +162,7 @@ int main() {
   }
 
   auto request = make_request(manifest.id, "profile-personal", "runtime-1", 1000);
-  const auto token = authority.issue_capability(manifest, ledger, request);
+  const auto token = authority.issue_capability(ledger, request);
   if (!require(token.has_value(),
                "running runtime with an authorized grant should receive token")) {
     return 1;
@@ -168,7 +190,7 @@ int main() {
     return 1;
   }
 
-  const auto suspend_token = authority.issue_capability(manifest, ledger, request);
+  const auto suspend_token = authority.issue_capability(ledger, request);
   if (!require(suspend_token.has_value(), "second capability should issue") ||
       !require(authority.suspend("runtime-1"), "running runtime should suspend") ||
       !require(!authority.authorize_and_consume(
@@ -181,7 +203,7 @@ int main() {
     return 1;
   }
 
-  const auto expiry_token = authority.issue_capability(manifest, ledger, request);
+  const auto expiry_token = authority.issue_capability(ledger, request);
   if (!require(expiry_token.has_value(), "expiry capability should issue") ||
       !require(!authority.authorize_and_consume(
                    expiry_token->id,
@@ -227,7 +249,7 @@ int main() {
   auto private_request = make_request(
       manifest.id, "profile-private", "runtime-private", 2000, true);
   if (!require(!authority.issue_capability(
-                   manifest, private_denied_ledger, private_request)
+                   private_denied_ledger, private_request)
                     .has_value(),
                "normal grant must not leak into private browsing")) {
     return 1;
@@ -240,7 +262,7 @@ int main() {
     return 1;
   }
   const auto private_token = authority.issue_capability(
-      manifest, private_allowed_ledger, private_request);
+      private_allowed_ledger, private_request);
   if (!require(private_token.has_value(),
                "explicit private grant should allow bounded capability") ||
       !require(authority.terminate("runtime-private"),
@@ -253,7 +275,7 @@ int main() {
     return 1;
   }
 
-  const auto final_token = authority.issue_capability(manifest, ledger, request);
+  const auto final_token = authority.issue_capability(ledger, request);
   if (!require(final_token.has_value(), "final capability should issue") ||
       !require(authority.terminate("runtime-1"),
                "normal runtime should terminate") ||
@@ -265,8 +287,11 @@ int main() {
 
   const auto* terminated = authority.session("runtime-1");
   if (!require(terminated != nullptr &&
-                   terminated->state == ExtensionRuntimeState::terminated,
-               "terminated state should remain auditable")) {
+                   terminated->state == ExtensionRuntimeState::terminated &&
+                   !extension_manifest_declares_permission(
+                       terminated->manifest,
+                       ExtensionPermission::network_requests),
+               "terminated session should retain original manifest authority")) {
     return 1;
   }
 
