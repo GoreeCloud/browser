@@ -170,7 +170,8 @@ int main() {
   assert(has_issue(corrupted_result,
                    ExtensionPermissionLedgerStorageIssue::checksum_mismatch));
 
-  const auto expired_at = kIssuedAt + goreecloud::browser::kExtensionOneHourMillis;
+  const auto expired_at =
+      kIssuedAt + goreecloud::browser::kExtensionOneHourMillis;
   const auto expired = goreecloud::browser::
       restore_extension_permission_ledger_snapshot(snapshot.bytes, kProfile,
                                                    expired_at);
@@ -198,6 +199,12 @@ int main() {
   std::filesystem::remove(temp_path, error);
   error.clear();
   std::filesystem::remove(backup_path, error);
+
+  const auto first_run = goreecloud::browser::load_extension_permission_ledger(
+      path, kProfile, kNow);
+  assert(first_run.accepted());
+  assert(first_run.ledger.leases().empty());
+  assert(!first_run.recovered_from_backup);
 
   const auto first_save = goreecloud::browser::save_extension_permission_ledger(
       path, ledger, kProfile, kNow);
