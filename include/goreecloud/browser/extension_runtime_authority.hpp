@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -178,7 +179,11 @@ class ExtensionRuntimeAuthority {
         session->identity.profile_id != request.profile_id ||
         session->identity.private_browsing != request.private_browsing ||
         manifest.id != request.extension_id ||
-        !extension_manifest_declares_permission(manifest, request.permission)) {
+        !extension_manifest_declares_permission(manifest, request.permission) ||
+        next_token_id_ == 0 ||
+        request.now_millis >
+            std::numeric_limits<std::uint64_t>::max() -
+                kExtensionRuntimeCapabilityMaxMillis) {
       return std::nullopt;
     }
 
@@ -196,13 +201,6 @@ class ExtensionRuntimeAuthority {
 
     if (!permission_ledger.authorize_and_consume(
             manifest, request.permission, lease_context)) {
-      return std::nullopt;
-    }
-
-    if (next_token_id_ == 0 ||
-        request.now_millis >
-            std::numeric_limits<std::uint64_t>::max() -
-                kExtensionRuntimeCapabilityMaxMillis) {
       return std::nullopt;
     }
 
