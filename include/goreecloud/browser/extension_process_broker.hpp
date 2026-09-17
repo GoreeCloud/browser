@@ -138,9 +138,16 @@ class ExtensionProcessBroker {
       return false;
     }
 
-    if (!valid_extension_process_launch_receipt(request, *receipt) ||
-        find_platform_process(receipt->platform_process_id) != processes_.end()) {
+    if (!valid_extension_process_launch_receipt(request, *receipt)) {
       rollback_unregistered_process(launcher, *receipt);
+      return false;
+    }
+
+    // A duplicate platform handle is ambiguous: terminating it could kill the
+    // already-registered process rather than the newly attempted launch. Fail
+    // closed without Browser authority and leave cleanup to the trusted
+    // platform launcher, which must never recycle an active process handle.
+    if (find_platform_process(receipt->platform_process_id) != processes_.end()) {
       return false;
     }
 

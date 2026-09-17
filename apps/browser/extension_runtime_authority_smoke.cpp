@@ -86,6 +86,7 @@ class FakeExtensionProcessLauncher final
   bool termination_succeeds{true};
   int launch_count{0};
   int terminate_count{0};
+  std::string platform_process_id_override;
   std::string last_terminated_process;
 
   std::optional<goreecloud::browser::ExtensionProcessLaunchReceipt> launch(
@@ -97,7 +98,9 @@ class FakeExtensionProcessLauncher final
 
     goreecloud::browser::ExtensionProcessLaunchReceipt receipt;
     receipt.runtime_instance_id = request.identity.runtime_instance_id;
-    receipt.platform_process_id = "process-" + request.identity.runtime_instance_id;
+    receipt.platform_process_id = platform_process_id_override.empty()
+                                      ? "process-" + request.identity.runtime_instance_id
+                                      : platform_process_id_override;
     receipt.isolation_profile_version = request.isolation.version;
     receipt.dedicated_process = secure_receipt;
     receipt.broker_channel_established = secure_receipt;
@@ -398,6 +401,28 @@ int main() {
                "duplicate runtime must be rejected before another process spawn")) {
     return 1;
   }
+
+  // A buggy launcher must never cause the broker to terminate an already-active
+  // process merely because it recycled the same platform process identifier.
+  broker_launcher.platform_process_id_override = "process-runtime-broker-1";
+  ExtensionRuntimeIdentity ambiguous_process_identity{
+      .extension_id = broker_manifest.id,
+      .profile_id = "profile-personal",
+      .runtime_instance_id = "runtime-broker-2",
+  };
+  if (!require(!broker.launch(broker_launcher, broker_manifest,
+                              ExtensionTrustState::signed_package,
+                              ambiguous_process_identity, broker_launch),
+               "ambiguous active platform process identifier must fail closed") ||
+      !require(broker_launcher.launch_count == 2,
+               "ambiguous handle fixture should reach the platform launcher") ||
+      !require(broker_launcher.terminate_count == 0,
+               "ambiguous active handle must not be terminated by rollback") ||
+      !require(broker.session("runtime-broker-2") == nullptr,
+               "ambiguous process must acquire no runtime authority")) {
+    return 1;
+  }
+  broker_launcher.platform_process_id_override.clear();
 
   ExtensionPermissionLedger broker_ledger;
   if (!require(broker_ledger.add(make_always_lease(
