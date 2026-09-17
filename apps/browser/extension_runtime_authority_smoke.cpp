@@ -1,8 +1,10 @@
 #include <cstdint>
 #include <iostream>
+#include <optional>
+#include <string>
 #include <string_view>
 
-#include "goreecloud/browser/extension_runtime_authority.hpp"
+#include "goreecloud/browser/extension_process_broker.hpp"
 
 namespace {
 
@@ -75,6 +77,43 @@ goreecloud::browser::ExtensionRuntimeDispatchContext make_dispatch(
   context.now_millis = now_millis;
   return context;
 }
+
+class FakeExtensionProcessLauncher final
+    : public goreecloud::browser::ExtensionPlatformProcessLauncher {
+ public:
+  bool return_receipt{true};
+  bool secure_receipt{true};
+  bool termination_succeeds{true};
+  int launch_count{0};
+  int terminate_count{0};
+  std::string last_terminated_process;
+
+  std::optional<goreecloud::browser::ExtensionProcessLaunchReceipt> launch(
+      const goreecloud::browser::ExtensionProcessLaunchRequest& request) override {
+    ++launch_count;
+    if (!return_receipt) {
+      return std::nullopt;
+    }
+
+    goreecloud::browser::ExtensionProcessLaunchReceipt receipt;
+    receipt.runtime_instance_id = request.identity.runtime_instance_id;
+    receipt.platform_process_id = "process-" + request.identity.runtime_instance_id;
+    receipt.isolation_profile_version = request.isolation.version;
+    receipt.dedicated_process = secure_receipt;
+    receipt.broker_channel_established = secure_receipt;
+    receipt.browser_internal_access_blocked = secure_receipt;
+    receipt.other_extension_access_blocked = secure_receipt;
+    receipt.goreecloud_service_access_blocked = secure_receipt;
+    receipt.ambient_operating_system_authority_blocked = secure_receipt;
+    return receipt;
+  }
+
+  bool terminate(std::string_view platform_process_id) override {
+    ++terminate_count;
+    last_terminated_process = std::string(platform_process_id);
+    return termination_succeeds;
+  }
+};
 
 }  // namespace
 
@@ -292,6 +331,145 @@ int main() {
                        terminated->manifest,
                        ExtensionPermission::network_requests),
                "terminated session should retain original manifest authority")) {
+    return 1;
+  }
+
+  // Browser-side process broker: no platform process is spawned without an
+  // explicit Browser launch decision, regardless of package trust metadata.
+  const auto broker_manifest = make_manifest("org.goreecloud.process-broker-smoke");
+  ExtensionRuntimeIdentity broker_identity{
+      .extension_id = broker_manifest.id,
+      .profile_id = "profile-personal",
+      .runtime_instance_id = "runtime-broker-1",
+  };
+  FakeExtensionProcessLauncher denied_launcher;
+  ExtensionProcessBroker denied_broker;
+  if (!require(!denied_broker.launch(
+                   denied_launcher, broker_manifest,
+                   ExtensionTrustState::signed_package, broker_identity,
+                   ExtensionRuntimeLaunchDecision{}),
+               "signed package must not cause process launch without Browser authority") ||
+      !require(denied_launcher.launch_count == 0,
+               "unauthorized runtime must be rejected before platform launch")) {
+    return 1;
+  }
+
+  // A platform adapter must prove every required isolation property before the
+  // Browser registers runtime authority. An invalid receipt is rolled back.
+  FakeExtensionProcessLauncher insecure_launcher;
+  insecure_launcher.secure_receipt = false;
+  ExtensionProcessBroker insecure_broker;
+  ExtensionRuntimeIdentity insecure_identity{
+      .extension_id = broker_manifest.id,
+      .profile_id = "profile-personal",
+      .runtime_instance_id = "runtime-broker-insecure",
+  };
+  const ExtensionRuntimeLaunchDecision broker_launch{
+      .browser_launch_authorized = true,
+  };
+  if (!require(!insecure_broker.launch(
+                   insecure_launcher, broker_manifest,
+                   ExtensionTrustState::unsigned_package, insecure_identity,
+                   broker_launch),
+               "insecure process receipt must fail closed") ||
+      !require(insecure_launcher.launch_count == 1 &&
+                   insecure_launcher.terminate_count == 1,
+               "rejected process launch must request rollback") ||
+      !require(insecure_broker.session("runtime-broker-insecure") == nullptr,
+               "rejected process must acquire no runtime authority")) {
+    return 1;
+  }
+
+  FakeExtensionProcessLauncher broker_launcher;
+  ExtensionProcessBroker broker;
+  if (!require(broker.launch(broker_launcher, broker_manifest,
+                             ExtensionTrustState::signed_package,
+                             broker_identity, broker_launch),
+               "secure process receipt should permit explicit Browser launch") ||
+      !require(broker_launcher.launch_count == 1,
+               "authorized process should launch exactly once") ||
+      !require(broker.session("runtime-broker-1") != nullptr,
+               "accepted process should bind a runtime session") ||
+      !require(!broker.launch(broker_launcher, broker_manifest,
+                              ExtensionTrustState::signed_package,
+                              broker_identity, broker_launch),
+               "runtime process identity must not be reusable") ||
+      !require(broker_launcher.launch_count == 1,
+               "duplicate runtime must be rejected before another process spawn")) {
+    return 1;
+  }
+
+  ExtensionPermissionLedger broker_ledger;
+  if (!require(broker_ledger.add(make_always_lease(
+                   20, ExtensionPermission::read_tabs, "profile-personal", false)),
+               "broker permission fixture should be valid")) {
+    return 1;
+  }
+  auto broker_request = make_request(
+      broker_manifest.id, "profile-personal", "runtime-broker-1", 3000);
+  const auto broker_token = broker.issue_capability(broker_ledger, broker_request);
+  if (!require(broker_token.has_value(),
+               "isolated registered process should receive bounded capability")) {
+    return 1;
+  }
+
+  // Browser authority is revoked before platform termination. A failed platform
+  // termination may be retried but cannot restore privileged Browser access.
+  broker_launcher.termination_succeeds = false;
+  if (!require(!broker.terminate(broker_launcher, "runtime-broker-1"),
+               "failed platform termination should remain visible") ||
+      !require(broker.session("runtime-broker-1") != nullptr &&
+                   broker.session("runtime-broker-1")->state ==
+                       ExtensionRuntimeState::terminated,
+               "Browser authority must be revoked before platform termination") ||
+      !require(!broker.authorize_and_consume(
+                   broker_token->id, make_dispatch(broker_request, 3001)),
+               "failed platform termination must not preserve privileged API access") ||
+      !require(!broker.issue_capability(broker_ledger, broker_request).has_value(),
+               "terminated runtime must not receive replacement capability")) {
+    return 1;
+  }
+
+  broker_launcher.termination_succeeds = true;
+  if (!require(broker.terminate(broker_launcher, "runtime-broker-1"),
+               "platform termination retry should be supported") ||
+      !require(broker.process("runtime-broker-1") != nullptr &&
+                   broker.process("runtime-broker-1")
+                       ->platform_termination_confirmed,
+               "successful retry should record platform termination")) {
+    return 1;
+  }
+
+  // Private process launch authorization must be checked before invoking the
+  // platform launcher.
+  FakeExtensionProcessLauncher private_broker_launcher;
+  ExtensionProcessBroker private_broker;
+  ExtensionRuntimeIdentity private_broker_identity{
+      .extension_id = broker_manifest.id,
+      .profile_id = "profile-private",
+      .runtime_instance_id = "runtime-broker-private",
+      .private_browsing = true,
+  };
+  if (!require(!private_broker.launch(
+                   private_broker_launcher, broker_manifest,
+                   ExtensionTrustState::signed_package,
+                   private_broker_identity,
+                   ExtensionRuntimeLaunchDecision{
+                       .browser_launch_authorized = true,
+                       .private_browsing_authorized = false,
+                   }),
+               "private process launch must require explicit private authority") ||
+      !require(private_broker_launcher.launch_count == 0,
+               "private denial must occur before platform process launch") ||
+      !require(private_broker.launch(
+                   private_broker_launcher, broker_manifest,
+                   ExtensionTrustState::signed_package,
+                   private_broker_identity,
+                   ExtensionRuntimeLaunchDecision{
+                       .browser_launch_authorized = true,
+                       .private_browsing_authorized = true,
+                   }),
+               "explicitly authorized private process should launch")) {
     return 1;
   }
 
