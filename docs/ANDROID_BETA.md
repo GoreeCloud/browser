@@ -2,8 +2,8 @@
 
 **Target:** Android installable Development beta APK  
 **Package:** `io.goreecloud.browser.beta`  
-**Candidate version:** `0.1.0-beta.1+android.6`  
-**Candidate versionCode:** `10006`  
+**Candidate version:** `0.1.0-beta.1+android.7`  
+**Candidate versionCode:** `10007`  
 **Minimum Android:** 8.0 / API 26  
 **Target Android API:** 35  
 **Current Glaze UI target:** V1.5 / `1.5.1` Stable  
@@ -14,7 +14,7 @@
 
 This target is a real installable GoreeCloud Browser Development beta. Android System WebView/Chromium is a bounded, replaceable rendering-engine dependency; GoreeCloud retains Browser product identity, chrome, navigation/search policy, privacy/security boundaries, state, and integration authority.
 
-The `+android.6` candidate updates Browser-owned Glaze mappings to the current Stable V1.5.1 authority and corrects Android CI so pull-request artifacts are built from and labeled with the exact PR head revision rather than a synthetic merge ref. These changes do not establish rendered/native-device acceptance or production readiness.
+The `+android.7` candidate adds a Browser-owned page-title presentation boundary so raw URL/resource-path/control-character engine titles cannot become chrome identity. It preserves the current Stable Glaze UI V1.5.1 mapping and exact-head artifact provenance. These changes do not establish rendered/native-device acceptance or production readiness.
 
 ## Implemented beta behavior
 
@@ -34,7 +34,7 @@ The current Development line includes:
 - WebView file/content access disabled.
 - Website permission/geolocation requests denied until the Browser permission broker and required authorities are accepted.
 - Downloads blocked until the Wardveil-gated download release path is accepted.
-- Browser-owned navigation, address-presentation, Search/Privacy Shield, and Glaze contract tests.
+- Browser-owned navigation, address-presentation, safe page-title presentation, Search/Privacy Shield, and Glaze contract tests.
 
 ## Browser chrome
 
