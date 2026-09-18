@@ -271,7 +271,13 @@ Session recovery and Everkeep integration remain separate: Browser owns the curr
 
 ## 16. Permission and Privacy-Context Runtime Implementation Contract
 
-**Status:** Proposed implementation contract. Current Android callbacks continue to deny permission/geolocation requests directly; this section does not claim an accepted broker runtime.
+**Status:** Development broker foundation implemented; current Android callbacks still deny permission/geolocation requests directly. The platform-neutral evaluator does not establish an accepted Android runtime, production permission store, live authority integration, or user-facing permission flow.
+
+### 16.0 Current Development Implementation Boundary
+
+The current source includes a platform-neutral permission evaluator that implements normalized typed-resource decisions, profile/privacy-context/origin/owner/time binding, per-resource least-privilege outcomes, Privacy Shield/Wardveil/host-OS decision inputs, Private/Isolated Private persistence prohibition, expiry, cancellation, and fail-closed malformed/unavailable/error handling.
+
+This implementation remains deliberately disconnected from Android permission/grant callbacks. A source-level allow result cannot grant a website capability until the Android adapter, user prompt, host OS runtime-permission path, live authority adapters, final request revalidation, persistence/revocation, diagnostics, Close & Forget lifecycle, and representative-device acceptance are separately implemented and validated.
 
 ### 16.1 Runtime Ownership
 
