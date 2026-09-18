@@ -1,7 +1,7 @@
 ---
 title: "GoreeCloud Browser — Project Specification"
 document_owner: "LaDamian Goree"
-version: "v0.14"
+version: "v0.15"
 document_status: "Under Review"
 project_status: "Active Development / nonconformant"
 classification: "Internal"
@@ -17,12 +17,12 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 
 # GoreeCloud Browser — Project Specification
 
-> **Authority and migration note:** This Markdown file is the canonical Browser project specification after verified migration from the legacy Drive DOCX. It consolidates current requirements and architecture rather than repeating the legacy document's long chronological Development narrative. Historical checkpoints remain preserved in Git history, pull-request evidence, and the explicitly superseded legacy DOCX. The format migration itself does not change implementation state. Version `v0.12` retains the permission/private-context and Wardveil download runtime contracts in Sections 16–17 and adds the implementation-ready tabs, sessions, profiles, and Webspaces runtime contract in Section 18.
+> **Authority and migration note:** This Markdown file is the canonical Browser project specification after verified migration from the legacy Drive DOCX. It consolidates current requirements and architecture rather than repeating the legacy document's long chronological Development narrative. Historical checkpoints remain preserved in Git history, pull-request evidence, and the explicitly superseded legacy DOCX. The format migration itself does not change implementation state. Version `v0.15` preserves the implementation-ready runtime contracts, the local health/readiness contract, and adds repository-local exact-source security/supply-chain evidence controls while keeping Development, production, and Stable acceptance separate.
 
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.14
+- **Version:** v0.15
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -35,13 +35,13 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 - **Android Support Floor:** API 26
 - **Android Target API:** 35
 - **Current GLAZE UI Stable Authority:** V1.5 / `1.5.1`
-- **Current Development Line:** PR #49, `chatgpt/search-index-browser-2026-09-13`
-- **Latest independently validated implementation checkpoint:** `f62e650a0fdb7a85fb5c7cd997bed7750a3ba82f`
-- **Validated checks for that exact implementation checkpoint:** Platform Contract #34, GoreeCloud Browser Core CI #451, Android Beta APK #212
+- **Current Development Line:** authoritative `main` plus governed stabilization pull requests
+- **Latest independently validated implementation checkpoint:** `baf14195e557f6340f32011e7aec66cdf83d14a6` (local health/readiness candidate)
+- **Validated checks for that exact implementation checkpoint:** Platform Contract run `35385919856`; GoreeCloud Browser Core CI run `35385919163`; GoreeCloud Browser Extension Signature run `35385919114`
 
 The current documentation head may be newer than the validated implementation checkpoint. Documentation-only commits must not inherit implementation validation by implication.
 
-Version v0.12 reconciled the current nine-system Platform Contract 0.4 model, current Stable Glaze UI 1.5.1 target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 adds the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. These are Development control/implementation updates and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
+Version v0.12 reconciled Platform Contract 0.4, Stable Glaze UI 1.5.1, Android +android.6 identity, and exact-head Android provenance. Version v0.13 added PermissionBroker Phase 1. Version v0.14 added the local privacy-safe health/readiness contract. Version v0.15 adds exact-source secret scanning, HIGH/CRITICAL repository dependency vulnerability gating, CycloneDX SBOM generation, immutable workflow-action enforcement, and CI credential/toolchain hardening. These remain Development controls and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
 
 ## 1. Project Definition
 
@@ -119,6 +119,22 @@ Current Android permissions/geolocation are denied directly. Current Android dow
 
 Privacy and security state must be truthful. Browser UI must not display an allow, safe, verified, private, authenticated, synchronized, recovered, or protected state unless the responsible authority and local state machine support that claim.
 
+### 7.1 Exact-Source Security and Supply-Chain Evidence
+
+The repository security-evidence workflow is responsible for exact-source Development evidence for:
+
+- immutable full-SHA references for third-party and reusable workflow actions;
+- full-Git-history secret scanning with redacted findings;
+- repository dependency scanning that fails on detected HIGH or CRITICAL vulnerabilities;
+- CycloneDX SBOM generation;
+- exact evaluated source revision, scanner versions, generation timestamp, evidence checksums, and retained workflow artifacts.
+
+The Android build workflow additionally pins the action revisions, Temurin JDK version, Android command-line-tools build, Gradle action revision, Gradle version, and artifact-upload action. Core and extension-signature workflows use fixed Ubuntu 24.04 runners and do not persist checkout credentials where those credentials are unnecessary.
+
+A passing repository security-evidence run is necessary Development evidence, not complete Stable supply-chain acceptance. Runner-provided operating-system packages, APT-resolved GTK/curl/build dependencies, Android SDK platform/package contents, Android System WebView/Chromium, optional CEF/runtime dependencies, production signing infrastructure, deployment dependencies, and other shipped/runtime components still require their own identifiable, current, vulnerability-reviewed provenance where applicable.
+
+See `docs/SECURITY_EVIDENCE.md`.
+
 ## 8. Current Restrictions
 
 The current Browser Development line does not establish:
@@ -132,7 +148,8 @@ The current Browser Development line does not establish:
 - Browser-owned production website-permission UI and Android runtime-permission mapping;
 - complete multi-tab, session, settings, profile, private-browsing, or Webspaces workflows;
 - production signing, store packaging, update, rollback, downgrade, or migration acceptance;
-- sustained representative-device, accessibility, performance, battery, and compatibility evidence.
+- sustained representative-device, accessibility, performance, battery, and compatibility evidence;
+- complete reproducible dependency/build-environment and exact-release security evidence across every shipped/runtime component.
 
 ## 9. Production and Stable Promotion Gates
 
@@ -147,13 +164,14 @@ Before Android Browser may be represented as production-approved or Stable, it m
 7. Browser-owned website permission prompts and Android runtime-permission mapping.
 8. Real-device validation across supported Android versions, screen sizes, WebView versions, accessibility configurations, network transitions, process/background restoration, and sustained use.
 9. Signed upgrade, downgrade, rollback, and application-data migration testing.
-10. Release provenance, checksums, release notes, controlled distribution, operational recovery, Release Candidate qualification, and production acceptance evidence.
+10. Exact-release security evidence including secrets, known-vulnerability review, identifiable dependency/build state, SBOM/provenance as applicable, and immutable CI tooling.
+11. Release provenance, checksums, release notes, controlled distribution, operational recovery, Release Candidate qualification, and production acceptance evidence.
 
 ## 10. Current Development Status and Evidence Boundary
 
-PR #49 remains open Development/beta work on `chatgpt/search-index-browser-2026-09-13`. The latest independently validated implementation checkpoint remains exact source `f62e650a0fdb7a85fb5c7cd997bed7750a3ba82f`, which passed Platform Contract #34, GoreeCloud Browser Core CI #451, and Android Beta APK #212.
+The former cumulative PR #49 line and subsequent PermissionBroker work are integrated to `main`. The latest independently validated implementation checkpoint is exact source `baf14195e557f6340f32011e7aec66cdf83d14a6`, which passed Platform Contract run `35385919856`, GoreeCloud Browser Core CI run `35385919163`, and GoreeCloud Browser Extension Signature run `35385919114` before PR #56 integration. That evidence remains bound to the exact candidate and is not silently rebound to the later merge revision.
 
-The current Android package/version remains `io.goreecloud.browser.beta`, versionName `0.1.0-beta.1+android.6`, versionCode `10006`. Documentation changes do not promote that application version.
+The current Android package/version remains `io.goreecloud.browser.beta`, versionName `0.1.0-beta.1+android.6`, versionCode `10006`. The v0.15 security/supply-chain hardening tranche requires its own exact-head validation before it can be represented as tested evidence. Documentation or merge state alone does not promote the application version or lifecycle.
 
 Historical V1.2, V1.3, V1.4.0, earlier PR, and superseded architectural checkpoints remain historical evidence in Git, pull-request history, and the retained superseded legacy specification. They must not be presented as current acceptance when the current exact source has not been independently verified for the same capability.
 
