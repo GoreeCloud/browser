@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "goreecloud/browser/permission_broker.hpp"
