@@ -78,7 +78,7 @@ GoreeCloud Sync remains a separately governed application/service capability. Th
 
 Workflow: `.github/workflows/android-beta.yml`
 
-The workflow uses Java 17, Android API 35, Android Build Tools 35.0.0, and Gradle 8.9. It runs:
+The workflow uses exact Temurin `17.0.20.1+1`, Android command-line tools build `15859902`, Android API 35, Android Build Tools 35.0.0, and Gradle 8.9. Third-party workflow actions are pinned to immutable full commit SHAs and Gradle uses the open-source basic cache provider. It runs:
 
 ```text
 gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
@@ -92,7 +92,7 @@ Expected APK path:
 apps/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-A green run proves only the checks performed against that exact Development revision. It does not establish production signing, security/privacy acceptance, real-device behavior, Stable qualification, or deployment acceptance.
+A green run proves only the checks performed against that exact Development revision and the recorded build inputs. It does not establish production signing, security/privacy acceptance, real-device behavior, Stable qualification, or deployment acceptance.
 
 ## Signing boundary
 
