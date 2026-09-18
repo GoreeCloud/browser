@@ -29,7 +29,7 @@ For each evaluated pull-request head or `main` revision, the workflow:
 
 A finding or tooling failure blocks that workflow result. Evidence from an older revision must not be silently transferred to a materially changed candidate.
 
-The repository carries one narrowly scoped Gitleaks false-positive exception for a synthetic `capabilityTokenReference` unit-test fixture. The exception requires the default `generic-api-key` rule, the exact Privacy Shield authorization test path, the capability-reference assignment shape, and an explicit test marker in the fixture value. It does not allowlist the whole test directory, a whole commit, or arbitrary token/key assignments.
+The repository carries one narrowly scoped Gitleaks false-positive exception for a synthetic Privacy Shield capability-reference unit-test fixture whose placeholder value is `psc_test-capability-123`. The exception requires the default `generic-api-key` rule, the exact Privacy Shield authorization test path, the expected test-only field shape, and an explicit test marker in the fixture value. It does not allowlist the whole test directory, a whole commit, or arbitrary token/key assignments.
 
 ## CI supply-chain controls
 
