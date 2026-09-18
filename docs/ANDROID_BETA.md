@@ -116,3 +116,10 @@ These source defaults are useful Development controls, not complete Wardveil or 
 Before Android Browser may be represented as production-approved or Stable, current GoreeCloud Stable qualification still requires exact-release evidence for applicable functionality, security, privacy, accessibility, recovery, Glaze UI, all nine Integral Platform Systems, supported platforms, dependencies, artifact provenance, signing/distribution, upgrade/rollback/migration, representative devices, and production acceptance.
 
 Current known Browser-specific blockers include accepted runtime Manager/Privacy Shield/Wardveil/Everkeep/Mesh/Identity/Policy/Observability integration, Browser-local Glaze V1.5.1 acceptance, production signing, representative Android validation, complete permission/private-context/download/session/profile workflows, and published Stable release evidence.
+
+
+## Launcher identity verification
+
+Android Beta CI now validates the repository launcher-identity source boundary and inspects the built APK resource table for the adaptive launcher, round launcher, foreground, and Android 13+ monochrome resources. This proves source/package presence only.
+
+Correct rendering in GoreeCloud Launcher, Lineage/Trebuchet, OEM launchers, themed-icon modes, supported densities, and representative physical devices remains a separate human/device acceptance requirement and is not inferred from APK packaging.
