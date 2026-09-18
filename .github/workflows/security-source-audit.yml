@@ -1,0 +1,39 @@
+name: GoreeCloud Browser Security Source Audit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EVALUATED_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  source-security-audit:
+    name: Exact-source secrets and CI immutability audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact Browser source with history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.EVALUATED_REVISION }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact Browser revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EVALUATED_REVISION"
+
+      - name: Run fail-closed source-security audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/security_source_audit.py --history
