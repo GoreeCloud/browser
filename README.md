@@ -32,6 +32,8 @@ GoreeCloud-owned application layers remain separated from the rendering engine b
 - **Wardveil Security** — security/protection authority and evidence-backed Browser security integration.
 - **Everkeep** — encrypted browser-state backup, recovery, portability, and continuity where applicable.
 - **GoreeCloud Identity** — profiles, device authorization, synchronization identity, and account-bound preferences.
+- **GoreeCloud Policy** — shared policy representation, evaluation, decisions, enforcement coordination, explanation, freshness, and policy evidence while Browser/domain owners retain substantive rule authority.
+- **GoreeCloud Observability** — Browser health, metrics, diagnostics, performance, availability, dependency health, provenance, correlation, and operational evidence.
 - **GoreeCloud Vault** — credentials, passkeys, secrets, secure autofill, and protected authentication material.
 - **GoreeCloud DNS** — DNS resolution, resolver policy, DNS privacy, and Browser DNS integration.
 - **GoreeCloud Network** — networking and private-connectivity authority.
@@ -39,7 +41,7 @@ GoreeCloud-owned application layers remain separated from the rendering engine b
 - **GoreeCloud Wayfinder** — Browser-owned navigation, productivity, organization, capture, transfer, session, and workflow feature family.
 - **Media Hover** — Browser-owned contextual media interaction layer subject to Browser privacy/security and destination boundaries.
 
-The seven Integral Platform Systems are GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, and GoreeCloud Identity. Search, Index, Sync, Vault, DNS, Network, Bookmarks, and other first-party products/services keep their own authority and acceptance contracts; they are not reclassified as Integral Platform Systems by Browser integration.
+The nine Integral Platform Systems are GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, GoreeCloud Identity, GoreeCloud Policy, and GoreeCloud Observability. Search, Index, Sync, Vault, DNS, Network, Bookmarks, and other first-party products/services keep their own authority and acceptance contracts; they are not reclassified as Integral Platform Systems by Browser integration.
 
 ## Search and Index integration
 
@@ -68,15 +70,11 @@ Consumer validation does not create producer authority. Search, Index, Vault, Sy
 
 ## Glaze UI requirement
 
-The current official Stable consumer target published by `GoreeCloud/goreecloud-glaze-ui` is **Glaze UI V1.4 / `1.4.0`**.
+The current Official Stable consumer target published by `GoreeCloud/goreecloud-glaze-ui` is **Glaze UI V1.5 / `1.5.1`**. V1.6 remains Development-only and is not consumer authority.
 
-Previous Browser documentation named Glaze UI `2.2.0`. That value is not the current Stable authority and must not be used as present Browser conformance or release evidence.
+Browser source now maps the reviewed V1.5 context/capability presentation behavior while pinning the current V1.5.1 Stable promotion, qualification-source, and rollback boundaries. Glaze UI remains presentation-only: it cannot infer authorization, consent, provider precedence, security/privacy truth, or automatic consequential execution.
 
-Browser is therefore **V1.4 migration-required** until Browser-owned surfaces and native mappings have been updated and validated against the current Stable contract.
-
-Glaze V1.4 requires bounded optical behavior, solid readable/critical-decision surfaces where appropriate, accessible solid fallbacks for Reduced Transparency and Forced Colors, strengthened clarity under Increased Contrast, and local deterministic optical behavior that does not require telemetry, analytics, camera access, or remote environmental sensing.
-
-Central Glaze Stable status does not automatically certify Browser. Browser-local source, rendered/native, accessibility, runtime, and representative-device evidence remain required.
+Browser remains **Glaze migration-required / not accepted** until fresh Browser-local exact-revision rendered/native, accessibility, representative-device/form-factor/posture, performance, localization/RTL, rollback, workflow, and production acceptance evidence exists. Shared Glaze V1.5.1 Stable qualification does not certify Browser.
 
 See [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md).
 
@@ -111,7 +109,7 @@ See [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md).
 1. GoreeCloud owns the browser product layer.
 2. The rendering engine is replaceable infrastructure, not product identity.
 3. GoreeCloud-specific behavior should remain outside deep engine forks when stable adapters are practical.
-4. The seven Integral Platform Systems—GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, and GoreeCloud Identity—retain substantive independent authority and evidence requirements; Search, Index, Sync, and other first-party products/services remain separate capabilities with their own contracts.
+4. The nine Integral Platform Systems—GoreeCloud Manager, Privacy Shield, Wardveil Security, Everkeep, Glaze UI, GoreeCloud Mesh, GoreeCloud Identity, GoreeCloud Policy, and GoreeCloud Observability—retain substantive independent authority and evidence requirements; Search, Index, Sync, and other first-party products/services remain separate capabilities with their own contracts.
 5. Browser state should use GoreeCloud-owned schemas rather than treating Chromium profile formats as canonical.
 6. Upstream engine security updates must remain practical to consume.
 7. Engine-specific exceptions must be isolated and documented.
