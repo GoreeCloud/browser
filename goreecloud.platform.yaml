@@ -24,7 +24,9 @@ platform_systems:
     evidence:
       - README.md
       - SPECIFICATIONS.md
-    notes: GoreeCloud Manager operational visibility is applicable to Browser, but no accepted Manager runtime integration or Browser operational-status publication exists.
+      - docs/HEALTH_READINESS_CONTRACT.md
+      - include/goreecloud/browser/health.hpp
+    notes: Browser now has a bounded privacy-safe local liveness/readiness source contract suitable for a future authorized Manager adapter, but no accepted Manager runtime integration, operational-status publication, target-environment monitoring, or production acceptance exists.
   privacy_shield:
     result: applicable-blocked
     version: null
@@ -89,7 +91,9 @@ platform_systems:
       - README.md
       - SPECIFICATIONS.md
       - goreecloud.platform.yaml
-    notes: GoreeCloud Observability is applicable to Browser health, diagnostics, performance, availability, dependency health, provenance, and operational evidence, but accepted runtime telemetry/health integration and exact-release observability acceptance are incomplete.
+      - docs/HEALTH_READINESS_CONTRACT.md
+      - include/goreecloud/browser/health.hpp
+    notes: Browser now has a privacy-minimized local health/readiness source contract with bounded dependency/freshness state, but no accepted Observability exporter, runtime telemetry transport, operational evidence publication, alerting, target-environment validation, or exact-release observability acceptance exists.
 
 health:
   health_endpoint: null
@@ -162,7 +166,7 @@ conformance:
     - GoreeCloud Policy decision, enforcement-coordination, explanation, freshness, and policy-evidence runtime acceptance are incomplete.
     - GoreeCloud Observability health, diagnostics, performance, dependency-health, freshness, provenance, and operational-evidence runtime acceptance are incomplete.
     - GoreeCloud Sync remains a separate application/service capability; dataset contracts, runtime registration, authenticated synchronization, reconciliation, deletion/conflict behavior, and cross-device acceptance are incomplete, and excluded private/credential/security state must not be synchronized by default.
-    - Browser does not expose accepted health/readiness interfaces for GoreeCloud Manager or platform observability.
+    - Browser has a Development source-level local health/readiness contract, but no accepted publication adapter, Manager/Observability runtime integration, target-environment monitoring, alerting, or production health/readiness acceptance exists.
     - Desktop render-capable CEF/Chromium integration and its real-runtime acceptance remain incomplete.
     - Android production signing, representative-device acceptance, accessibility, localization/RTL, migration, update, rollback, and release provenance remain incomplete.
     - No Stable or production-approved GoreeCloud Browser release evidence is declared.
