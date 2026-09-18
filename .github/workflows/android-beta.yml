@@ -24,12 +24,12 @@ env:
 jobs:
   android-beta:
     name: Build installable APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
 
     steps:
       - name: Check out exact Browser source revision
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.EVALUATED_REVISION }}
           persist-credentials: false
@@ -40,26 +40,40 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EVALUATED_REVISION"
 
-      - name: Use Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "17"
+      - name: Install exact Temurin Java 17
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="OpenJDK17U-jdk_x64_linux_hotspot_17.0.20.1_1.tar.gz"
+          expected_sha256="3808d1d15e3ec6bd5b84057fb5d84c33d8a1536a258146bcea2e603fc726e08e"
+          curl --fail --location --silent --show-error \
+            --output "/tmp/${archive}" \
+            "https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.20.1%2B1/${archive}"
+          printf '%s  %s\n' "$expected_sha256" "/tmp/${archive}" | sha256sum --check -
+          java_home="$RUNNER_TEMP/temurin-17.0.20.1+1"
+          mkdir -p "$java_home"
+          tar -xzf "/tmp/${archive}" -C "$java_home" --strip-components=1
+          printf 'JAVA_HOME=%s\n' "$java_home" >> "$GITHUB_ENV"
+          printf '%s/bin\n' "$java_home" >> "$GITHUB_PATH"
+          "$java_home/bin/java" -version
 
-      - name: Configure Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Configure exact Android SDK command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
+          cmdline-tools-version: "15859902"
           packages: platform-tools
+          log-accepted-android-sdk-licenses: false
 
       - name: Install Android 35 SDK
         shell: bash
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Configure Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Configure exact Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: "8.9"
+          cache-provider: basic
 
       - name: Validate launcher identity source boundary
         shell: bash
@@ -98,7 +112,7 @@ jobs:
           sha256sum app-debug.apk | tee SHA256SUMS.txt
 
       - name: Upload installable beta APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: goreecloud-browser-android-beta-${{ env.EVALUATED_REVISION }}
           if-no-files-found: error
