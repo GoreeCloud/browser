@@ -6,11 +6,14 @@
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace goreecloud::browser {
 
-enum class BrowserPrivacyContext {
+enum class PrivacyContext {
   normal,
   private_browsing,
   isolated_private,
@@ -24,7 +27,41 @@ enum class PermissionResource {
   midi_sysex,
 };
 
-enum class HostPermissionState {
+inline constexpr std::string_view permission_resource_name(
+    PermissionResource resource) {
+  switch (resource) {
+    case PermissionResource::camera:
+      return "camera";
+    case PermissionResource::microphone:
+      return "microphone";
+    case PermissionResource::geolocation:
+      return "geolocation";
+    case PermissionResource::protected_media:
+      return "protected_media";
+    case PermissionResource::midi_sysex:
+      return "midi_sysex";
+  }
+  return {};
+}
+
+inline std::optional<PermissionResource> parse_permission_resource(
+    std::string_view value) {
+  constexpr PermissionResource resources[] = {
+      PermissionResource::camera,
+      PermissionResource::microphone,
+      PermissionResource::geolocation,
+      PermissionResource::protected_media,
+      PermissionResource::midi_sysex,
+  };
+  for (const auto resource : resources) {
+    if (permission_resource_name(resource) == value) {
+      return resource;
+    }
+  }
+  return std::nullopt;
+}
+
+enum class HostOsPermissionState {
   granted,
   denied_requestable,
   denied_no_reprompt,
@@ -33,60 +70,54 @@ enum class HostPermissionState {
   error,
 };
 
-enum class AuthorityDecisionState {
+enum class AuthorityDecision {
   not_required,
-  allowed,
-  denied,
+  allow,
+  deny,
   unavailable,
   invalid,
 };
 
-enum class PermissionUserDecision {
-  allow_once,
-  allow_session,
-  allow_persistent,
-  deny_once,
-  deny_session,
-  deny_persistent,
+struct AuthorityGate {
+  bool required{false};
+  AuthorityDecision decision{AuthorityDecision::not_required};
 };
 
-enum class PermissionDecisionCode {
-  pending,
-  allow_once,
-  allow_session,
-  allow_persistent,
-  deny_once,
-  deny_session,
-  deny_persistent,
-  blocked_policy,
-  blocked_security,
-  blocked_os,
-  unavailable,
-  cancelled,
-  expired,
-  error_fail_closed,
+struct PermissionRequest {
+  std::string request_id;
+  std::string profile_id;
+  std::string privacy_context_id;
+  PrivacyContext privacy_context{PrivacyContext::normal};
+  std::string tab_owner_id;
+  std::string top_level_origin;
+  std::string requesting_origin;
+  std::vector<PermissionResource> resources;
+  bool user_gesture{false};
+  std::int64_t created_at_millis{0};
+  std::int64_t expires_at_millis{0};
+  std::uint32_t contract_version{1};
 };
 
-enum class PermissionDecisionReason {
-  none,
-  user_decision_pending,
-  persistent_private_decision_forbidden,
-  privacy_shield_denied,
-  privacy_shield_unavailable,
-  privacy_shield_invalid,
-  wardveil_denied,
-  wardveil_unavailable,
-  wardveil_invalid,
-  host_permission_denied_requestable,
-  host_permission_denied_no_reprompt,
-  host_permission_restricted,
-  host_permission_unavailable,
-  host_permission_error,
-  request_invalid,
-  request_expired,
-  owner_inactive,
-  privacy_context_inactive,
-  origin_changed,
+struct RevalidationContext {
+  std::string profile_id;
+  std::string privacy_context_id;
+  PrivacyContext privacy_context{PrivacyContext::normal};
+  std::string tab_owner_id;
+  std::string top_level_origin;
+  std::string requesting_origin;
+};
+
+struct ResourceAuthoritySnapshot {
+  PermissionResource resource{PermissionResource::camera};
+  HostOsPermissionState host_os{HostOsPermissionState::unavailable};
+  AuthorityGate goreecloud_policy;
+  AuthorityGate privacy_shield;
+  AuthorityGate wardveil_security;
+};
+
+struct EvaluationContext {
+  RevalidationContext current;
+  std::vector<ResourceAuthoritySnapshot> resources;
 };
 
 enum class PermissionLifecycleState {
@@ -98,360 +129,485 @@ enum class PermissionLifecycleState {
   user_decision,
   resolving_engine,
   completed,
-  cancelled,
-  expired,
-  failed,
 };
 
-enum class PermissionRequestStatus {
-  pending,
-  completed,
+enum class UserPermissionDecision {
+  allow_once,
+  allow_session,
+  allow_persistent,
+  deny_once,
+  deny_session,
+  deny_persistent,
+};
+
+enum class PermissionDecision {
+  pending_user_decision,
+  allow_once,
+  allow_session,
+  allow_persistent,
+  deny_once,
+  deny_session,
+  deny_persistent,
   cancelled,
   expired,
+  blocked_policy,
+  blocked_security,
+  blocked_os,
+  unavailable,
   error_fail_closed,
 };
 
-struct PermissionResourceInput {
+struct PermissionResolution {
   PermissionResource resource{PermissionResource::camera};
-  HostPermissionState host_state{HostPermissionState::unavailable};
-  AuthorityDecisionState privacy_shield{AuthorityDecisionState::not_required};
-  AuthorityDecisionState wardveil{AuthorityDecisionState::not_required};
-  std::optional<PermissionUserDecision> user_decision;
+  PermissionDecision decision{PermissionDecision::error_fail_closed};
+  bool engine_grant_allowed{false};
+  bool persistent_store_allowed{false};
+  std::string reason;
 };
 
-struct PermissionRequest {
-  std::string request_id;
-  std::string profile_id;
-  std::string privacy_context_id;
-  BrowserPrivacyContext privacy_context{BrowserPrivacyContext::normal};
-  std::string owner_id;
-  std::string top_level_origin;
-  std::string requesting_origin;
-  std::uint64_t created_at_millis{0};
-  std::uint64_t expires_at_millis{0};
-  std::vector<PermissionResourceInput> resources;
-};
-
-struct PermissionEvaluationContext {
-  std::uint64_t now_millis{0};
-  bool owner_active{true};
-  bool privacy_context_active{true};
-  bool origins_unchanged{true};
-};
-
-struct PermissionResourceResult {
-  PermissionResource resource{PermissionResource::camera};
-  PermissionDecisionCode decision{PermissionDecisionCode::pending};
-  PermissionDecisionReason reason{PermissionDecisionReason::none};
-  PermissionLifecycleState lifecycle{PermissionLifecycleState::received};
-  bool terminal{false};
-  bool engine_allowed{false};
-  bool persistence_allowed{false};
-};
-
-struct PermissionEvaluationResult {
-  PermissionRequestStatus status{PermissionRequestStatus::error_fail_closed};
-  PermissionLifecycleState lifecycle{PermissionLifecycleState::failed};
-  std::vector<PermissionResourceResult> resources;
-
-  [[nodiscard]] bool all_terminal() const noexcept {
-    return std::all_of(resources.begin(), resources.end(),
-                       [](const PermissionResourceResult& result) {
-                         return result.terminal;
-                       });
+inline bool permission_text_safe(std::string_view value,
+                                 std::size_t max_length) {
+  if (value.empty() || value.size() > max_length) {
+    return false;
   }
-
-  [[nodiscard]] bool any_engine_grant() const noexcept {
-    return std::any_of(resources.begin(), resources.end(),
-                       [](const PermissionResourceResult& result) {
-                         return result.engine_allowed;
-                       });
-  }
-
-  [[nodiscard]] bool all_engine_granted() const noexcept {
-    return !resources.empty() &&
-           std::all_of(resources.begin(), resources.end(),
-                       [](const PermissionResourceResult& result) {
-                         return result.engine_allowed;
-                       });
-  }
-};
-
-inline bool permission_string_has_control_or_space(std::string_view value) {
-  return std::any_of(value.begin(), value.end(), [](unsigned char character) {
-    return std::iscntrl(character) != 0 || std::isspace(character) != 0;
+  return std::none_of(value.begin(), value.end(), [](unsigned char character) {
+    return std::iscntrl(character) != 0;
   });
 }
 
-inline bool valid_permission_origin(std::string_view origin) {
-  if (origin.empty() || origin.size() > 2048 ||
-      permission_string_has_control_or_space(origin)) {
+inline bool canonical_web_origin(std::string_view value) {
+  if (!permission_text_safe(value, 2048) ||
+      value.find_first_of(" 	
+?#") != std::string_view::npos ||
+      value.find('@') != std::string_view::npos) {
     return false;
   }
-  return origin.starts_with("https://") || origin.starts_with("http://");
+
+  std::size_t scheme_length = 0;
+  if (value.starts_with("https://")) {
+    scheme_length = 8;
+  } else if (value.starts_with("http://")) {
+    scheme_length = 7;
+  } else {
+    return false;
+  }
+
+  if (value.size() <= scheme_length) {
+    return false;
+  }
+
+  const auto path = value.find('/', scheme_length);
+  if (path != std::string_view::npos && path != value.size() - 1) {
+    return false;
+  }
+
+  const auto authority =
+      value.substr(scheme_length, path == std::string_view::npos
+                                     ? std::string_view::npos
+                                     : path - scheme_length);
+  return !authority.empty() && authority.front() != ':' &&
+         authority.back() != ':';
 }
 
-inline bool permission_request_is_structurally_valid(
-    const PermissionRequest& request) {
-  if (request.request_id.empty() || request.profile_id.empty() ||
-      request.privacy_context_id.empty() || request.owner_id.empty() ||
-      !valid_permission_origin(request.top_level_origin) ||
-      !valid_permission_origin(request.requesting_origin) ||
-      request.created_at_millis == 0 ||
-      request.expires_at_millis <= request.created_at_millis ||
-      request.resources.empty() || request.resources.size() > 16) {
+inline bool valid_permission_request(const PermissionRequest& request) {
+  if (request.contract_version != 1 ||
+      !permission_text_safe(request.request_id, 128) ||
+      !permission_text_safe(request.profile_id, 128) ||
+      !permission_text_safe(request.privacy_context_id, 128) ||
+      !permission_text_safe(request.tab_owner_id, 128) ||
+      !canonical_web_origin(request.top_level_origin) ||
+      !canonical_web_origin(request.requesting_origin) ||
+      request.resources.empty() || request.resources.size() > 8 ||
+      request.created_at_millis < 0 ||
+      request.expires_at_millis <= request.created_at_millis) {
     return false;
   }
 
-  std::vector<PermissionResource> seen;
-  seen.reserve(request.resources.size());
-  for (const auto& resource : request.resources) {
-    if (std::find(seen.begin(), seen.end(), resource.resource) != seen.end()) {
+  std::unordered_set<int> seen;
+  for (const auto resource : request.resources) {
+    if (!seen.insert(static_cast<int>(resource)).second) {
       return false;
     }
-    seen.push_back(resource.resource);
   }
   return true;
 }
 
-inline PermissionResourceResult terminal_permission_result(
-    PermissionResource resource,
-    PermissionDecisionCode decision,
-    PermissionDecisionReason reason,
-    PermissionLifecycleState lifecycle,
-    bool engine_allowed = false,
-    bool persistence_allowed = false) {
-  return PermissionResourceResult{
-      .resource = resource,
-      .decision = decision,
-      .reason = reason,
-      .lifecycle = lifecycle,
-      .terminal = true,
-      .engine_allowed = engine_allowed,
-      .persistence_allowed = persistence_allowed,
-  };
+inline bool request_matches_current_context(
+    const PermissionRequest& request,
+    const RevalidationContext& current) {
+  return request.profile_id == current.profile_id &&
+         request.privacy_context_id == current.privacy_context_id &&
+         request.privacy_context == current.privacy_context &&
+         request.tab_owner_id == current.tab_owner_id &&
+         request.top_level_origin == current.top_level_origin &&
+         request.requesting_origin == current.requesting_origin;
 }
 
-inline PermissionResourceResult evaluate_permission_resource(
-    const PermissionResourceInput& input,
-    BrowserPrivacyContext privacy_context) {
-  switch (input.privacy_shield) {
-    case AuthorityDecisionState::denied:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::blocked_policy,
-          PermissionDecisionReason::privacy_shield_denied,
-          PermissionLifecycleState::policy_evaluation);
-    case AuthorityDecisionState::unavailable:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::unavailable,
-          PermissionDecisionReason::privacy_shield_unavailable,
-          PermissionLifecycleState::policy_evaluation);
-    case AuthorityDecisionState::invalid:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::error_fail_closed,
-          PermissionDecisionReason::privacy_shield_invalid,
-          PermissionLifecycleState::failed);
-    case AuthorityDecisionState::not_required:
-    case AuthorityDecisionState::allowed:
-      break;
+class PermissionBroker {
+ public:
+  [[nodiscard]] bool receive(PermissionRequest request) {
+    if (!valid_permission_request(request) ||
+        requests_.contains(request.request_id)) {
+      return false;
+    }
+
+    StoredRequest stored;
+    stored.request = std::move(request);
+    stored.state = PermissionLifecycleState::received;
+    requests_.emplace(stored.request.request_id, std::move(stored));
+    return true;
   }
 
-  switch (input.wardveil) {
-    case AuthorityDecisionState::denied:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::blocked_security,
-          PermissionDecisionReason::wardveil_denied,
-          PermissionLifecycleState::policy_evaluation);
-    case AuthorityDecisionState::unavailable:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::unavailable,
-          PermissionDecisionReason::wardveil_unavailable,
-          PermissionLifecycleState::policy_evaluation);
-    case AuthorityDecisionState::invalid:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::error_fail_closed,
-          PermissionDecisionReason::wardveil_invalid,
-          PermissionLifecycleState::failed);
-    case AuthorityDecisionState::not_required:
-    case AuthorityDecisionState::allowed:
-      break;
+  [[nodiscard]] std::optional<PermissionLifecycleState> state(
+      std::string_view request_id) const {
+    const auto* stored = find(request_id);
+    if (stored == nullptr) {
+      return std::nullopt;
+    }
+    return stored->state;
   }
 
-  switch (input.host_state) {
-    case HostPermissionState::granted:
-      break;
-    case HostPermissionState::denied_requestable:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::blocked_os,
-          PermissionDecisionReason::host_permission_denied_requestable,
-          PermissionLifecycleState::os_capability_check);
-    case HostPermissionState::denied_no_reprompt:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::blocked_os,
-          PermissionDecisionReason::host_permission_denied_no_reprompt,
-          PermissionLifecycleState::os_capability_check);
-    case HostPermissionState::restricted:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::blocked_os,
-          PermissionDecisionReason::host_permission_restricted,
-          PermissionLifecycleState::os_capability_check);
-    case HostPermissionState::unavailable:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::unavailable,
-          PermissionDecisionReason::host_permission_unavailable,
-          PermissionLifecycleState::os_capability_check);
-    case HostPermissionState::error:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::error_fail_closed,
-          PermissionDecisionReason::host_permission_error,
-          PermissionLifecycleState::failed);
+  [[nodiscard]] std::vector<PermissionResolution> evaluate(
+      std::string_view request_id,
+      const EvaluationContext& context,
+      std::int64_t now_millis) {
+    auto* stored = find_mutable(request_id);
+    if (stored == nullptr || stored->state == PermissionLifecycleState::completed) {
+      return {};
+    }
+
+    stored->state = PermissionLifecycleState::validating;
+    const auto common = validate_live_request(stored->request, context.current,
+                                              now_millis);
+    if (common.has_value()) {
+      stored->state = PermissionLifecycleState::completed;
+      stored->terminal = common->decision;
+      return resolutions_for_all(stored->request, *common);
+    }
+
+    stored->state = PermissionLifecycleState::context_bound;
+    stored->state = PermissionLifecycleState::policy_evaluation;
+
+    std::vector<PermissionResolution> result;
+    result.reserve(stored->request.resources.size());
+    bool any_pending = false;
+    for (const auto resource : stored->request.resources) {
+      const auto resolution =
+          preflight_resource(stored->request, resource, context);
+      any_pending =
+          any_pending ||
+          resolution.decision == PermissionDecision::pending_user_decision;
+      result.push_back(resolution);
+    }
+
+    stored->state = PermissionLifecycleState::os_capability_check;
+    stored->state = any_pending ? PermissionLifecycleState::user_decision
+                                : PermissionLifecycleState::completed;
+    if (!any_pending && !result.empty()) {
+      stored->terminal = result.front().decision;
+    }
+    return result;
   }
 
-  if (!input.user_decision.has_value()) {
-    return PermissionResourceResult{
-        .resource = input.resource,
-        .decision = PermissionDecisionCode::pending,
-        .reason = PermissionDecisionReason::user_decision_pending,
-        .lifecycle = PermissionLifecycleState::user_decision,
-        .terminal = false,
-        .engine_allowed = false,
-        .persistence_allowed = false,
+  [[nodiscard]] PermissionResolution apply_user_decision(
+      std::string_view request_id,
+      PermissionResource resource,
+      UserPermissionDecision user_decision,
+      const EvaluationContext& context,
+      std::int64_t now_millis) {
+    auto* stored = find_mutable(request_id);
+    if (stored == nullptr || stored->state == PermissionLifecycleState::completed) {
+      return fail(resource, PermissionDecision::error_fail_closed,
+                  "request-unavailable");
+    }
+
+    if (std::find(stored->request.resources.begin(),
+                  stored->request.resources.end(),
+                  resource) == stored->request.resources.end()) {
+      return fail(resource, PermissionDecision::error_fail_closed,
+                  "resource-not-requested");
+    }
+
+    const auto common = validate_live_request(stored->request, context.current,
+                                              now_millis);
+    if (common.has_value()) {
+      stored->state = PermissionLifecycleState::completed;
+      stored->terminal = common->decision;
+      return PermissionResolution{
+          .resource = resource,
+          .decision = common->decision,
+          .engine_grant_allowed = false,
+          .persistent_store_allowed = false,
+          .reason = common->reason,
+      };
+    }
+
+    if (is_persistent(user_decision) &&
+        stored->request.privacy_context != PrivacyContext::normal) {
+      stored->state = PermissionLifecycleState::completed;
+      stored->terminal = PermissionDecision::error_fail_closed;
+      return fail(resource, PermissionDecision::error_fail_closed,
+                  "persistent-private-decision-prohibited");
+    }
+
+    if (is_deny(user_decision)) {
+      stored->state = PermissionLifecycleState::completed;
+      const auto decision = map_user_decision(user_decision);
+      stored->terminal = decision;
+      return PermissionResolution{
+          .resource = resource,
+          .decision = decision,
+          .engine_grant_allowed = false,
+          .persistent_store_allowed =
+              decision == PermissionDecision::deny_persistent &&
+              stored->request.privacy_context == PrivacyContext::normal,
+          .reason = "user-denied",
+      };
+    }
+
+    const auto preflight =
+        preflight_resource(stored->request, resource, context);
+    if (preflight.decision != PermissionDecision::pending_user_decision) {
+      stored->state = PermissionLifecycleState::completed;
+      stored->terminal = preflight.decision;
+      return preflight;
+    }
+
+    stored->state = PermissionLifecycleState::resolving_engine;
+    const auto decision = map_user_decision(user_decision);
+    stored->state = PermissionLifecycleState::completed;
+    stored->terminal = decision;
+
+    return PermissionResolution{
+        .resource = resource,
+        .decision = decision,
+        .engine_grant_allowed = true,
+        .persistent_store_allowed =
+            decision == PermissionDecision::allow_persistent &&
+            stored->request.privacy_context == PrivacyContext::normal,
+        .reason = "explicit-user-allow-after-authority-checks",
     };
   }
 
-  const bool private_context = privacy_context != BrowserPrivacyContext::normal;
-  if (private_context &&
-      (*input.user_decision == PermissionUserDecision::allow_persistent ||
-       *input.user_decision == PermissionUserDecision::deny_persistent)) {
-    return terminal_permission_result(
-        input.resource, PermissionDecisionCode::blocked_policy,
-        PermissionDecisionReason::persistent_private_decision_forbidden,
-        PermissionLifecycleState::completed);
+  [[nodiscard]] bool cancel(std::string_view request_id) {
+    auto* stored = find_mutable(request_id);
+    if (stored == nullptr || stored->state == PermissionLifecycleState::completed) {
+      return false;
+    }
+    stored->state = PermissionLifecycleState::completed;
+    stored->terminal = PermissionDecision::cancelled;
+    return true;
   }
 
-  switch (*input.user_decision) {
-    case PermissionUserDecision::allow_once:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::allow_once,
-          PermissionDecisionReason::none,
-          PermissionLifecycleState::completed, true, false);
-    case PermissionUserDecision::allow_session:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::allow_session,
-          PermissionDecisionReason::none,
-          PermissionLifecycleState::completed, true, false);
-    case PermissionUserDecision::allow_persistent:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::allow_persistent,
-          PermissionDecisionReason::none,
-          PermissionLifecycleState::completed, true, true);
-    case PermissionUserDecision::deny_once:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::deny_once,
-          PermissionDecisionReason::none,
-          PermissionLifecycleState::completed);
-    case PermissionUserDecision::deny_session:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::deny_session,
-          PermissionDecisionReason::none,
-          PermissionLifecycleState::completed);
-    case PermissionUserDecision::deny_persistent:
-      return terminal_permission_result(
-          input.resource, PermissionDecisionCode::deny_persistent,
-          PermissionDecisionReason::none,
-          PermissionLifecycleState::completed, false, true);
+  [[nodiscard]] std::size_t close_context(std::string_view context_id) {
+    std::size_t cancelled = 0;
+    for (auto& [request_id, stored] : requests_) {
+      (void)request_id;
+      if (stored.state != PermissionLifecycleState::completed &&
+          stored.request.privacy_context_id == context_id) {
+        stored.state = PermissionLifecycleState::completed;
+        stored.terminal = PermissionDecision::cancelled;
+        ++cancelled;
+      }
+    }
+    return cancelled;
   }
 
-  return terminal_permission_result(
-      input.resource, PermissionDecisionCode::error_fail_closed,
-      PermissionDecisionReason::request_invalid,
-      PermissionLifecycleState::failed);
-}
-
-inline PermissionEvaluationResult terminal_request_result(
-    const PermissionRequest& request,
-    PermissionRequestStatus status,
-    PermissionLifecycleState lifecycle,
-    PermissionDecisionCode decision,
-    PermissionDecisionReason reason) {
-  PermissionEvaluationResult result{
-      .status = status,
-      .lifecycle = lifecycle,
+ private:
+  struct StoredRequest {
+    PermissionRequest request;
+    PermissionLifecycleState state{PermissionLifecycleState::received};
+    std::optional<PermissionDecision> terminal;
   };
-  result.resources.reserve(request.resources.size());
-  for (const auto& input : request.resources) {
-    result.resources.push_back(terminal_permission_result(
-        input.resource, decision, reason, lifecycle));
-  }
-  return result;
-}
 
-inline PermissionEvaluationResult evaluate_permission_request(
-    const PermissionRequest& request,
-    const PermissionEvaluationContext& context) {
-  if (!permission_request_is_structurally_valid(request)) {
-    return terminal_request_result(
-        request, PermissionRequestStatus::error_fail_closed,
-        PermissionLifecycleState::failed,
-        PermissionDecisionCode::error_fail_closed,
-        PermissionDecisionReason::request_invalid);
-  }
-
-  if (context.now_millis >= request.expires_at_millis) {
-    return terminal_request_result(
-        request, PermissionRequestStatus::expired,
-        PermissionLifecycleState::expired,
-        PermissionDecisionCode::expired,
-        PermissionDecisionReason::request_expired);
-  }
-
-  if (!context.owner_active) {
-    return terminal_request_result(
-        request, PermissionRequestStatus::cancelled,
-        PermissionLifecycleState::cancelled,
-        PermissionDecisionCode::cancelled,
-        PermissionDecisionReason::owner_inactive);
-  }
-  if (!context.privacy_context_active) {
-    return terminal_request_result(
-        request, PermissionRequestStatus::cancelled,
-        PermissionLifecycleState::cancelled,
-        PermissionDecisionCode::cancelled,
-        PermissionDecisionReason::privacy_context_inactive);
-  }
-  if (!context.origins_unchanged) {
-    return terminal_request_result(
-        request, PermissionRequestStatus::cancelled,
-        PermissionLifecycleState::cancelled,
-        PermissionDecisionCode::cancelled,
-        PermissionDecisionReason::origin_changed);
-  }
-
-  PermissionEvaluationResult result{
-      .status = PermissionRequestStatus::completed,
-      .lifecycle = PermissionLifecycleState::completed,
+  struct CommonFailure {
+    PermissionDecision decision{PermissionDecision::error_fail_closed};
+    std::string reason;
   };
-  result.resources.reserve(request.resources.size());
 
-  bool pending = false;
-  bool failed = false;
-  for (const auto& input : request.resources) {
-    auto resource = evaluate_permission_resource(input, request.privacy_context);
-    pending = pending || !resource.terminal;
-    failed = failed ||
-             resource.decision == PermissionDecisionCode::error_fail_closed;
-    result.resources.push_back(resource);
+  std::unordered_map<std::string, StoredRequest> requests_;
+
+  [[nodiscard]] const StoredRequest* find(std::string_view request_id) const {
+    const auto iterator = requests_.find(std::string{request_id});
+    return iterator == requests_.end() ? nullptr : &iterator->second;
   }
 
-  if (failed) {
-    result.status = PermissionRequestStatus::error_fail_closed;
-    result.lifecycle = PermissionLifecycleState::failed;
-  } else if (pending) {
-    result.status = PermissionRequestStatus::pending;
-    result.lifecycle = PermissionLifecycleState::user_decision;
+  [[nodiscard]] StoredRequest* find_mutable(std::string_view request_id) {
+    const auto iterator = requests_.find(std::string{request_id});
+    return iterator == requests_.end() ? nullptr : &iterator->second;
   }
 
-  return result;
-}
+  [[nodiscard]] static std::optional<CommonFailure> validate_live_request(
+      const PermissionRequest& request,
+      const RevalidationContext& current,
+      std::int64_t now_millis) {
+    if (now_millis < request.created_at_millis) {
+      return CommonFailure{PermissionDecision::error_fail_closed,
+                           "clock-regression"};
+    }
+    if (now_millis >= request.expires_at_millis) {
+      return CommonFailure{PermissionDecision::expired, "request-expired"};
+    }
+    if (!request_matches_current_context(request, current)) {
+      return CommonFailure{PermissionDecision::cancelled,
+                           "request-context-changed"};
+    }
+    return std::nullopt;
+  }
+
+  [[nodiscard]] static PermissionResolution fail(
+      PermissionResource resource,
+      PermissionDecision decision,
+      std::string reason) {
+    return PermissionResolution{
+        .resource = resource,
+        .decision = decision,
+        .engine_grant_allowed = false,
+        .persistent_store_allowed = false,
+        .reason = std::move(reason),
+    };
+  }
+
+  [[nodiscard]] static const ResourceAuthoritySnapshot* snapshot_for(
+      PermissionResource resource,
+      const EvaluationContext& context) {
+    const auto iterator = std::find_if(
+        context.resources.begin(), context.resources.end(),
+        [resource](const ResourceAuthoritySnapshot& snapshot) {
+          return snapshot.resource == resource;
+        });
+    return iterator == context.resources.end() ? nullptr : &*iterator;
+  }
+
+  [[nodiscard]] static std::optional<PermissionResolution> check_authority(
+      PermissionResource resource,
+      const AuthorityGate& gate,
+      PermissionDecision denied_decision,
+      std::string_view authority_name) {
+    switch (gate.decision) {
+      case AuthorityDecision::allow:
+        return std::nullopt;
+      case AuthorityDecision::not_required:
+        if (!gate.required) {
+          return std::nullopt;
+        }
+        return fail(resource, PermissionDecision::unavailable,
+                    std::string{authority_name} + "-required-but-missing");
+      case AuthorityDecision::deny:
+        return fail(resource, denied_decision,
+                    std::string{authority_name} + "-denied");
+      case AuthorityDecision::unavailable:
+        if (!gate.required) {
+          return std::nullopt;
+        }
+        return fail(resource, PermissionDecision::unavailable,
+                    std::string{authority_name} + "-unavailable");
+      case AuthorityDecision::invalid:
+        return fail(resource, PermissionDecision::error_fail_closed,
+                    std::string{authority_name} + "-invalid");
+    }
+    return fail(resource, PermissionDecision::error_fail_closed,
+                std::string{authority_name} + "-unknown");
+  }
+
+  [[nodiscard]] static PermissionResolution preflight_resource(
+      const PermissionRequest& request,
+      PermissionResource resource,
+      const EvaluationContext& context) {
+    (void)request;
+    const auto* snapshot = snapshot_for(resource, context);
+    if (snapshot == nullptr) {
+      return fail(resource, PermissionDecision::unavailable,
+                  "resource-authority-snapshot-missing");
+    }
+
+    if (const auto blocked =
+            check_authority(resource, snapshot->goreecloud_policy,
+                            PermissionDecision::blocked_policy,
+                            "goreecloud-policy");
+        blocked.has_value()) {
+      return *blocked;
+    }
+    if (const auto blocked =
+            check_authority(resource, snapshot->privacy_shield,
+                            PermissionDecision::blocked_policy,
+                            "privacy-shield");
+        blocked.has_value()) {
+      return *blocked;
+    }
+    if (const auto blocked =
+            check_authority(resource, snapshot->wardveil_security,
+                            PermissionDecision::blocked_security,
+                            "wardveil-security");
+        blocked.has_value()) {
+      return *blocked;
+    }
+
+    switch (snapshot->host_os) {
+      case HostOsPermissionState::granted:
+        return PermissionResolution{
+            .resource = resource,
+            .decision = PermissionDecision::pending_user_decision,
+            .engine_grant_allowed = false,
+            .persistent_store_allowed = false,
+            .reason = "authority-and-os-preflight-passed",
+        };
+      case HostOsPermissionState::denied_requestable:
+      case HostOsPermissionState::denied_no_reprompt:
+      case HostOsPermissionState::restricted:
+        return fail(resource, PermissionDecision::blocked_os,
+                    "host-os-not-granted");
+      case HostOsPermissionState::unavailable:
+        return fail(resource, PermissionDecision::unavailable,
+                    "host-os-unavailable");
+      case HostOsPermissionState::error:
+        return fail(resource, PermissionDecision::error_fail_closed,
+                    "host-os-error");
+    }
+    return fail(resource, PermissionDecision::error_fail_closed,
+                "host-os-unknown");
+  }
+
+  [[nodiscard]] static bool is_persistent(UserPermissionDecision decision) {
+    return decision == UserPermissionDecision::allow_persistent ||
+           decision == UserPermissionDecision::deny_persistent;
+  }
+
+  [[nodiscard]] static bool is_deny(UserPermissionDecision decision) {
+    return decision == UserPermissionDecision::deny_once ||
+           decision == UserPermissionDecision::deny_session ||
+           decision == UserPermissionDecision::deny_persistent;
+  }
+
+  [[nodiscard]] static PermissionDecision map_user_decision(
+      UserPermissionDecision decision) {
+    switch (decision) {
+      case UserPermissionDecision::allow_once:
+        return PermissionDecision::allow_once;
+      case UserPermissionDecision::allow_session:
+        return PermissionDecision::allow_session;
+      case UserPermissionDecision::allow_persistent:
+        return PermissionDecision::allow_persistent;
+      case UserPermissionDecision::deny_once:
+        return PermissionDecision::deny_once;
+      case UserPermissionDecision::deny_session:
+        return PermissionDecision::deny_session;
+      case UserPermissionDecision::deny_persistent:
+        return PermissionDecision::deny_persistent;
+    }
+    return PermissionDecision::error_fail_closed;
+  }
+
+  [[nodiscard]] static std::vector<PermissionResolution> resolutions_for_all(
+      const PermissionRequest& request,
+      const CommonFailure& failure) {
+    std::vector<PermissionResolution> result;
+    result.reserve(request.resources.size());
+    for (const auto resource : request.resources) {
+      result.push_back(fail(resource, failure.decision, failure.reason));
+    }
+    return result;
+  }
+};
 
 }  // namespace goreecloud::browser
