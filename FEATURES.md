@@ -18,11 +18,26 @@ The first-party capability gate is a consumer-side contract only. A healthy tran
 
 The session-recovery core is not yet a user-ready recovery implementation. Durable authenticated-encrypted checkpoint storage, protected platform key integration, Browser lifecycle wiring, restore execution, Glaze recovery UI, Everkeep continuity integration, and runtime acceptance remain pending.
 
+## Native extension Development source foundation
+
+Exact implementation source `10cfb5baad6081382c02ea5067d115a7f43b2185` adds the first Browser-owned native-extension foundation:
+
+- Manifest/API version 1 constants and GoreeCloud-native manifest data structures.
+- `.gcex` package-inventory validation with fail-closed package-path, manifest-entry, duplicate-entry, and entry-point checks.
+- A closed native extension-permission vocabulary with human-readable permission labels.
+- Fail-closed permission authorization for declared capability, exact website scope, profile binding, private-browsing opt-in, and explicit grant scope/lifetime classes.
+- `ExtensionPermissionLedger` state for one-shot consumption, exact one-hour timestamp expiry, tab/session-bound grants, website-scope closure, explicit lease revocation, and profile-wide revocation.
+- CTest smoke coverage for malformed/undeclared permission and package cases plus temporary-permission lifecycle behavior.
+
+On exact source `10cfb5baad6081382c02ea5067d115a7f43b2185`, Platform Contract #54 and Android Beta APK #232 completed successfully. GoreeCloud Browser Core CI #473 remains queued, so this section is Development source evidence and is not represented as full exact-head Core CI acceptance.
+
+This native extension foundation does not parse or install real `.gcex` archives, verify package signatures, execute extension code, provide a sandbox/process runtime, durably persist/recover permission leases, implement wildcard/site-pattern matching, expose privileged Extension APIs, provide extension networking/storage/UI surfaces, or establish production extension behavior. External extension compatibility layers and a centralized GoreeCloud extension store are not part of this foundation.
+
 ## Android beta — implemented
 
 - Installable debug-signed APK target.
 - Package `io.goreecloud.browser.beta`.
-- Current migration-candidate identity `0.1.0-beta.1+android.5` / versionCode `10005`.
+- Current migration-candidate identity `0.1.0-beta.1+android.6` / versionCode `10006`.
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
@@ -40,24 +55,23 @@ The session-recovery core is not yet a user-ready recovery implementation. Durab
 - Unit tests for Browser-owned navigation resolution.
 - CI unit test, Android lint, APK build, signature/package verification, SHA-256, and artifact upload.
 
-## Android beta — Glaze UI 2.2 source mapping candidate
+## Android beta — current Glaze UI V1.5.1 source mapping
 
-- Current Stable Glaze UI version `2.2.0` and Stable release revision `6731098b28dd0393faa878c70d989a221d714a20` recorded in source.
-- Accepted Glaze UI visual source `0411b0f6dd877aea30e2c5674e1acde0105fd97b` recorded as central design-system provenance, not Browser acceptance.
-- Canvas/Surface/Soft Glaze/Glaze semantic material mapping preserved from the successful 2.x Browser shell.
-- Browser-owned chrome explicitly remains in Application scope rather than claiming Universal Search, Control Center, System Panel, or Critical System authority.
-- Ordinary System Glaze budget represented as at most one dominant Glaze panel and up to three small floating Glaze controls.
-- Native Android controls retained for platform semantics.
-- 48dp minimum general touch-oriented interaction target.
-- 56dp Touch Assistance/far-view target floor recorded where applicable; complete Android runtime mapping remains pending.
-- Light/dark appearance adaptation.
-- Visible pressed/focus state mapping.
-- Glaze UI 2.2 semantic state-priority contract with disabled state above error, pressed, focus, selected, hover, and rest.
-- Calm expression and Balanced clarity for the current browser shell.
-- Effects-free fallback that does not require blur/transparency.
-- Contract tests for current Stable provenance, 48dp/56dp target floors, Application authority, System Glaze budget, non-claim of Universal Search/Control Center, and state priority.
+- Current Official Stable Glaze UI target `1.5.1`.
+- Stable promotion revision `98da57064ede0f334627b632bc16801f580331af`.
+- Reviewed V1.5 implementation anchor `ee1032a0822ab8e103f8afe48e5c1859fde65cc9`.
+- V1.5.1 qualification source anchor `5b59d0e36950d737dba35b58ae58058684e0831b`.
+- Immediate Stable rollback baseline `1.5.0`; inherited optical baseline `1.4.1`.
+- Browser-owned Canvas/Surface/Soft Glaze material mapping retained.
+- Browser chrome remains Application scope and does not claim system-shell authority.
+- Capability absence/conflicting ownership fails closed.
+- Presentation does not infer authorization, permission, provider precedence, privacy/security truth, or automatic consequential/fallback execution.
+- 48dp general and 56dp Touch Assistance target floors remain represented in source.
+- Accessibility precedence, effects-free fallback, vector Browser chrome, and current interaction-state rules remain covered by regression tests.
+- Android artifact candidate is `0.1.0-beta.1+android.6` / versionCode `10006`.
+- Android CI now checks out/verifies the exact PR head and records `SOURCE_REVISION` plus SHA-256 artifact evidence.
 
-This section is source-level migration evidence only. A successful build does not automatically establish Browser-specific Glaze UI 2.2 visual, native-device, accessibility, Human Visual Excellence, performance, or production acceptance.
+This is Development source/build-contract evidence only. Browser-local rendered/native visual, accessibility, large-text, localization/RTL, representative-device/posture, sustained performance, workflow, rollback, production, and Stable acceptance remain separate gates.
 
 ## Planned / incomplete Android capabilities
 

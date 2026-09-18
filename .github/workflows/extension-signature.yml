@@ -1,0 +1,68 @@
+name: GoreeCloud Browser Extension Signature
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-libsodium-signature:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact Browser source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: browser
+          persist-credentials: false
+
+      - name: Verify exact Browser source revision
+        working-directory: browser
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Check out exact libsodium source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: jedisct1/libsodium
+          ref: 77e1ce5d6dee871c49ef211222ba18ef0c486bda
+          path: libsodium
+          persist-credentials: false
+
+      - name: Verify libsodium provenance
+        run: |
+          test "$(git -C libsodium rev-parse HEAD)" = "77e1ce5d6dee871c49ef211222ba18ef0c486bda"
+          grep -F "Version: 1.0.22" browser/third_party/libsodium/SOURCE_INFO
+          grep -F "Upstream Commit: 77e1ce5d6dee871c49ef211222ba18ef0c486bda" browser/third_party/libsodium/SOURCE_INFO
+          grep -F "License: ISC" browser/third_party/libsodium/SOURCE_INFO
+          grep -F "upstream_commit: 77e1ce5d6dee871c49ef211222ba18ef0c486bda" browser/third_party/THIRD_PARTY_MANIFEST.yaml
+          test -s browser/third_party/libsodium/LICENSE
+
+      - name: Install libsodium build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y autoconf automake libtool pkg-config
+
+      - name: Build exact libsodium dependency
+        working-directory: libsodium
+        run: |
+          ./autogen.sh
+          ./configure --prefix="$GITHUB_WORKSPACE/libsodium-install" --disable-shared
+          make --jobs 2
+          make install
+
+      - name: Configure GCEX signature verification harness with assertions enabled
+        working-directory: browser
+        run: |
+          cmake -S cmake/extension-signature -B build-extension-signature \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/libsodium-install" \
+            -DBUILD_TESTING=ON
+
+      - name: Build GCEX signature verifier
+        working-directory: browser
+        run: cmake --build build-extension-signature --parallel
+
+      - name: Run GCEX signature verifier smoke test
+        working-directory: browser
+        run: ctest --test-dir build-extension-signature --output-on-failure

@@ -38,15 +38,15 @@ if(GOREECLOUD_ENABLE_LINUX_GTK_HOST AND NOT UNIX)
   message(FATAL_ERROR "GOREECLOUD_ENABLE_LINUX_GTK_HOST is currently supported only on Linux/Unix")
 endif()
 
-set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "2.0.0" CACHE STRING
+set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "1.4.0" CACHE STRING
     "Current approved Stable Glaze UI version required by GoreeCloud Browser")
 set(GOREECLOUD_GLAZE_UI_STABLE_REVISION
-    "ff3fff4306bd53ea9c0715a7c0d64265bb038617" CACHE STRING
-    "Exact reviewed Glaze UI Stable source revision")
+    "a20374734dae6a119b28448f5e6b3232253b6da7" CACHE STRING
+    "Exact reviewed Glaze UI Stable source integration anchor")
 
-if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "2.0.0")
+if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "1.4.0")
   message(FATAL_ERROR
-    "GoreeCloud Browser source currently accepts Glaze UI Stable 2.0.0. "
+    "GoreeCloud Browser source currently accepts Glaze UI Stable 1.4.0. "
     "Update the Browser Glaze adoption contract and acceptance evidence before changing the build baseline.")
 endif()
 
@@ -203,6 +203,29 @@ add_executable(goreecloud_browser_session_recovery_smoke
 target_link_libraries(goreecloud_browser_session_recovery_smoke PRIVATE goreecloud_browser_core)
 goreecloud_apply_warnings(goreecloud_browser_session_recovery_smoke)
 
+add_executable(goreecloud_browser_extensions_manifest_smoke
+  apps/browser/extensions_manifest_smoke.cpp)
+target_link_libraries(goreecloud_browser_extensions_manifest_smoke PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(goreecloud_browser_extensions_manifest_smoke)
+
+add_executable(goreecloud_browser_extension_package_smoke
+  apps/browser/extension_package_smoke.cpp)
+target_link_libraries(goreecloud_browser_extension_package_smoke PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(goreecloud_browser_extension_package_smoke)
+
+add_executable(goreecloud_browser_extension_permission_ledger_storage_smoke
+  apps/browser/extension_permission_ledger_storage_smoke.cpp)
+target_link_libraries(goreecloud_browser_extension_permission_ledger_storage_smoke
+  PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(
+  goreecloud_browser_extension_permission_ledger_storage_smoke)
+
+add_executable(goreecloud_browser_extension_runtime_authority_smoke
+  apps/browser/extension_runtime_authority_smoke.cpp)
+target_link_libraries(goreecloud_browser_extension_runtime_authority_smoke
+  PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(goreecloud_browser_extension_runtime_authority_smoke)
+
 if(GOREECLOUD_ENABLE_CHROMIUM)
   add_executable(goreecloud_browser_chromium_smoke apps/browser/chromium_smoke.cpp)
   target_link_libraries(goreecloud_browser_chromium_smoke PRIVATE goreecloud_browser_core goreecloud_browser_chromium)
@@ -222,6 +245,14 @@ if(BUILD_TESTING)
            COMMAND goreecloud_browser_wardveil_download_security_smoke)
   add_test(NAME goreecloud_browser_session_recovery_smoke
            COMMAND goreecloud_browser_session_recovery_smoke)
+  add_test(NAME goreecloud_browser_extensions_manifest_smoke
+           COMMAND goreecloud_browser_extensions_manifest_smoke)
+  add_test(NAME goreecloud_browser_extension_package_smoke
+           COMMAND goreecloud_browser_extension_package_smoke)
+  add_test(NAME goreecloud_browser_extension_permission_ledger_storage_smoke
+           COMMAND goreecloud_browser_extension_permission_ledger_storage_smoke)
+  add_test(NAME goreecloud_browser_extension_runtime_authority_smoke
+           COMMAND goreecloud_browser_extension_runtime_authority_smoke)
   if(GOREECLOUD_ENABLE_CHROMIUM AND NOT GOREECLOUD_ENABLE_CEF)
     add_test(NAME goreecloud_browser_chromium_smoke COMMAND goreecloud_browser_chromium_smoke)
   endif()

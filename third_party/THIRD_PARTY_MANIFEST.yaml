@@ -1,0 +1,18 @@
+format_version: 1
+component: goreecloud-browser
+reviewed: 2026-09-16
+components:
+  - name: libsodium
+    version: 1.0.22
+    upstream: https://github.com/jedisct1/libsodium
+    upstream_tag: "1.0.22"
+    upstream_tag_object: fe3fa3dd583d9487e1cc32b0f5ef0f516949c836
+    upstream_commit: 77e1ce5d6dee871c49ef211222ba18ef0c486bda
+    license: ISC
+    integration: optional-library
+    vendored_source: false
+    modified: false
+    purpose: GCEX SHA-256 digest and Ed25519 detached-signature verification
+    boundary: signature-validity-only
+    provenance_record: third_party/libsodium/SOURCE_INFO
+    license_notice: third_party/libsodium/LICENSE

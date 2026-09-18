@@ -92,13 +92,9 @@ When the omnibox is being edited, Android Back first leaves omnibox editing and 
 
 ## Glaze UI on Android
 
-The Android beta maps Browser-owned chrome to the current Glaze UI 2.0.0 Stable semantics using native Android controls.
+The Android beta maps Browser-owned chrome to the current **Glaze UI V1.5 / 1.5.1 Stable** presentation contract using native Android controls. V1.6 remains Development-only and is not Browser consumer authority.
 
-The current source mapping includes Canvas, Surface, and Soft Glaze roles, a 48dp minimum general interaction target, Calm expression, Balanced clarity, native light/dark adaptation, semantic control labels, vector Browser chrome icons, visible pressed/focus treatment, and an effects-free fallback that does not depend on blur, transparency, or animation.
-
-The normal browsing surface explicitly removes the platform action bar and developer-status banner from the chrome. Expanded fixed Browser-owned chrome is 128dp before Android system bars; the scroll-collapsed state retains only the 56dp bottom toolbar. The Browser menu is also explicitly Browser-owned rather than a platform `PopupMenu` surface.
-
-This remains source-level Glaze 2.0 mapping evidence. It is **not yet native-device Glaze conformance acceptance**. Real-device visual, TalkBack, text-scaling, contrast, input, performance, orientation, foldable/form-factor, and representative hardware validation remain required before production approval.
+Browser remains migration-required/not accepted until repository-local rendered/native visual, accessibility, representative-device/posture, large-text, RTL/localization, reduced-effects, performance, rollback, workflow, and production evidence is accepted. Glaze presentation never creates Browser authorization, privacy/security truth, provider precedence, or execution authority.
 
 ## Security behavior
 
