@@ -73,6 +73,23 @@ This native extension foundation does not parse or install real `.gcex` archives
 
 This is Development source/build-contract evidence only. Browser-local rendered/native visual, accessibility, large-text, localization/RTL, representative-device/posture, sustained performance, workflow, rollback, production, and Stable acceptance remain separate gates.
 
+## PermissionBroker Phase 1 Development source
+
+The current Development branch adds the first platform-neutral website-permission control plane:
+
+- canonical request/profile/privacy-context/tab/origin binding;
+- typed camera, microphone, geolocation, protected-media, and MIDI SysEx resources;
+- duplicate/invalid request rejection and request expiry;
+- deterministic request lifecycle and final context revalidation;
+- independent per-resource host-OS state handling;
+- explicit GoreeCloud Policy, Privacy Shield, and Wardveil fail-closed authority gates;
+- explicit user allow/deny scopes with no automatic engine grant before all gates pass;
+- persistent permission decisions prohibited in Private and Isolated Private contexts;
+- request cancellation and context-close cancellation;
+- C++ smoke coverage integrated into the normal core test suite.
+
+This does not enable Android website permissions. Android callbacks remain fail-closed/direct-deny until the host-OS adapter, live authority adapters, Browser prompt UX, persistent Normal permission store, revocation/reset controls, private-context cleanup integration, and representative-device acceptance are completed.
+
 ## Planned / incomplete Android capabilities
 
 - Browser-owned tab strip/tab switcher and multi-tab lifecycle.
