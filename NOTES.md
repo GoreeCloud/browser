@@ -3,7 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development/Beta and is not Stable or production accepted.
-- Verified baseline for this notes change: `main` at `5c70a7f39a826e841f6f0a537eeea5f16e8415e5`.
+- Verified current stabilization base: `main` at `9fe772d0ae4875f43b546bb408f809b12b5ead4e`.
 - Android has an installable GoreeCloud-owned browser shell with direct HTTP(S) navigation, Browser-owned chrome, local start/error/search-blocked surfaces, fail-closed free-text Search delegation, adaptive/round/monochrome launcher-icon resources, and exact-source APK CI.
 - Source presence and CI do not replace representative physical-device, accessibility, performance, production-signing, platform-system, recovery, or Stable acceptance evidence.
 
@@ -19,3 +19,12 @@
 Keep Browser-owned behavior separate from the replaceable rendering-engine dependency. Preserve safe direct navigation, minimized presentation, third-party-cookie restrictions, cleartext/mixed-content protections, TLS fail-closed behavior, and exact-revision build evidence when changing the Android shell.
 
 Do not promote Android Browser lifecycle state based only on source implementation or green CI. Record physical-device findings against the exact application revision and reconcile issue #33 and release evidence when those findings change.
+
+
+## September 18 security stabilization
+
+- Browser exact-source security evidence is integrated: full-history Gitleaks, HIGH/CRITICAL Trivy dependency scanning, CycloneDX SBOM generation, evidence checksums/artifacts, and immutable external workflow-action enforcement.
+- Browser also has a repository-owned exact-source source-security audit for high-confidence committed-secret signatures in the current tree/reachable history and immutable external GitHub Actions references.
+- The one synthetic Privacy Shield capability-reference unit-test fixture is handled narrowly; no broad secret-scanner bypass is accepted.
+- The Android Beta workflow supply chain is pinned to explicit runner/tool versions and immutable action SHAs. The current source-security and security-evidence lanes are green on their merged revisions.
+- These controls are Development evidence only and do not satisfy issue #33 representative-device, accessibility, performance, production-signing, runtime platform-system, recovery, Release Candidate, or Stable acceptance.
