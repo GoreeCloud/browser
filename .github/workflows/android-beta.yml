@@ -24,12 +24,12 @@ env:
 jobs:
   android-beta:
     name: Build installable APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
 
     steps:
       - name: Check out exact Browser source revision
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ env.EVALUATED_REVISION }}
           persist-credentials: false
@@ -40,26 +40,30 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EVALUATED_REVISION"
 
-      - name: Use Java 17
-        uses: actions/setup-java@v4
+      - name: Use exact Temurin Java 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "17.0.20.1+1"
+          force-download: true
 
-      - name: Configure Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Configure exact Android SDK command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
+          cmdline-tools-version: "15859902"
           packages: platform-tools
+          log-accepted-android-sdk-licenses: false
 
       - name: Install Android 35 SDK
         shell: bash
         run: |
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Configure Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Configure exact Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         with:
           gradle-version: "8.9"
+          cache-provider: basic
 
       - name: Test, lint, and assemble beta
         working-directory: apps/android
@@ -88,7 +92,7 @@ jobs:
           sha256sum app-debug.apk | tee SHA256SUMS.txt
 
       - name: Upload installable beta APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: goreecloud-browser-android-beta-${{ env.EVALUATED_REVISION }}
           if-no-files-found: error
