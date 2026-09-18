@@ -18,6 +18,9 @@ on:
 permissions:
   contents: read
 
+env:
+  EVALUATED_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   android-beta:
     name: Build installable APK
@@ -25,8 +28,17 @@ jobs:
     timeout-minutes: 25
 
     steps:
-      - name: Check out Browser source
-        uses: actions/checkout@v4
+      - name: Check out exact Browser source revision
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ env.EVALUATED_REVISION }}
+          persist-credentials: false
+
+      - name: Verify exact Browser source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EVALUATED_REVISION"
 
       - name: Use Java 17
         uses: actions/setup-java@v4
@@ -64,23 +76,25 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee "$BADGING"
           grep -F "package: name='io.goreecloud.browser.beta'" "$BADGING"
-          grep -F "versionCode='10005'" "$BADGING"
-          grep -F "versionName='0.1.0-beta.1+android.5'" "$BADGING"
+          grep -F "versionCode='10006'" "$BADGING"
+          grep -F "versionName='0.1.0-beta.1+android.6'" "$BADGING"
           grep -F "application-label:'GoreeCloud Browser Beta'" "$BADGING"
 
-      - name: Record SHA-256
+      - name: Record exact source revision and SHA-256
         shell: bash
         run: |
           cd apps/android/app/build/outputs/apk/debug
+          printf '%s\n' "$EVALUATED_REVISION" | tee SOURCE_REVISION
           sha256sum app-debug.apk | tee SHA256SUMS.txt
 
       - name: Upload installable beta APK
         uses: actions/upload-artifact@v4
         with:
-          name: goreecloud-browser-android-beta-${{ github.sha }}
+          name: goreecloud-browser-android-beta-${{ env.EVALUATED_REVISION }}
           if-no-files-found: error
           retention-days: 30
           path: |
             apps/android/app/build/outputs/apk/debug/app-debug.apk
             apps/android/app/build/outputs/apk/debug/SHA256SUMS.txt
+            apps/android/app/build/outputs/apk/debug/SOURCE_REVISION
             apps/android/app/build/outputs/apk/debug/badging.txt
