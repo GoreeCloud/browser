@@ -1,0 +1,16 @@
+title = "GoreeCloud Browser Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+# This is a synthetic capability-reference fixture, not an issued credential.
+# Keep the exception narrow: one test file, one field shape, and a value that
+# explicitly identifies itself as test data. Real-looking values in this file
+# or elsewhere remain subject to the default generic-api-key rule.
+[[allowlists]]
+description = "Synthetic Privacy Shield capability reference used by Browser unit tests"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^apps/android/app/src/test/java/io/goreecloud/browser/PrivacyShieldSearchAuthorizationTest\.kt$''']
+regexes = ['''capabilityTokenReference\s*=\s*"[^"]*test[^"]*"''']

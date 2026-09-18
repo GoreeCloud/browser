@@ -34,9 +34,12 @@ permissions:
 
 jobs:
   contract:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - name: Compile capability contract
         run: g++ -std=c++20 -Wall -Wextra -Wpedantic -Iinclude apps/browser/sync_capabilities_smoke.cpp -o /tmp/browser-sync-capabilities
       - name: Run capability contract
