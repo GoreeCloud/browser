@@ -203,6 +203,11 @@ add_executable(goreecloud_browser_session_recovery_smoke
 target_link_libraries(goreecloud_browser_session_recovery_smoke PRIVATE goreecloud_browser_core)
 goreecloud_apply_warnings(goreecloud_browser_session_recovery_smoke)
 
+add_executable(goreecloud_browser_permission_broker_smoke
+  apps/browser/permission_broker_smoke.cpp)
+target_link_libraries(goreecloud_browser_permission_broker_smoke PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(goreecloud_browser_permission_broker_smoke)
+
 add_executable(goreecloud_browser_extensions_manifest_smoke
   apps/browser/extensions_manifest_smoke.cpp)
 target_link_libraries(goreecloud_browser_extensions_manifest_smoke PRIVATE goreecloud_browser_core)
@@ -245,6 +250,8 @@ if(BUILD_TESTING)
            COMMAND goreecloud_browser_wardveil_download_security_smoke)
   add_test(NAME goreecloud_browser_session_recovery_smoke
            COMMAND goreecloud_browser_session_recovery_smoke)
+  add_test(NAME goreecloud_browser_permission_broker_smoke
+           COMMAND goreecloud_browser_permission_broker_smoke)
   add_test(NAME goreecloud_browser_extensions_manifest_smoke
            COMMAND goreecloud_browser_extensions_manifest_smoke)
   add_test(NAME goreecloud_browser_extension_package_smoke
