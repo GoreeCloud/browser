@@ -280,8 +280,8 @@ class PermissionBroker {
     const auto common = validate_live_request(stored->request, context.current,
                                               now_millis);
     if (common.has_value()) {
+      resolve_all_unresolved(*stored, common->decision);
       stored->state = PermissionLifecycleState::completed;
-      stored->terminal = common->decision;
       return resolutions_for_all(stored->request, *common);
     }
 
@@ -290,22 +290,32 @@ class PermissionBroker {
 
     std::vector<PermissionResolution> result;
     result.reserve(stored->request.resources.size());
-    bool any_pending = false;
     for (const auto resource : stored->request.resources) {
+      const auto resolved = stored->resolved.find(static_cast<int>(resource));
+      if (resolved != stored->resolved.end()) {
+        result.push_back(PermissionResolution{
+            .resource = resource,
+            .decision = resolved->second,
+            .engine_grant_allowed = false,
+            .persistent_store_allowed = false,
+            .reason = "resource-already-resolved",
+        });
+        continue;
+      }
+
       const auto resolution =
           preflight_resource(stored->request, resource, context);
-      any_pending =
-          any_pending ||
-          resolution.decision == PermissionDecision::pending_user_decision;
+      if (resolution.decision != PermissionDecision::pending_user_decision) {
+        stored->resolved.emplace(static_cast<int>(resource),
+                                 resolution.decision);
+      }
       result.push_back(resolution);
     }
 
     stored->state = PermissionLifecycleState::os_capability_check;
-    stored->state = any_pending ? PermissionLifecycleState::user_decision
-                                : PermissionLifecycleState::completed;
-    if (!any_pending && !result.empty()) {
-      stored->terminal = result.front().decision;
-    }
+    stored->state = all_resources_resolved(*stored)
+                        ? PermissionLifecycleState::completed
+                        : PermissionLifecycleState::user_decision;
     return result;
   }
 
@@ -321,6 +331,11 @@ class PermissionBroker {
                   "request-unavailable");
     }
 
+    if (stored->resolved.contains(static_cast<int>(resource))) {
+      return fail(resource, PermissionDecision::error_fail_closed,
+                  "resource-already-resolved");
+    }
+
     if (std::find(stored->request.resources.begin(),
                   stored->request.resources.end(),
                   resource) == stored->request.resources.end()) {
@@ -331,8 +346,8 @@ class PermissionBroker {
     const auto common = validate_live_request(stored->request, context.current,
                                               now_millis);
     if (common.has_value()) {
+      resolve_all_unresolved(*stored, common->decision);
       stored->state = PermissionLifecycleState::completed;
-      stored->terminal = common->decision;
       return PermissionResolution{
           .resource = resource,
           .decision = common->decision,
@@ -344,16 +359,21 @@ class PermissionBroker {
 
     if (is_persistent(user_decision) &&
         stored->request.privacy_context != PrivacyContext::normal) {
-      stored->state = PermissionLifecycleState::completed;
-      stored->terminal = PermissionDecision::error_fail_closed;
+      stored->resolved.emplace(static_cast<int>(resource),
+                               PermissionDecision::error_fail_closed);
+      stored->state = all_resources_resolved(*stored)
+                          ? PermissionLifecycleState::completed
+                          : PermissionLifecycleState::user_decision;
       return fail(resource, PermissionDecision::error_fail_closed,
                   "persistent-private-decision-prohibited");
     }
 
     if (is_deny(user_decision)) {
-      stored->state = PermissionLifecycleState::completed;
       const auto decision = map_user_decision(user_decision);
-      stored->terminal = decision;
+      stored->resolved.emplace(static_cast<int>(resource), decision);
+      stored->state = all_resources_resolved(*stored)
+                          ? PermissionLifecycleState::completed
+                          : PermissionLifecycleState::user_decision;
       return PermissionResolution{
           .resource = resource,
           .decision = decision,
@@ -368,15 +388,20 @@ class PermissionBroker {
     const auto preflight =
         preflight_resource(stored->request, resource, context);
     if (preflight.decision != PermissionDecision::pending_user_decision) {
-      stored->state = PermissionLifecycleState::completed;
-      stored->terminal = preflight.decision;
+      stored->resolved.emplace(static_cast<int>(resource),
+                               preflight.decision);
+      stored->state = all_resources_resolved(*stored)
+                          ? PermissionLifecycleState::completed
+                          : PermissionLifecycleState::user_decision;
       return preflight;
     }
 
     stored->state = PermissionLifecycleState::resolving_engine;
     const auto decision = map_user_decision(user_decision);
-    stored->state = PermissionLifecycleState::completed;
-    stored->terminal = decision;
+    stored->resolved.emplace(static_cast<int>(resource), decision);
+    stored->state = all_resources_resolved(*stored)
+                        ? PermissionLifecycleState::completed
+                        : PermissionLifecycleState::user_decision;
 
     return PermissionResolution{
         .resource = resource,
@@ -394,8 +419,8 @@ class PermissionBroker {
     if (stored == nullptr || stored->state == PermissionLifecycleState::completed) {
       return false;
     }
+    resolve_all_unresolved(*stored, PermissionDecision::cancelled);
     stored->state = PermissionLifecycleState::completed;
-    stored->terminal = PermissionDecision::cancelled;
     return true;
   }
 
@@ -405,8 +430,8 @@ class PermissionBroker {
       (void)request_id;
       if (stored.state != PermissionLifecycleState::completed &&
           stored.request.privacy_context_id == context_id) {
+        resolve_all_unresolved(stored, PermissionDecision::cancelled);
         stored.state = PermissionLifecycleState::completed;
-        stored.terminal = PermissionDecision::cancelled;
         ++cancelled;
       }
     }
@@ -417,7 +442,7 @@ class PermissionBroker {
   struct StoredRequest {
     PermissionRequest request;
     PermissionLifecycleState state{PermissionLifecycleState::received};
-    std::optional<PermissionDecision> terminal;
+    std::unordered_map<int, PermissionDecision> resolved;
   };
 
   struct CommonFailure {
@@ -435,6 +460,18 @@ class PermissionBroker {
   [[nodiscard]] StoredRequest* find_mutable(std::string_view request_id) {
     const auto iterator = requests_.find(std::string{request_id});
     return iterator == requests_.end() ? nullptr : &iterator->second;
+  }
+
+  [[nodiscard]] static bool all_resources_resolved(
+      const StoredRequest& stored) {
+    return stored.resolved.size() == stored.request.resources.size();
+  }
+
+  static void resolve_all_unresolved(StoredRequest& stored,
+                                     PermissionDecision decision) {
+    for (const auto resource : stored.request.resources) {
+      stored.resolved.try_emplace(static_cast<int>(resource), decision);
+    }
   }
 
   [[nodiscard]] static std::optional<CommonFailure> validate_live_request(
