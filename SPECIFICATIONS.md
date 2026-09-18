@@ -1,7 +1,7 @@
 ---
 title: "GoreeCloud Browser — Project Specification"
 document_owner: "LaDamian Goree"
-version: "v0.13"
+version: "v0.14"
 document_status: "Under Review"
 project_status: "Active Development / nonconformant"
 classification: "Internal"
@@ -22,7 +22,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.13
+- **Version:** v0.14
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -831,3 +831,33 @@ The implementation principle is: **Browser-owned logical runtime identity and pr
 Documentation changes may define planned architecture, implementation contracts, and acceptance criteria. They do not establish runtime implementation. When source code is added, implementation claims must be tied to exact revisions and actual validation evidence.
 
 The superseded legacy Browser DOCX is retained only as a historical migration source unless a future retention instruction requires a different disposition.
+## 19. Operational Health and Readiness Contract
+
+**Status:** Development source contract. A privacy-safe local liveness/readiness evaluator exists; no Manager or Observability publication adapter is accepted.
+
+### 19.1 Separation of concerns
+
+Browser must keep process liveness, core application readiness, dependency health, production monitoring, and release/Stable acceptance as separate states.
+
+A process can be live while core readiness is blocked. A Browser can be locally ready while an optional capability is degraded. Neither state proves production approval or Stable qualification.
+
+### 19.2 Privacy-safe signal model
+
+The Browser-owned local contract may contain only bounded subsystem identity, health condition, evidence freshness, core-readiness applicability, and enumerated reason codes. It must not contain page URLs/origins, page titles/content, search queries, browsing history, form data, account/profile names, credentials, tokens, cookies, passkeys, Vault material, or raw platform-system evidence.
+
+### 19.3 Core readiness
+
+Core readiness requires a healthy Browser event loop plus an available rendering engine, Browser-owned local state, and Browser UI.
+
+A required dependency that is unavailable, unknown, stale, or of unknown freshness fails readiness closed. Required degraded state may degrade readiness. Optional dependency loss or stale state may degrade readiness without manufacturing a whole-application outage.
+
+Feature-specific operations continue to use their own authoritative Policy, Privacy Shield, Wardveil, Identity, OS, and other gates. Aggregate health must never grant authority.
+
+### 19.4 Manager and Observability publication boundary
+
+Current source defines no HTTP health endpoint, readiness endpoint, IPC publication service, Manager registration, Observability exporter, remote telemetry transport, or alert route. `goreecloud.platform.yaml` therefore retains null network health/readiness endpoints.
+
+Any future adapter must preserve the local minimization contract, use the approved authentication/authorization boundary where applicable, bind observations to the exact Browser revision/environment, and obtain separate runtime and production acceptance.
+
+See `docs/HEALTH_READINESS_CONTRACT.md`.
+
