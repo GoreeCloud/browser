@@ -6,19 +6,43 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GlazeContractTest {
+    private fun capability(
+        id: String,
+        state: GlazeContract.CapabilityState,
+        authority: String = "browser",
+    ) = GlazeContract.CapabilityRecord(id, state, authority)
+
     @Test
     fun androidBrowserTargetsCurrentStableGlazeContract() {
-        assertEquals("1.4.0", GlazeContract.VERSION)
+        assertEquals("1.5.1", GlazeContract.VERSION)
         assertEquals(
-            "a20374734dae6a119b28448f5e6b3232253b6da7",
-            GlazeContract.SOURCE_INTEGRATION_ANCHOR,
-        )
-        assertEquals(
-            GlazeContract.SOURCE_INTEGRATION_ANCHOR,
+            "98da57064ede0f334627b632bc16801f580331af",
             GlazeContract.STABLE_RELEASE_REVISION,
         )
         assertEquals(
+            "ee1032a0822ab8e103f8afe48e5c1859fde65cc9",
+            GlazeContract.REVIEWED_IMPLEMENTATION_ANCHOR,
+        )
+        assertEquals(
+            "5b59d0e36950d737dba35b58ae58058684e0831b",
+            GlazeContract.QUALIFICATION_SOURCE_ANCHOR,
+        )
+        assertEquals(
+            "f7ef915f0aabea6cf92748018f2220a99e3a9c92",
+            GlazeContract.QUALIFICATION_INTEGRATION_REVISION,
+        )
+        assertEquals("1.4.1", GlazeContract.OPTICAL_BASELINE_VERSION)
+        assertEquals(
+            "4fab9da0fad2e5c974e0e66ec88632c61745751c",
+            GlazeContract.OPTICAL_BASELINE_REVISION,
+        )
+        assertEquals("1.5.0", GlazeContract.IMMEDIATE_ROLLBACK_VERSION)
+        assertEquals(
+            GlazeContract.STABLE_RELEASE_REVISION,
             GlazeContract.SOURCE_INTEGRATION_ANCHOR,
+        )
+        assertEquals(
+            GlazeContract.REVIEWED_IMPLEMENTATION_ANCHOR,
             GlazeContract.ACCEPTED_VISUAL_SOURCE,
         )
     }
@@ -34,7 +58,7 @@ class GlazeContractTest {
     }
 
     @Test
-    fun v14OpticalAccessibilityPrecedenceFailsSafe() {
+    fun inheritedOpticalAccessibilityPrecedenceFailsSafe() {
         val forcedColors = GlazeContract.OpticalAccessibilitySignals(forcedColors = true)
         val reducedTransparency = GlazeContract.OpticalAccessibilitySignals(reducedTransparency = true)
         val increasedContrast = GlazeContract.OpticalAccessibilitySignals(increasedContrast = true)
@@ -63,6 +87,89 @@ class GlazeContractTest {
         assertEquals(GlazeContract.OpticalMode.SolidAccessible, GlazeContract.opticalMode(combined))
         assertFalse(GlazeContract.allowsBackdropEffects(combined))
         assertFalse(GlazeContract.allowsDecorativeEnvironmentalTint(combined))
+    }
+
+    @Test
+    fun availableCapabilityEnablesPresentationWithoutCreatingExecutionAuthority() {
+        val result = GlazeContract.resolveAction(
+            GlazeContract.ActionRequest(
+                id = "navigate",
+                requiredCapabilityIds = setOf("browser.navigate"),
+            ),
+            listOf(capability("browser.navigate", GlazeContract.CapabilityState.Available)),
+        )
+
+        assertTrue(result.enabled)
+        assertEquals(GlazeContract.CapabilityState.Available, result.state)
+        assertFalse(result.automaticExecutionAllowed)
+        assertFalse(result.authorityInferred)
+        assertFalse(result.providerPrecedenceInferred)
+    }
+
+    @Test
+    fun missingCapabilityFailsClosedWithoutDisablingUnrelatedBrowserCapability() {
+        val navigation = GlazeContract.resolveAction(
+            GlazeContract.ActionRequest(
+                id = "navigate",
+                requiredCapabilityIds = setOf("browser.navigate"),
+            ),
+            listOf(capability("browser.navigate", GlazeContract.CapabilityState.Available)),
+        )
+        val search = GlazeContract.resolveAction(
+            GlazeContract.ActionRequest(
+                id = "search",
+                requiredCapabilityIds = setOf("search.query"),
+            ),
+            listOf(capability("browser.navigate", GlazeContract.CapabilityState.Available)),
+        )
+
+        assertTrue(navigation.enabled)
+        assertFalse(search.enabled)
+        assertEquals(GlazeContract.CapabilityState.Unknown, search.state)
+        assertTrue(search.reasonCodes.contains("capability-unknown:search.query"))
+    }
+
+    @Test
+    fun duplicateCapabilityOwnershipFailsClosedWithoutInferringProviderPrecedence() {
+        val result = GlazeContract.resolveAction(
+            GlazeContract.ActionRequest(
+                id = "search",
+                requiredCapabilityIds = setOf("search.query"),
+            ),
+            listOf(
+                capability("search.query", GlazeContract.CapabilityState.Available, "search-service-a"),
+                capability("search.query", GlazeContract.CapabilityState.Available, "search-service-b"),
+            ),
+        )
+
+        assertFalse(result.enabled)
+        assertEquals(GlazeContract.CapabilityState.Conflict, result.state)
+        assertTrue(result.reasonCodes.contains("capability-conflict:search.query"))
+        assertFalse(result.providerPrecedenceInferred)
+    }
+
+    @Test
+    fun restrictedConsequentialActionRemainsPresentationDisabledAndCannotAutoExecute() {
+        val result = GlazeContract.resolveAction(
+            GlazeContract.ActionRequest(
+                id = "remote-search",
+                requiredCapabilityIds = setOf("privacy.search-transmission"),
+                consequential = true,
+            ),
+            listOf(
+                capability(
+                    "privacy.search-transmission",
+                    GlazeContract.CapabilityState.Restricted,
+                    "privacy-shield",
+                ),
+            ),
+        )
+
+        assertFalse(result.enabled)
+        assertEquals(GlazeContract.CapabilityState.Restricted, result.state)
+        assertTrue(result.reasonCodes.contains("restricted-by-authority:privacy.search-transmission"))
+        assertFalse(result.automaticExecutionAllowed)
+        assertFalse(result.authorityInferred)
     }
 
     @Test
