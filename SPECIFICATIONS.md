@@ -1,7 +1,7 @@
 ---
 title: "GoreeCloud Browser — Project Specification"
 document_owner: "LaDamian Goree"
-version: "v0.12"
+version: "v0.13"
 document_status: "Under Review"
 project_status: "Active Development / nonconformant"
 classification: "Internal"
@@ -22,7 +22,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.12
+- **Version:** v0.13
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -41,7 +41,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 
 The current documentation head may be newer than the validated implementation checkpoint. Documentation-only commits must not inherit implementation validation by implication.
 
-Version v0.12 reconciles the current nine-system Platform Contract 0.4 model, current Stable Glaze UI 1.5.1 target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. These are Development control updates and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
+Version v0.12 reconciled the current nine-system Platform Contract 0.4 model, current Stable Glaze UI 1.5.1 target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 adds the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. These are Development control/implementation updates and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
 
 ## 1. Project Definition
 
@@ -231,7 +231,7 @@ Vault operations require explicit versioned capabilities, authenticated requeste
 
 ## 13. Website Permissions and Privacy Contexts
 
-**Status:** Proposed / incomplete. Current Android runtime denies website permission and geolocation requests directly.
+**Status:** Phase 1 Development source implemented / runtime integration incomplete. Current Android runtime still denies website permission and geolocation requests directly.
 
 Browser owns the permission workflow and must mediate engine requests, host OS runtime permissions, site decisions, privacy context, Privacy Shield policy, and applicable Wardveil policy without allowing any one layer to bypass the others.
 
@@ -271,19 +271,15 @@ Session recovery and Everkeep integration remain separate: Browser owns the curr
 
 ## 16. Permission and Privacy-Context Runtime Implementation Contract
 
-**Status:** Development broker foundation implemented; current Android callbacks still deny permission/geolocation requests directly. The platform-neutral evaluator does not establish an accepted Android runtime, production permission store, live authority integration, or user-facing permission flow.
+**Status:** Phase 1 Development implementation exists; Android/runtime acceptance remains incomplete. Current Android callbacks continue to deny permission/geolocation requests directly, so this section does not claim an accepted permission runtime.
 
-### 16.0 Current Development Implementation Boundary
-
-The current source includes a platform-neutral permission evaluator that implements normalized typed-resource decisions, profile/privacy-context/origin/owner/time binding, per-resource least-privilege outcomes, Privacy Shield/Wardveil/host-OS decision inputs, Private/Isolated Private persistence prohibition, expiry, cancellation, and fail-closed malformed/unavailable/error handling.
-
-This implementation remains deliberately disconnected from Android permission/grant callbacks. A source-level allow result cannot grant a website capability until the Android adapter, user prompt, host OS runtime-permission path, live authority adapters, final request revalidation, persistence/revocation, diagnostics, Close & Forget lifecycle, and representative-device acceptance are separately implemented and validated.
+The Phase 1 source adds a platform-neutral `PermissionBroker` with canonical profile/privacy-context/tab/origin binding, typed camera/microphone/geolocation/protected-media/MIDI-SysEx resources, duplicate/unknown rejection, request expiry, deterministic lifecycle states, per-resource evaluation, final context revalidation, host-OS state separation, explicit GoreeCloud Policy / Privacy Shield / Wardveil authority gates, user-decision handling, cancellation, and context-close cancellation. Persistent decisions are prohibited outside Normal context. The implementation is deliberately not wired to Android engine grants yet and has no persistent permission store, live authority adapters, runtime prompt UX, revocation store, Sync integration, or representative-device acceptance.
 
 ### 16.1 Runtime Ownership
 
 All engine permission callbacks must enter a Browser-owned `PermissionBroker`. The engine adapter may translate requests and apply the broker's final decision, but it may not independently grant access, persist decisions, or infer authority.
 
-The broker coordinates Browser site policy, privacy context, host OS runtime permission state, Privacy Shield authorization where required, applicable Wardveil policy, user choice, and final request revalidation.
+The broker coordinates Browser site policy, privacy context, host OS runtime permission state, GoreeCloud Policy decisions where applicable, Privacy Shield authorization where required, applicable Wardveil security decisions, user choice, and final request revalidation.
 
 ### 16.2 Canonical Privacy Context Type
 
@@ -380,7 +376,9 @@ The Android adapter should translate `PermissionRequest` and geolocation callbac
 
 The host adapter must distinguish granted, denied-but-requestable, denied/no-reprompt, restricted by device/OS policy, unavailable, and adapter error. Browser must explain when an OS-level permission blocks a site decision without misrepresenting the OS decision as a Privacy Shield or Wardveil decision.
 
-### 16.9 Privacy Shield and Wardveil Adapters
+### 16.9 GoreeCloud Policy, Privacy Shield, and Wardveil Adapters
+
+Where a permission is governed by shared GoreeCloud Policy, Browser must consume an explicit applicable decision/evidence result and must not infer an allow from missing, stale, unavailable, or malformed policy evidence.
 
 Where a permission requires Privacy Shield authorization, Browser must request an operation-scoped decision/capability and correlate the response to the exact normalized request. Browser must not manufacture or locally infer Privacy Shield authorization.
 
