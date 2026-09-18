@@ -37,7 +37,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 
 - Installable debug-signed APK target.
 - Package `io.goreecloud.browser.beta`.
-- Current migration-candidate identity `0.1.0-beta.1+android.5` / versionCode `10005`.
+- Current migration-candidate identity `0.1.0-beta.1+android.6` / versionCode `10006`.
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
