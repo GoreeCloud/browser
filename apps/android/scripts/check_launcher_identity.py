@@ -9,7 +9,7 @@ from pathlib import Path
 import sys
 import xml.etree.ElementTree as ET
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "apps" / "android" / "app" / "src" / "main"
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 
