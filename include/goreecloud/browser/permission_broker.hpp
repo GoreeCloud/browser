@@ -177,8 +177,7 @@ inline bool permission_text_safe(std::string_view value,
 
 inline bool canonical_web_origin(std::string_view value) {
   if (!permission_text_safe(value, 2048) ||
-      value.find_first_of(" 	
-?#") != std::string_view::npos ||
+      value.find_first_of(" \\t\\r\\n?#") != std::string_view::npos ||
       value.find('@') != std::string_view::npos) {
     return false;
   }
