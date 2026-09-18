@@ -90,6 +90,20 @@ The current Development branch adds the first platform-neutral website-permissio
 
 This does not enable Android website permissions. Android callbacks remain fail-closed/direct-deny until the host-OS adapter, live authority adapters, Browser prompt UX, persistent Normal permission store, revocation/reset controls, private-context cleanup integration, and representative-device acceptance are completed.
 
+## Local health/readiness Development contract
+
+Browser now has a privacy-safe local operational contract that keeps liveness separate from readiness and models bounded dependency condition/freshness without accepting browsing content, URLs, queries, account/profile names, or credentials.
+
+- Browser process/event-loop liveness is independent from release readiness.
+- Core readiness requires the rendering engine, Browser-owned local state, and Browser UI.
+- Required dependency unavailable/unknown/stale state blocks readiness.
+- Optional dependency degradation lowers readiness without falsely declaring the entire Browser unavailable.
+- Duplicate dependency signals fail closed.
+- Enumerated reason codes keep diagnostics bounded and content-free.
+- No network endpoint, Manager publication adapter, Observability exporter, alert route, or production telemetry is created by this source contract.
+
+See `docs/HEALTH_READINESS_CONTRACT.md`. Manager/Observability runtime integration and production acceptance remain open.
+
 ## Planned / incomplete Android capabilities
 
 - Browser-owned tab strip/tab switcher and multi-tab lifecycle.
