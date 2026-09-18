@@ -104,6 +104,23 @@ Browser now has a privacy-safe local operational contract that keeps liveness se
 
 See `docs/HEALTH_READINESS_CONTRACT.md`. Manager/Observability runtime integration and production acceptance remain open.
 
+## Exact-source security evidence Development control
+
+The stabilization source adds a repository-local exact-source security evidence lane and CI supply-chain hardening:
+
+- full-history secret scanning with redacted findings;
+- HIGH/CRITICAL repository dependency vulnerability gating;
+- CycloneDX SBOM generation;
+- immutable third-party/reusable workflow action references;
+- exact evaluated source identity, scanner versions, evidence timestamps, and SHA-256 records;
+- fixed Ubuntu 24.04 build runners for local Core/signature jobs;
+- non-persisted checkout credentials where build steps execute repository source;
+- exact Android JDK, command-line tools, Gradle version, and immutable action revisions.
+
+This remains Development evidence. It does not certify runner APT packages, Android System WebView/Chromium, Android SDK payloads, optional CEF/runtime packages, production signing/distribution, deployed platform services, or the final Stable candidate.
+
+See `docs/SECURITY_EVIDENCE.md`.
+
 ## Planned / incomplete Android capabilities
 
 - Browser-owned tab strip/tab switcher and multi-tab lifecycle.
