@@ -18,6 +18,23 @@ The first-party capability gate is a consumer-side contract only. A healthy tran
 
 The session-recovery core is not yet a user-ready recovery implementation. Durable authenticated-encrypted checkpoint storage, protected platform key integration, Browser lifecycle wiring, restore execution, Glaze recovery UI, Everkeep continuity integration, and runtime acceptance remain pending.
 
+## Browser permission-broker Development foundation
+
+The current Development branch adds a platform-neutral, Browser-owned permission-decision foundation for the Section 16 permission contract:
+
+- typed camera, microphone, geolocation, protected-media, and MIDI SysEx resources;
+- request/profile/privacy-context/tab-owner/origin/time binding;
+- Normal, Private, and Isolated Private context separation;
+- independent Privacy Shield, Wardveil, and host-OS decision inputs;
+- per-resource least-privilege results rather than all-or-nothing broad grants;
+- fail-closed handling for unavailable/invalid authority, OS denial/restriction/error, malformed requests, duplicate resources, expiry, owner destruction, privacy-context destruction, and origin change;
+- explicit user decision scopes for once, session, and persistent outcomes;
+- persistent decisions prohibited in Private and Isolated Private contexts;
+- no implicit engine grant merely because the host OS permission exists;
+- CTest smoke coverage for authority loss, OS blocks, private persistence, mixed-resource requests, expiry, owner/origin invalidation, malformed requests, and pending user decisions.
+
+This is a source-level broker foundation only. Android WebView permission/geolocation callbacks remain denied and are **not** wired to grant through this broker. No production permission persistence, user prompt, OS runtime-permission request flow, live Privacy Shield/Wardveil adapter, diagnostics store, Close & Forget integration, representative-device acceptance, or production authorization is claimed.
+
 ## Native extension Development source foundation
 
 Exact implementation source `10cfb5baad6081382c02ea5067d115a7f43b2185` adds the first Browser-owned native-extension foundation:
@@ -77,7 +94,7 @@ This is Development source/build-contract evidence only. Browser-local rendered/
 
 - Browser-owned tab strip/tab switcher and multi-tab lifecycle.
 - Private Browsing and Close & Forget runtime isolation.
-- Browser-owned website permission prompts.
+- Browser-owned website permission prompts and Android adapter wiring from the new fail-closed PermissionBroker foundation.
 - Wardveil-authenticated download staging, scan, release, hold, and quarantine handoff.
 - Full Privacy Shield filtering, consent, data-use, and diagnostics integration.
 - Everkeep backup/recovery/portability integration.
