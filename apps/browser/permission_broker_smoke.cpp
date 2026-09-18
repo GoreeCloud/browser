@@ -135,6 +135,53 @@ int main() {
 
   {
     PermissionBroker broker;
+    auto value = request({PermissionResource::camera,
+                          PermissionResource::microphone});
+    assert(broker.receive(value));
+    const auto ctx = context_for(
+        value,
+        {snapshot(PermissionResource::camera),
+         snapshot(PermissionResource::microphone)});
+
+    const auto camera = broker.apply_user_decision(
+        "req-1", PermissionResource::camera,
+        UserPermissionDecision::allow_once, ctx, 2000);
+    assert(camera.decision == PermissionDecision::allow_once);
+    assert(camera.engine_grant_allowed);
+    assert(broker.state("req-1") == PermissionLifecycleState::user_decision);
+
+    const auto microphone = broker.apply_user_decision(
+        "req-1", PermissionResource::microphone,
+        UserPermissionDecision::deny_once, ctx, 2000);
+    assert(microphone.decision == PermissionDecision::deny_once);
+    assert(!microphone.engine_grant_allowed);
+    assert(broker.state("req-1") == PermissionLifecycleState::completed);
+  }
+
+  {
+    PermissionBroker broker;
+    auto value = request({PermissionResource::camera,
+                          PermissionResource::microphone});
+    assert(broker.receive(value));
+    auto camera = snapshot(PermissionResource::camera);
+    auto microphone = snapshot(PermissionResource::microphone);
+    microphone.privacy_shield.decision = AuthorityDecision::deny;
+    const auto ctx = context_for(value, {camera, microphone});
+
+    const auto evaluation = broker.evaluate("req-1", ctx, 2000);
+    assert(evaluation.size() == 2);
+    assert(broker.state("req-1") == PermissionLifecycleState::user_decision);
+
+    const auto camera_result = broker.apply_user_decision(
+        "req-1", PermissionResource::camera,
+        UserPermissionDecision::allow_once, ctx, 2000);
+    assert(camera_result.decision == PermissionDecision::allow_once);
+    assert(camera_result.engine_grant_allowed);
+    assert(broker.state("req-1") == PermissionLifecycleState::completed);
+  }
+
+  {
+    PermissionBroker broker;
     auto value = request();
     assert(broker.receive(value));
     auto security_block = snapshot(PermissionResource::camera);
