@@ -61,6 +61,10 @@ jobs:
         with:
           gradle-version: "8.9"
 
+      - name: Validate launcher identity source boundary
+        shell: bash
+        run: python3 apps/android/scripts/check_launcher_identity.py
+
       - name: Test, lint, and assemble beta
         working-directory: apps/android
         shell: bash
@@ -74,11 +78,17 @@ jobs:
           BADGING="apps/android/app/build/outputs/apk/debug/badging.txt"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          RESOURCES="apps/android/app/build/outputs/apk/debug/resources.txt"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee "$BADGING"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump resources "$APK" | tee "$RESOURCES"
           grep -F "package: name='io.goreecloud.browser.beta'" "$BADGING"
           grep -F "versionCode='10007'" "$BADGING"
           grep -F "versionName='0.1.0-beta.1+android.7'" "$BADGING"
           grep -F "application-label:'GoreeCloud Browser Beta'" "$BADGING"
+          grep -F ":mipmap/ic_launcher" "$RESOURCES"
+          grep -F ":mipmap/ic_launcher_round" "$RESOURCES"
+          grep -F ":drawable/ic_launcher_foreground" "$RESOURCES"
+          grep -F ":drawable/ic_launcher_monochrome" "$RESOURCES"
 
       - name: Record exact source revision and SHA-256
         shell: bash
@@ -98,3 +108,4 @@ jobs:
             apps/android/app/build/outputs/apk/debug/SHA256SUMS.txt
             apps/android/app/build/outputs/apk/debug/SOURCE_REVISION
             apps/android/app/build/outputs/apk/debug/badging.txt
+            apps/android/app/build/outputs/apk/debug/resources.txt
