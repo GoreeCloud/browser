@@ -1,0 +1,174 @@
+name: GoreeCloud Browser Security Evidence
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  EVALUATED_REVISION: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+  GITLEAKS_VERSION: "8.30.1"
+  GITLEAKS_LINUX_X64_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+  TRIVY_VERSION: "0.74.0"
+  TRIVY_CHECKSUM_FILE_SHA256: "bc701c3c3ee8b9acbea2c23257e41381e3854888f51281616a6ba5dc96963821"
+
+jobs:
+  exact-source-security-evidence:
+    name: Exact-source secrets, vulnerabilities, SBOM, and CI pinning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact Browser source with history
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          ref: ${{ env.EVALUATED_REVISION }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify exact Browser source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EVALUATED_REVISION"
+
+      - name: Require immutable third-party workflow action references
+        shell: python
+        run: |
+          import pathlib
+          import re
+          import sys
+
+          failures = []
+          for path in sorted(pathlib.Path(".github/workflows").glob("*.y*ml")):
+              for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                  match = re.match(r"^\s*uses:\s*([^\s#]+)", line)
+                  if not match:
+                      continue
+                  value = match.group(1)
+                  if value.startswith("./"):
+                      continue
+                  if "@" not in value:
+                      failures.append(f"{path}:{number}: missing @ref: {value}")
+                      continue
+                  reference = value.rsplit("@", 1)[1]
+                  if not re.fullmatch(r"[0-9a-f]{40}", reference):
+                      failures.append(
+                          f"{path}:{number}: third-party/reusable workflow ref is not a full SHA: {value}"
+                      )
+
+          if failures:
+              print("\n".join(failures), file=sys.stderr)
+              sys.exit(1)
+
+      - name: Prepare evidence directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p security-evidence
+          printf '%s\n' "$EVALUATED_REVISION" > security-evidence/SOURCE_REVISION
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > security-evidence/GENERATED_AT_UTC
+
+      - name: Install exact Gitleaks binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl --fail --location --silent --show-error \
+            --output "/tmp/${asset}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${asset}"
+          printf '%s  %s\n' "$GITLEAKS_LINUX_X64_SHA256" "/tmp/${asset}" | sha256sum --check -
+          tar -xzf "/tmp/${asset}" -C /tmp gitleaks
+          install -m 0755 /tmp/gitleaks /tmp/gitleaks-bin
+          /tmp/gitleaks-bin version | tee security-evidence/GITLEAKS_VERSION.txt
+
+      - name: Scan full Git history for secrets
+        id: gitleaks
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/gitleaks-bin git \
+            --redact=100 \
+            --report-format=json \
+            --report-path=security-evidence/gitleaks.json \
+            --exit-code=1 \
+            .
+
+      - name: Install exact Trivy binary from verified release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          checksum_file="trivy_${TRIVY_VERSION}_checksums.txt"
+          curl --fail --location --silent --show-error \
+            --output "/tmp/${checksum_file}" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${checksum_file}"
+          printf '%s  %s\n' "$TRIVY_CHECKSUM_FILE_SHA256" "/tmp/${checksum_file}" | sha256sum --check -
+          curl --fail --location --silent --show-error \
+            --output "/tmp/${archive}" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${archive}"
+          archive_sha="$(awk -v archive="$archive" '$2 == archive {print $1}' "/tmp/${checksum_file}")"
+          test -n "$archive_sha"
+          printf '%s  %s\n' "$archive_sha" "/tmp/${archive}" | sha256sum --check -
+          tar -xzf "/tmp/${archive}" -C /tmp trivy
+          install -m 0755 /tmp/trivy /tmp/trivy-bin
+          /tmp/trivy-bin --version | tee security-evidence/TRIVY_VERSION.txt
+
+      - name: Scan repository dependencies for HIGH and CRITICAL vulnerabilities
+        id: trivy_vulnerabilities
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/trivy-bin fs \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --format json \
+            --output security-evidence/trivy-vulnerabilities.json \
+            .
+
+      - name: Generate exact-source CycloneDX SBOM
+        id: trivy_sbom
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/trivy-bin fs \
+            --scanners vuln \
+            --format cyclonedx \
+            --output security-evidence/sbom.cdx.json \
+            .
+
+      - name: Record evidence checksums
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd security-evidence
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | tee SHA256SUMS.txt
+
+      - name: Enforce security evidence gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${{ steps.gitleaks.outcome }}" = "success"
+          test "${{ steps.trivy_vulnerabilities.outcome }}" = "success"
+          test "${{ steps.trivy_sbom.outcome }}" = "success"
+
+      - name: Upload exact-source security evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: goreecloud-browser-security-evidence-${{ env.EVALUATED_REVISION }}
+          if-no-files-found: error
+          retention-days: 30
+          path: security-evidence/
