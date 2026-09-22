@@ -1,6 +1,8 @@
 package io.goreecloud.browser
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AddressPresentationTest {
@@ -29,7 +31,28 @@ class AddressPresentationTest {
     }
 
     @Test
-    fun nonHostAddressFallsBackToOriginalText() {
-        assertEquals("about:blank", AddressPresentation.condensed("about:blank"))
+    fun nonDefaultPortRemainsVisible() {
+        assertEquals(
+            "example.com:8443/settings",
+            AddressPresentation.condensed("https://example.com:8443/settings"),
+        )
+    }
+
+    @Test
+    fun opaqueInternalPayloadsAreNotExposed() {
+        assertEquals("New tab", AddressPresentation.condensed("about:blank"))
+        assertEquals("Local page", AddressPresentation.condensed("data:text/html,<h1>private payload</h1>"))
+        assertEquals("Site content", AddressPresentation.condensed("blob:https://example.com/opaque-id"))
+        assertEquals("Local content", AddressPresentation.condensed("file:///private/runtime/path"))
+    }
+
+    @Test
+    fun malformedFallbackRemovesControlCharactersAndBoundsLength() {
+        val result = AddressPresentation.condensed("  not a\nurl\t" + "x".repeat(180))
+
+        assertFalse(result.contains('\n'))
+        assertFalse(result.contains('\t'))
+        assertTrue(result.length <= 120)
+        assertTrue(result.endsWith("…"))
     }
 }
