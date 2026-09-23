@@ -1,94 +1,19 @@
-# GoreeCloud Browser Artwork
+# GoreeCloud Browser Artwork — Current Authority
 
-## Approval status
+## Current canonical artwork
 
-**Tabmark with the Glaze aqua treatment is the approved official GoreeCloud Browser artwork.**
+The authoritative Browser product source is `GoreeCloud/branding-assets/products/browser/app-icon.svg` (Git blob `3f502e5a6dae8ff3cb86dfdc3ae5d2eb2e8b54e1`, verified on September 23, 2026). The central asset was updated September 8, 2026 to the blue compass-style icon as part of the unified GoreeCloud mobile family. The central repository and its current machine-readable catalog control approved product identity.
 
-Canonical sources:
+The earlier local Tabmark approval and aqua identity narrative in this document predated that central update. It is **historical, superseded provenance**, not current Browser identity authority; Git history retains the older narrative without keeping competing approved masters in the current tree.
 
-- `goreecloud-browser.svg` — approved full-color master.
-- `goreecloud-browser-monochrome.svg` — approved monochrome identity source.
+## Consumer derivatives
 
-The approved identity uses the Tabmark geometry: a compact stack of offset browser tabs with a distinctive central cut. The approved color treatment uses a bright Glaze aqua / white / deep teal system.
+- `assets/branding/goreecloud-browser.svg` must remain an exact copy of the current pinned central SVG. The Android source guard validates its complete Git blob identity.
+- `assets/branding/goreecloud-browser-monochrome.svg` simplifies only paint to a monochrome ring/needle while preserving the canonical compass-ring, needle path and center coordinates. This derivative is pending human/theme/device visual review.
+- `apps/android/app/src/main/res/drawable/ic_launcher_*.xml` and `mipmap-anydpi-v26`/`mipmap-anydpi-v33` are Android packaging derivatives. Source checks and APK resource enumeration do **not** prove exact-rendered identity, mask contrast or real launcher visibility.
 
-## Identity lock
+The original official central blue/white compass artwork is not recreated by a consumer. Any future redesign or approval belongs in `GoreeCloud/branding-assets` first, followed by validated propagation to Browser and its platforms.
 
-The official GoreeCloud Browser identity is defined by:
+## Remaining acceptance
 
-1. the stacked offset browser-tab silhouette;
-2. the front Browser surface with a clear top chrome line;
-3. the central cut integrated into the upper Browser/tab region;
-4. the proportional relationship between rear and front tab surfaces;
-5. the Glaze aqua / white / deep teal color treatment for the full-color master.
-
-The geometry, not gradients or shadow, is the primary recognition mechanism. Platform adaptations may simplify material effects while preserving the Tabmark silhouette and central cut.
-
-## Product meaning
-
-Tabmark is intentionally Browser-specific. It represents tabbed browsing, sessions, and first-party Browser chrome without borrowing a globe, compass, map pin, cloud, upstream Browser mark, or radial Browser-logo construction.
-
-## Glaze UI construction
-
-The approved master follows the current Stable Glaze UI application-icon approach:
-
-- **Foundation** — light aqua Glaze application field.
-- **Rear tab surface** — deep teal Browser/session layer.
-- **Front tab surface** — high-legibility white/light aqua primary Browser layer.
-- **Identity detail** — central cut and Browser chrome line.
-- **Depth** — restrained separation shadow only; depth is not required for recognition.
-
-## Color approval
-
-Approved full-color relationship:
-
-- light aqua foundation;
-- deep teal rear surface;
-- white/light aqua front surface;
-- deep teal structural details.
-
-The earlier navy/cyan/purple Tabmark palette was not approved and must not be used as the official Browser identity.
-
-## Monochrome and accessibility
-
-The monochrome source is an approved identity representation for single-color and themed contexts. High-contrast and reduced-transparency variants should preserve the same geometry with solid fills and sufficient separation.
-
-## Platform adaptation
-
-Platform derivatives may adapt masking, optical correction, material intensity, and detail density while preserving the identity lock.
-
-Required targets include:
-
-- web and favicon assets;
-- Linux launcher/application sizes;
-- AppImage and portable Linux assets;
-- Android adaptive foreground;
-- Android round icon;
-- Android monochrome/themed icon;
-- future supported platform derivatives.
-
-## Rejected concepts
-
-The following concepts remain rejected and must not be reused as GoreeCloud Browser identity:
-
-- Glaze Navigation Ribbon;
-- Horizon Portal;
-- Aurora Window;
-- Borealis Lens;
-- Tidefold;
-- Waymark.
-
-The earlier Tabmark geometry is retained, but only the approved Glaze aqua treatment is the official full-color identity.
-
-## Prohibited substitutions
-
-Do not substitute Chromium, Chrome, Firefox, Mozilla, Opera, Edge, Safari, Brave, Vivaldi, Arc, or other upstream/third-party Browser artwork for Tabmark.
-
-Do not replace Tabmark in normal GoreeCloud Browser surfaces with a generic globe, cloud, compass, map pin, GPS marker, generic Browser window, radial Browser logo, or unrelated GoreeCloud service symbol.
-
-## Provenance and derivatives
-
-The canonical SVG files are the source of truth. Production derivatives must be generated deterministically, record SHA-256 evidence, and remain traceable to the exact canonical source revision used for generation.
-
-## Production acceptance
-
-Artwork approval establishes the official identity but does not by itself establish platform-release acceptance. Production packaging still requires rendered and real-platform validation at relevant sizes, masks, themes, launchers, task switchers, and accessibility modes.
+Browser issue #33 requires inspection of the **exact intended APK** on GoreeCloud Launcher and Lineage/Trebuchet, with adaptive, round and themed icon configurations on light and dark backgrounds and small-size contexts. Check icon identity, optical geometry, legibility, launch intent, actual navigation/search usability and rollback. A passing source/provenance check and green emulator CI do not establish the required representative physical-device, accessibility, privacy/security, Release Candidate, production or Stable gates.
