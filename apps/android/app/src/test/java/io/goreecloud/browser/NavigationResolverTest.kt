@@ -92,5 +92,7 @@ class NavigationResolverTest {
         assertFalse(NavigationResolver.isAllowedWebUrl("file:///sdcard/example.html"))
         assertFalse(NavigationResolver.isAllowedWebUrl("javascript:alert(1)"))
         assertFalse(NavigationResolver.isAllowedWebUrl("intent://example"))
+        assertFalse(NavigationResolver.isAllowedWebUrl("\nhttps://example.com"))
+        assertFalse(NavigationResolver.isAllowedWebUrl("https://example.com\r"))
     }
 }
