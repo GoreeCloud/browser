@@ -140,9 +140,14 @@ object GoreeCloudSearchContract {
         requesterAuthentication: RequesterAuthentication? = null,
         requestedLimit: Int = 20,
     ): Decision {
+        // Validate the original value: trimming first would silently erase
+        // leading or trailing controls before the Search authorization gate.
+        if (query.any(Char::isISOControl)) {
+            return Decision.Rejected(RejectionReason.INVALID_QUERY)
+        }
         val normalizedQuery = query.trim()
         if (normalizedQuery.isEmpty()) return Decision.Rejected(RejectionReason.EMPTY_QUERY)
-        if (normalizedQuery.length > MAX_QUERY_CHARS || normalizedQuery.any(Char::isISOControl)) {
+        if (normalizedQuery.length > MAX_QUERY_CHARS) {
             return Decision.Rejected(RejectionReason.INVALID_QUERY)
         }
 
