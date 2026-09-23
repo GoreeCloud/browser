@@ -5,6 +5,18 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-23 — Native chrome bidirectional-control hardening
+
+### Changed
+
+- Added one presentation-only sanitizer for Unicode bidirectional formatting controls used by Browser-owned Android page-title and unfocused-address chrome.
+- Kept the loaded/full URL as navigation authority; the sanitizer changes display text only.
+- Added regression coverage proving bidi overrides/isolates cannot survive title or omnibox presentation.
+
+### Lifecycle boundary
+
+This is Development source hardening only. It does not establish complete IDN/confusable/bidirectional-address acceptance, representative-device usability, current GLAZE UI V1.6 rendered acceptance, production signing/distribution, Release Candidate, or Stable qualification.
+
 ## 2026-09-22 — Repository feature/changelog governance migration
 
 ### Added

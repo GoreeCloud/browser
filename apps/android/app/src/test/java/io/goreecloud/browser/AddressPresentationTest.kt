@@ -47,6 +47,17 @@ class AddressPresentationTest {
     }
 
     @Test
+    fun bidiFormattingControlsCannotReorderOmniboxPresentation() {
+        val result = AddressPresentation.condensed(
+            "https://example.com/invoice\u202Efdp.exe\u2066?state=ready",
+        )
+
+        assertEquals("example.com/invoicefdp.exe?state=ready", result)
+        assertFalse(result.contains('\u202E'))
+        assertFalse(result.contains('\u2066'))
+    }
+
+    @Test
     fun malformedFallbackRemovesControlCharactersAndBoundsLength() {
         val result = AddressPresentation.condensed("  not a\nurl\t" + "x".repeat(180))
 

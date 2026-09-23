@@ -29,7 +29,7 @@ Items here are planned, incomplete, blocked, or acceptance-gated. Their presence
 - Browser-owned tab strip/tab switcher and multi-tab lifecycle.
 - Bookmarks, history, library, settings, downloads UI, Reader Mode, and Wayfinder mobile surfaces.
 - Full private-browsing product surfaces and Close & Forget behavior.
-- Complete navigation/address safety for malformed URLs, schemes/deep links, user-info disclosure, IDN/confusable/spoofing, origin/certificate presentation, and bidirectional text.
+- Complete navigation/address safety for malformed URLs, schemes/deep links, user-info disclosure, IDN/confusable/spoofing, origin/certificate presentation, and remaining bidirectional-text acceptance beyond the bounded native-chrome formatting-control stripping.
 - Mature session restoration and Browser-owned durable recovery.
 - Complete native extension installation, sandbox/process runtime, trusted developer-key authority, extension networking/storage/UI, privileged APIs, updates, developer tooling, and production trust/acceptance.
 - Complete desktop render-capable runtime acceptance and preserve rendering-engine replaceability.

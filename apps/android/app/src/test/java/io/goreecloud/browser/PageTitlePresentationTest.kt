@@ -46,6 +46,18 @@ class PageTitlePresentationTest {
     }
 
     @Test
+    fun bidiFormattingControlsCannotReorderBrowserChrome() {
+        val presented = PageTitlePresentation.safe(
+            "Invoice\u202Efdp.exe\u2066 verified",
+            "https://example.com/page",
+        )
+
+        assertEquals("Invoicefdp.exe verified", presented)
+        assertFalse(presented.contains('\u202E'))
+        assertFalse(presented.contains('\u2066'))
+    }
+
+    @Test
     fun longTitlesAreBounded() {
         val presented = PageTitlePresentation.safe("A".repeat(200), "https://example.com/page")
         assertEquals(120, presented.length)
