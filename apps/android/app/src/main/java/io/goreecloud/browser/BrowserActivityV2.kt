@@ -321,13 +321,22 @@ class BrowserActivityV2 : Activity() {
                 request: WebResourceRequest,
                 error: WebResourceError,
             ) {
-                if (!request.isForMainFrame || isInternalStartUrl(request.url.toString())) return
-                showPageUnavailable(request.url.toString())
+                val failedUrl = request.url.toString()
+                if (
+                    !request.isForMainFrame ||
+                    isInternalStartUrl(failedUrl) ||
+                    !MainFrameFailureGuard.shouldPresent(currentUrl, failedUrl)
+                ) {
+                    return
+                }
+                showPageUnavailable(failedUrl)
             }
 
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
                 handler.cancel()
-                showPageUnavailable(error.url)
+                if (MainFrameFailureGuard.shouldPresent(currentUrl, error.url)) {
+                    showPageUnavailable(error.url)
+                }
             }
         }
 
