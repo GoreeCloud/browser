@@ -6,9 +6,9 @@ import org.junit.Test
 
 class MainFrameFailureGuardTest {
     @Test
-    fun activeNavigationFailureIsPresented() {
+    fun activeNavigationCallbackIsAccepted() {
         assertTrue(
-            MainFrameFailureGuard.shouldPresent(
+            MainFrameFailureGuard.shouldAccept(
                 "https://example.com/path?q=1",
                 "https://example.com/path?q=1",
             ),
@@ -18,7 +18,7 @@ class MainFrameFailureGuardTest {
     @Test
     fun hostCaseDefaultPortAndFragmentDoNotCreateFalseStaleResult() {
         assertTrue(
-            MainFrameFailureGuard.shouldPresent(
+            MainFrameFailureGuard.shouldAccept(
                 "HTTPS://Example.COM/path?q=1#section",
                 "https://example.com:443/path?q=1",
             ),
@@ -26,9 +26,9 @@ class MainFrameFailureGuardTest {
     }
 
     @Test
-    fun staleFailureFromPreviousNavigationIsIgnored() {
+    fun staleCallbackFromPreviousNavigationIsIgnored() {
         assertFalse(
-            MainFrameFailureGuard.shouldPresent(
+            MainFrameFailureGuard.shouldAccept(
                 "https://new.example/page",
                 "https://old.example/page",
             ),
@@ -38,7 +38,7 @@ class MainFrameFailureGuardTest {
     @Test
     fun differentPathOrQueryIsNotTheActiveNavigation() {
         assertFalse(
-            MainFrameFailureGuard.shouldPresent(
+            MainFrameFailureGuard.shouldAccept(
                 "https://example.com/new?q=2",
                 "https://example.com/old?q=1",
             ),
@@ -46,9 +46,9 @@ class MainFrameFailureGuardTest {
     }
 
     @Test
-    fun missingOrNonWebFailureCannotTriggerRecoverySurface() {
-        assertFalse(MainFrameFailureGuard.shouldPresent("https://example.com/", null))
-        assertFalse(MainFrameFailureGuard.shouldPresent("goreecloud://start", "https://example.com/"))
-        assertFalse(MainFrameFailureGuard.shouldPresent("https://example.com/", "data:text/html,error"))
+    fun missingOrNonWebCallbackCannotMutateCurrentSurface() {
+        assertFalse(MainFrameFailureGuard.shouldAccept("https://example.com/", null))
+        assertFalse(MainFrameFailureGuard.shouldAccept("goreecloud://start", "https://example.com/"))
+        assertFalse(MainFrameFailureGuard.shouldAccept("https://example.com/", "data:text/html,error"))
     }
 }
