@@ -50,6 +50,14 @@ class NavigationResolverTest {
     }
 
     @Test
+    fun leadingAndTrailingControlCharactersCannotBypassOmniboxValidation() {
+        for (raw in listOf("\nexample.com", "example.com\r", "\tprivacy browser", "privacy browser\u007f")) {
+            assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
+            assertEquals("", NavigationResolver.resolve(raw))
+        }
+    }
+
+    @Test
     fun credentialBearingWebUrlFailsClosedInsteadOfNavigatingOrSearching() {
         val raw = "https://user:pass@example.com/private"
         assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
