@@ -97,7 +97,7 @@ expected_central_blob = "3f502e5a6dae8ff3cb86dfdc3ae5d2eb2e8b54e1"
 try:
     approved_bytes = approved_asset.read_bytes()
     approved_xml = ET.fromstring(approved_bytes)
-    git_blob_bytes = b"blob " + str(len(approved_bytes)).encode("ascii") + b"\\0" + approved_bytes
+    git_blob_bytes = b"blob " + str(len(approved_bytes)).encode("ascii") + bytes([0]) + approved_bytes
     actual_blob = hashlib.sha1(git_blob_bytes).hexdigest()
     if actual_blob != expected_central_blob:
         fail("vendored Browser artwork does not match pinned canonical branding-assets blob")
