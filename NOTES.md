@@ -3,14 +3,14 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development/Beta and is not Stable or production accepted.
-- Verified current stabilization base: `main` at `9fe772d0ae4875f43b546bb408f809b12b5ead4e`.
+- Verified current stabilization base: `main` at `ae1ee34e317d79c6bcc8998d00f4263f88f6d32f` (PR #73 Platform Contract/Glaze UI 1.6.0 target reconciliation). This is a declared target, not proof of completed rendered Glaze acceptance.
 - Android has an installable GoreeCloud-owned browser shell with direct HTTP(S) navigation, Browser-owned chrome, local start/error/search-blocked surfaces, fail-closed free-text Search delegation, adaptive/round/monochrome launcher-icon resources, and exact-source APK CI.
 - Source presence and CI do not replace representative physical-device, accessibility, performance, production-signing, platform-system, recovery, or Stable acceptance evidence.
 
 ## Active stabilization observations
 
 - GitHub issue #33 remains the Android usability/device-acceptance gate.
-- The original icon-resource and basic-browser-chrome gaps are now source-addressed on current `main`, but launcher rendering and practical usability still require fresh representative-device validation.
+- Android icon resources and Browser chrome exist in source, but issue #33 still reports failed representative physical-device usability and incorrect launcher appearance. The canonical blue-compass asset and the older Tabmark consumer SVG/ARTWORK description also remain inconsistent; source packaging, official-asset derivation, and actual GoreeCloud Launcher/Trebuchet rendering require verified acceptance.
 - Browser platform conformance remains nonconformant; accepted runtime Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, Observability, and Browser-local Glaze acceptance remain incomplete.
 - Downloads and website permissions intentionally remain fail-closed where required authority has not been accepted.
 
