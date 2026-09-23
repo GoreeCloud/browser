@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-23 — Privacy-safe blocked deep-link feedback
+
+### Changed
+
+- Web-initiated unsupported main-frame schemes remain fail-closed but now show a Browser-owned local explanation instead of failing silently.
+- The local surface receives only a syntactically bounded scheme label such as `mailto: link`; phone numbers, email addresses, intent extras, tokens, and other target payload data are not rendered.
+- Unsupported subframe/custom-scheme attempts remain blocked without creating a user-facing payload surface.
+- Added focused unit coverage for scheme-only labeling and the generic local safety page.
+
+### Lifecycle boundary
+
+This Development hardening does not enable external-app handoff, deep-link execution, new intent permissions, Search delegation, production website permissions, representative-device acceptance, Release Candidate, or Stable qualification.
+
 ## 2026-09-22 — Repository feature/changelog governance migration
 
 ### Added
