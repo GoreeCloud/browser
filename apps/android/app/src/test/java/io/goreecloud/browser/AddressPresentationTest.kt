@@ -39,6 +39,14 @@ class AddressPresentationTest {
     }
 
     @Test
+    fun condensedUnicodeHostUsesCanonicalAsciiALabel() {
+        assertEquals(
+            "xn--r8jz45g.xn--zckzah/path?q=1",
+            AddressPresentation.condensed("https://例え.テスト/path?q=1"),
+        )
+    }
+
+    @Test
     fun opaqueInternalPayloadsAreNotExposed() {
         assertEquals("New tab", AddressPresentation.condensed("about:blank"))
         assertEquals("Local page", AddressPresentation.condensed("data:text/html,<h1>private payload</h1>"))
