@@ -19,12 +19,12 @@ permissions:
 
 # Development validation pins the exact current Platform Contract 0.4
 # implementation that enforces the authoritative nine-system model, keeps
-# GoreeCloud Sync separately governed, requires Stable Glaze UI 1.5.1 for
+# GoreeCloud Sync separately governed, requires Stable Glaze UI 1.6.0 for
 # applicable Stable consumers, and validates the exact caller revision.
 # This is deterministic contract-validation evidence only; it does not promote
 # Browser lifecycle or manufacture platform-system acceptance.
 jobs:
   validate:
-    uses: GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@6cb150d512647a0401b4da9e4741d7591693dee0
+    uses: GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@e49b9afdea094c96a36a0457b1603f2fa8e8fa6b
     with:
       manifest-path: goreecloud.platform.yaml
