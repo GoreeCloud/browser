@@ -1,6 +1,8 @@
 package io.goreecloud.browser
 
 import java.net.IDN
+import java.net.Inet6Address
+import java.net.InetAddress
 import java.net.URI
 import java.util.Locale
 
@@ -54,10 +56,12 @@ internal object InternationalizedHostPolicy {
             val suffix = rawAuthority.substring(closingBracket + 1)
             if (!validPortSuffix(suffix)) return null
 
-            val parsed = runCatching { URI("http://$host").host }.getOrNull()
-                ?.takeIf { it.isNotBlank() }
-                ?: return null
-            return CanonicalAuthority(host = parsed, authority = host.lowercase(Locale.ROOT) + suffix)
+            val literal = host.substring(1, host.length - 1)
+            if ('%' in literal) return null
+            val parsed = runCatching { InetAddress.getByName(literal) }.getOrNull()
+            if (parsed !is Inet6Address) return null
+            val canonicalHost = host.lowercase(Locale.ROOT)
+            return CanonicalAuthority(host = canonicalHost, authority = canonicalHost + suffix)
         }
 
         val colon = rawAuthority.lastIndexOf(':')
