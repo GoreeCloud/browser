@@ -189,6 +189,7 @@ class GoreeCloudSearchContractTest {
             "browser\rquery",
             "browser\u007fquery",
             "browser\u0085query",
+            "\nbrowser", "browser\n", "\tbrowser", "browser\r",
             "x".repeat(GoreeCloudSearchContract.MAX_QUERY_CHARS + 1),
         )
         for (query in rejectedQueries) {
