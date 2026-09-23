@@ -295,7 +295,10 @@ class BrowserActivityV2 : Activity() {
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                return !NavigationResolver.isAllowedWebUrl(request.url.toString())
+                val target = request.url.toString()
+                if (NavigationResolver.isAllowedWebUrl(target)) return false
+                if (request.isForMainFrame) showBlockedWebNavigation(target)
+                return true
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
@@ -420,6 +423,27 @@ class BrowserActivityV2 : Activity() {
             </main></body></html>
         """.trimIndent()
         webView.loadDataWithBaseURL(START_BASE_URL, html, "text/html", "UTF-8", null)
+        refreshChrome()
+    }
+
+    private fun showBlockedWebNavigation(target: String) {
+        failedMainFrameUrl = null
+        chromeOverrideTitle = "Navigation blocked"
+        currentUrl = INTERNAL_HOME
+        loading = false
+        progressBar.visibility = View.GONE
+        addressField.clearFocus()
+        hideKeyboard()
+        webView.loadDataWithBaseURL(
+            START_BASE_URL,
+            BrowserLocalPages.blockedWebNavigationHtml(
+                baseCss(),
+                BlockedNavigationPresentation.label(target),
+            ),
+            "text/html",
+            "UTF-8",
+            null,
+        )
         refreshChrome()
     }
 
