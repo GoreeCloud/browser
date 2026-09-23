@@ -182,6 +182,49 @@ class GoreeCloudSearchContractTest {
     }
 
     @Test
+    fun unsafeOrOversizedSearchQueriesFailBeforeRequestConstruction() {
+        val rejectedQueries = listOf(
+            "browser\nquery",
+            "browser\tquery",
+            "browser\rquery",
+            "browser\u007fquery",
+            "browser\u0085query",
+            "x".repeat(GoreeCloudSearchContract.MAX_QUERY_CHARS + 1),
+        )
+        for (query in rejectedQueries) {
+            val decision = GoreeCloudSearchContract.authorize(
+                query = query,
+                capability = capability(),
+                privacyAuthorization = authorization(),
+                requesterAuthentication = requesterAuthentication(),
+            )
+            assertEquals(
+                GoreeCloudSearchContract.Decision.Rejected(
+                    GoreeCloudSearchContract.RejectionReason.INVALID_QUERY,
+                ),
+                decision,
+            )
+        }
+    }
+
+    @Test
+    fun queryAtBackendLengthLimitRemainsAllowed() {
+        val query = "x".repeat(GoreeCloudSearchContract.MAX_QUERY_CHARS)
+        val decision = GoreeCloudSearchContract.authorize(
+            query = query,
+            capability = capability(),
+            privacyAuthorization = authorization(),
+            requesterAuthentication = requesterAuthentication(),
+        )
+        assertTrue(decision is GoreeCloudSearchContract.Decision.Allowed)
+    }
+
+    @Test
+    fun capabilityAdvertisingExcessiveResultLimitFailsClosed() {
+        assertFalse(GoreeCloudSearchContract.isCompatible(capability(maxResults = 101)))
+    }
+
+    @Test
     fun getOrUrlQueryCapabilityIsNeverCompatible() {
         assertFalse(
             GoreeCloudSearchContract.isCompatible(
