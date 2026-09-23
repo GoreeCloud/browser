@@ -45,9 +45,11 @@ object NavigationResolver {
     }
 
     fun classify(rawInput: String): Intent {
+        // Reject controls before trimming: otherwise leading/trailing control
+        // characters disappear before navigation/Search classification.
+        if (rawInput.any(Char::isISOControl)) return Intent.Blocked(rawInput)
         val input = rawInput.trim()
         if (input.isEmpty()) return Intent.Home
-        if (input.any(Char::isISOControl)) return Intent.Blocked(input)
 
         if (hasHttpScheme(input)) {
             val normalized = normalizeWebUrl(input) ?: return Intent.Blocked(input)
