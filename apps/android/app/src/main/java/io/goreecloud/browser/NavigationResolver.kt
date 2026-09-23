@@ -88,6 +88,7 @@ object NavigationResolver {
             value.startsWith("http://", ignoreCase = true)
 
     private fun normalizeWebUrl(raw: String): String? {
+        if (raw.any(Char::isISOControl)) return null
         val uri = runCatching { URI(raw.trim()) }.getOrNull() ?: return null
         val scheme = uri.scheme?.lowercase(Locale.ROOT) ?: return null
         if (scheme != "https" && scheme != "http") return null
