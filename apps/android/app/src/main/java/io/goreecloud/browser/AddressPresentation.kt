@@ -8,8 +8,8 @@ import java.net.URI
  * The full URL remains the navigation authority. This object only determines
  * what an unfocused omnibox displays. It keeps the host visible from the
  * leading edge, avoids exposing opaque local/resource payloads, strips control
- * characters, and bounds display length without changing the URL that is
- * actually loaded.
+ * and bidirectional formatting characters, and bounds display length without
+ * changing the URL that is actually loaded.
  */
 object AddressPresentation {
     private const val MAX_DISPLAY_LENGTH = 120
@@ -40,7 +40,7 @@ object AddressPresentation {
     }
 
     private fun sanitizeText(value: String): String =
-        value
+        ChromeTextSafety.stripBidirectionalControls(value)
             .map { character -> if (character.isISOControl()) ' ' else character }
             .joinToString("")
             .trim()
