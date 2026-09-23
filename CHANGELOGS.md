@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-23 — Current-main internationalized host canonicalization
+
+### Changed
+
+- Replayed only the still-unintegrated IDN host-identity logic from historical PR #46 onto current authoritative Android architecture.
+- Unicode DNS host names are converted to ASCII A-label form before direct HTTP(S) navigation and Browser-owned unfocused address presentation.
+- STD3-invalid labels, invalid port syntax/ranges, credential-bearing authorities, and bracketed hosts that are not valid IPv6 literals fail closed.
+- Preserved path, query, fragment, explicit port, Search-versus-navigation classification, and existing fail-closed unsupported-scheme behavior.
+- Added current-main regression coverage for direct and scheme-less Unicode domains, A-label presentation, invalid STD3 labels, explicit ports, and bracketed IPv6 validation.
+
+### Lifecycle boundary
+
+This is Development source hardening. It does not establish complete UTS #39/confusable/spoofing analysis, DNS/certificate/reputation trust, origin presentation acceptance, representative-device acceptance, Release Candidate, or Stable qualification.
+
 ## 2026-09-22 — Repository feature/changelog governance migration
 
 ### Added
