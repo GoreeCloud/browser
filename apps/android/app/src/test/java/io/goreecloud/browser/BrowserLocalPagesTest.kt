@@ -17,4 +17,18 @@ class BrowserLocalPagesTest {
         assertFalse(html.contains("WebView"))
         assertFalse(html.contains("Chromium"))
     }
+
+    @Test
+    fun blockedNavigationSurfaceExplainsFailureWithoutTargetPayload() {
+        val html = BrowserLocalPages.blockedWebNavigationHtml(
+            "body{font-family:sans-serif}",
+            "mailto: link",
+        )
+
+        assertTrue(html.contains("<title>Navigation blocked</title>"))
+        assertTrue(html.contains("mailto: link"))
+        assertTrue(html.contains("Use Back to return"))
+        assertFalse(html.contains("private.user@example.com"))
+        assertFalse(html.contains("intent://"))
+    }
 }
