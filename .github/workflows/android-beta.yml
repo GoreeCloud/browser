@@ -83,7 +83,7 @@ jobs:
         working-directory: apps/android
         shell: bash
         run: |
-          gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
+          gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
 
       - name: Verify APK signature and identity
         shell: bash
@@ -123,3 +123,57 @@ jobs:
             apps/android/app/build/outputs/apk/debug/SOURCE_REVISION
             apps/android/app/build/outputs/apk/debug/badging.txt
             apps/android/app/build/outputs/apk/debug/resources.txt
+
+  android-emulator:
+    name: Android 15 launcher and local-search smoke
+    needs: android-beta
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out exact Browser candidate revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.EVALUATED_REVISION }}
+          persist-credentials: false
+
+      - name: Verify exact Browser candidate revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EVALUATED_REVISION"
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configure exact Android SDK command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          cmdline-tools-version: "15859902"
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+
+      - name: Configure exact Gradle
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          gradle-version: "8.9"
+          cache-provider: basic
+
+      - name: Enable KVM for managed emulator
+        shell: bash
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Test native chrome and fail-closed local Search on Android 15
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          disable-animations: true
+          working-directory: apps/android
+          script: gradle --no-daemon connectedDebugAndroidTest --stacktrace

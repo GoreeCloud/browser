@@ -6,7 +6,7 @@
 **Candidate versionCode:** `10007`  
 **Minimum Android:** 8.0 / API 26  
 **Target Android API:** 35  
-**Current Glaze UI target:** V1.5 / `1.5.1` Stable  
+**Current Glaze UI target:** V1.6 / `1.6.0` Stable (product-local migration pending)  
 **Current Platform Contract:** `0.4` / nine Integral Platform Systems  
 **Production approved:** No
 
@@ -14,7 +14,7 @@
 
 This target is a real installable GoreeCloud Browser Development beta. Android System WebView/Chromium is a bounded, replaceable rendering-engine dependency; GoreeCloud retains Browser product identity, chrome, navigation/search policy, privacy/security boundaries, state, and integration authority.
 
-The `+android.7` candidate adds a Browser-owned page-title presentation boundary so raw URL/resource-path/control-character engine titles cannot become chrome identity. It preserves the current Stable Glaze UI V1.5.1 mapping and exact-head artifact provenance. These changes do not establish rendered/native-device acceptance or production readiness.
+The `+android.7` candidate adds a Browser-owned page-title presentation boundary so raw URL/resource-path/control-character engine titles cannot become chrome identity. It retains the historical V1.5.1-era native mapping and exact-head artifact provenance; migration to current Stable Glaze UI V1.6.0 remains pending. These changes do not establish rendered/native-device acceptance or production readiness.
 
 ## Implemented beta behavior
 
@@ -40,11 +40,13 @@ The current Development line includes:
 
 The Android beta uses Browser-owned native chrome with a compact top omnibox, web-content region, 56dp bottom toolbar, vector controls, scroll-aware top-chrome collapse/restore, Browser-owned menu sheet, and effects-free accessibility fallbacks.
 
-The current source preserves the existing Browser shell rather than visually rewriting it for the V1.5.1 patch. Glaze UI remains presentation-only and cannot create authorization, consent, security/privacy truth, provider precedence, navigation authority, or automatic consequential execution.
+The current source preserves the historical V1.5.1-era Browser shell rather than claiming a completed V1.6.0 migration. Glaze UI remains presentation-only and cannot create authorization, consent, security/privacy truth, provider precedence, navigation authority, or automatic consequential execution.
 
-## Glaze UI V1.5.1 mapping
+## Glaze UI migration status and historical V1.5.1 mapping
 
-Current shared authority:
+The current shared Stable target is **V1.6.0**. The source evidence below is historical V1.5.1 provenance only; product-local V1.6.0 migration and rendered, accessibility, device, performance, and rollback acceptance are still required.
+
+Historical source baseline (not the current Stable target):
 
 - Stable version: `1.5.1`.
 - Stable promotion revision: `98da57064ede0f334627b632bc16801f580331af`.
@@ -78,10 +80,10 @@ GoreeCloud Sync remains a separately governed application/service capability. Th
 
 Workflow: `.github/workflows/android-beta.yml`
 
-The workflow uses Java 17, Android API 35, Android Build Tools 35.0.0, and Gradle 8.9. It runs:
+The workflow uses Java 17, Android API 35, Android Build Tools 35.0.0, and Gradle 8.9. The separately gated Android 15 managed-emulator job exercises a bounded native launcher/chrome smoke test and verifies the free-text Search authorization-required local page; it does not substitute for representative physical-device acceptance. It runs:
 
 ```text
-gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug
+gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
 ```
 
 For pull requests, the workflow explicitly checks out `github.event.pull_request.head.sha`, verifies `git rev-parse HEAD` matches that revision, validates APK signature/package/version/label, records `SOURCE_REVISION` and `SHA256SUMS.txt`, and names the retained artifact for the exact evaluated revision.
@@ -115,7 +117,7 @@ These source defaults are useful Development controls, not complete Wardveil or 
 
 Before Android Browser may be represented as production-approved or Stable, current GoreeCloud Stable qualification still requires exact-release evidence for applicable functionality, security, privacy, accessibility, recovery, Glaze UI, all nine Integral Platform Systems, supported platforms, dependencies, artifact provenance, signing/distribution, upgrade/rollback/migration, representative devices, and production acceptance.
 
-Current known Browser-specific blockers include accepted runtime Manager/Privacy Shield/Wardveil/Everkeep/Mesh/Identity/Policy/Observability integration, Browser-local Glaze V1.5.1 acceptance, production signing, representative Android validation, complete permission/private-context/download/session/profile workflows, and published Stable release evidence.
+Current known Browser-specific blockers include accepted runtime Manager/Privacy Shield/Wardveil/Everkeep/Mesh/Identity/Policy/Observability integration, Browser-local Glaze V1.6.0 migration and acceptance, production signing, representative Android validation, complete permission/private-context/download/session/profile workflows, and published Stable release evidence.
 
 
 ## Launcher identity verification
