@@ -3,15 +3,15 @@ package io.goreecloud.browser
 import java.net.URI
 
 /**
- * Correlates WebView main-frame failure callbacks with the currently active
- * navigation so a late error from an older request cannot replace newer
- * content with Browser's local recovery page.
+ * Correlates WebView main-frame callbacks with the currently active web
+ * navigation so late completion or failure events from an older request
+ * cannot replace or relabel newer Browser content.
  */
 internal object MainFrameFailureGuard {
-    fun shouldPresent(activeUrl: String, failedUrl: String?): Boolean {
+    fun shouldAccept(activeUrl: String, callbackUrl: String?): Boolean {
         val active = normalizedDocument(activeUrl) ?: return false
-        val failed = normalizedDocument(failedUrl.orEmpty()) ?: return false
-        return active == failed
+        val callback = normalizedDocument(callbackUrl.orEmpty()) ?: return false
+        return active == callback
     }
 
     private fun normalizedDocument(value: String): WebDocument? {
