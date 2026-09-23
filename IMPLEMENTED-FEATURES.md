@@ -31,6 +31,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product policy and behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
 - Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search for non-URL input.
+- Internationalized HTTP(S) DNS hosts are canonicalized to ASCII A-label identity before direct Android navigation and unfocused omnibox presentation; malformed STD3 labels, invalid ports, and bracketed non-IPv6 hosts fail closed.
 - Browser-intent handling for HTTP/HTTPS links.
 - TLS errors fail closed; Android Safe Browsing enabled with return-to-safety behavior.
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
