@@ -25,6 +25,9 @@ object GoreeCloudSearchContract {
     const val REQUESTER_AUTHENTICATION_SCHEME = "bearer"
     const val REQUESTER_AUTHENTICATION_HEADER = "Authorization"
     const val MAX_REQUEST_BYTES = 16 * 1024
+    // Match Search-side query limits before any private text reaches transport.
+    const val MAX_QUERY_CHARS = 2048
+    const val MAX_RESULTS = 100
     const val PRIVACY_CAPABILITY_REFERENCE_MAX_LENGTH = 512
     const val REQUESTER_BEARER_CREDENTIAL_MAX_LENGTH = 16 * 1024
     private const val GENERAL_CATEGORY = "general"
@@ -119,6 +122,7 @@ object GoreeCloudSearchContract {
 
     enum class RejectionReason {
         EMPTY_QUERY,
+        INVALID_QUERY,
         PRIVACY_AUTHORIZATION_REQUIRED,
         INCOMPATIBLE_CAPABILITY,
         REQUESTER_AUTHENTICATION_REQUIRED,
@@ -138,6 +142,9 @@ object GoreeCloudSearchContract {
     ): Decision {
         val normalizedQuery = query.trim()
         if (normalizedQuery.isEmpty()) return Decision.Rejected(RejectionReason.EMPTY_QUERY)
+        if (normalizedQuery.length > MAX_QUERY_CHARS || normalizedQuery.any(Char::isISOControl)) {
+            return Decision.Rejected(RejectionReason.INVALID_QUERY)
+        }
 
         val authorizationReference = privacyAuthorization.reference?.trim()
         if (
@@ -195,7 +202,7 @@ object GoreeCloudSearchContract {
             capability.authenticatedRequesterScheme == REQUESTER_AUTHENTICATION_SCHEME &&
             capability.authenticatedRequesterHeader == REQUESTER_AUTHENTICATION_HEADER &&
             capability.maxRequestBytes == MAX_REQUEST_BYTES &&
-            capability.maxResults >= 1
+            capability.maxResults in 1..MAX_RESULTS
 
     fun isCanonicalPrivacyCapabilityReference(reference: String): Boolean =
         reference.startsWith(PRIVACY_CAPABILITY_REFERENCE_PREFIX) &&
