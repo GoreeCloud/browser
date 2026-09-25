@@ -94,6 +94,6 @@ internal object InternationalizedHostPolicy {
         if (!suffix.startsWith(':')) return false
         val text = suffix.substring(1)
         if (text.isEmpty() || text.any { !it.isDigit() }) return false
-        return text.toIntOrNull()?.let { it in 0..65535 } == true
+        return text.toIntOrNull()?.let { it in 1..65535 } == true
     }
 }
