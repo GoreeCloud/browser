@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(goreecloud_browser
   VERSION 0.1.0
   DESCRIPTION "GoreeCloud first-party native browser"
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 include(CTest)
