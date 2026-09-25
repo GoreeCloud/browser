@@ -205,7 +205,6 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
   void initialize() override {
     if (initialized_) return;
     if (options_.root.empty()) throw std::runtime_error("CEF runtime root is not configured");
-    if (options_.subprocess_path.empty()) throw std::runtime_error("CEF subprocess path is not configured");
     if (!options_.enable_sandbox) throw std::runtime_error("GoreeCloud Browser refuses to initialize CEF with sandboxing disabled");
 
 #if GOREECLOUD_ENABLE_CEF
@@ -220,7 +219,9 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     settings.no_sandbox = options_.enable_sandbox ? 0 : 1;
     settings.external_message_pump = options_.external_message_pump ? 1 : 0;
     settings.windowless_rendering_enabled = options_.windowless_rendering ? 1 : 0;
-    CefString(&settings.browser_subprocess_path) = options_.subprocess_path.string();
+    if (!options_.subprocess_path.empty()) {
+      CefString(&settings.browser_subprocess_path) = options_.subprocess_path.string();
+    }
     CefString(&settings.resources_dir_path) = options_.resources_path.string();
     CefString(&settings.locales_dir_path) = options_.locales_path.string();
     CefString(&settings.root_cache_path) = options_.cache_root.string();
