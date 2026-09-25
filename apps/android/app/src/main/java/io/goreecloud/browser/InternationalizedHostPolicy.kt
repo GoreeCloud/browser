@@ -83,10 +83,29 @@ internal object InternationalizedHostPolicy {
 
         if (asciiHost.split('.').any { it.isEmpty() || it.length > 63 }) return null
 
+        // Numeric dotted hosts are ambiguous with legacy IPv4 forms in browser
+        // stacks. Only canonical four-octet decimal IPv4 is accepted; malformed,
+        // shortened, or zero-padded numeric forms fail closed instead of being
+        // reinterpreted later by a downstream URL consumer.
+        if (asciiHost.all { it.isDigit() || it == '.' } && !isCanonicalIpv4(asciiHost)) {
+            return null
+        }
+
         return CanonicalAuthority(
             host = asciiHost,
             authority = asciiHost + portSuffix,
         )
+    }
+
+    private fun isCanonicalIpv4(host: String): Boolean {
+        val octets = host.split('.')
+        if (octets.size != 4) return false
+        return octets.all { octet ->
+            octet.isNotEmpty() &&
+                (octet == "0" || !octet.startsWith('0')) &&
+                octet.all(Char::isDigit) &&
+                octet.toIntOrNull()?.let { it in 0..255 } == true
+        }
     }
 
     private fun validPortSuffix(suffix: String): Boolean {
