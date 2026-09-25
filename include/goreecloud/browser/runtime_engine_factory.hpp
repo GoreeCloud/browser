@@ -35,10 +35,12 @@ inline RuntimeEngineSelection create_runtime_engine_from_environment(
   options.process_argc = process_argc;
   options.process_argv = process_argv;
 
-  if (const char* subprocess = std::getenv("GOREECLOUD_BROWSER_SUBPROCESS")) {
+  // On Linux, CEF's supported same-executable subprocess model is selected by
+  // leaving browser_subprocess_path empty. Only set an explicit path when a
+  // distinct subprocess executable has been deliberately configured.
+  if (const char* subprocess = std::getenv("GOREECLOUD_BROWSER_SUBPROCESS");
+      subprocess && std::string{subprocess}.size() > 0) {
     options.subprocess_path = std::filesystem::path{subprocess};
-  } else {
-    options.subprocess_path = options.runtime_root / "goreecloud-browser";
   }
   if (const char* resources = std::getenv("GOREECLOUD_BROWSER_RESOURCES")) {
     options.resources_path = std::filesystem::path{resources};
