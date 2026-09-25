@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
                                 : std::string{kNewTabUrl};
     }
 
-    auto selection = create_runtime_engine_from_environment();
+    auto selection = create_runtime_engine_from_environment(argc, argv);
     BrowserApplication browser(std::move(selection.engine), options);
     browser.initialize();
 

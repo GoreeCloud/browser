@@ -105,7 +105,7 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     }
 
     CefWindowInfo window_info;
-    window_info.SetAsChild(reinterpret_cast<CefWindowHandle>(surface.window_handle),
+    window_info.SetAsChild(static_cast<CefWindowHandle>(surface.window_handle),
                            CefRect(surface.x, surface.y, surface.width, surface.height));
 
     std::string initial_url;
@@ -205,7 +205,11 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     if (!options_.enable_sandbox) throw std::runtime_error("GoreeCloud Browser refuses to initialize CEF with sandboxing disabled");
 
 #if GOREECLOUD_ENABLE_CEF
-    CefMainArgs main_args;
+    if (options_.process_argc <= 0 || options_.process_argv == nullptr) {
+      throw std::runtime_error(
+          "CEF browser-process initialization requires the host argc/argv on Linux");
+    }
+    CefMainArgs main_args(options_.process_argc, options_.process_argv);
     CefSettings settings;
     settings.no_sandbox = options_.enable_sandbox ? 0 : 1;
     settings.external_message_pump = options_.external_message_pump ? 1 : 0;

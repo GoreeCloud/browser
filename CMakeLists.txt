@@ -28,6 +28,9 @@ option(GOREECLOUD_ENABLE_CURL_DOWNLOAD_TRANSPORT
 
 set(GOREECLOUD_CEF_ROOT "" CACHE PATH
     "Path to an unpacked CEF binary distribution")
+set(GOREECLOUD_CEF_PINNED_VERSION
+    "152.0.6+g708dc14+chromium-152.0.7977.83" CACHE STRING
+    "Exact reviewed CEF Stable binary-distribution version for the Linux render-beta path")
 set(GOREECLOUD_RELEASE_CHANNEL "beta" CACHE STRING
     "GoreeCloud Browser release channel")
 
@@ -96,6 +99,23 @@ if(GOREECLOUD_ENABLE_CHROMIUM)
     endif()
     if(NOT EXISTS "${GOREECLOUD_CEF_ROOT}/cmake/FindCEF.cmake")
       message(FATAL_ERROR "GOREECLOUD_CEF_ROOT does not contain cmake/FindCEF.cmake")
+    endif()
+    if(NOT EXISTS "${GOREECLOUD_CEF_ROOT}/include/cef_version.h")
+      message(FATAL_ERROR "GOREECLOUD_CEF_ROOT does not contain include/cef_version.h")
+    endif()
+
+    file(STRINGS "${GOREECLOUD_CEF_ROOT}/include/cef_version.h"
+         _GOREECLOUD_CEF_VERSION_LINE
+         REGEX "^#define[ \t]+CEF_VERSION[ \t]+\"[^\"]+\"")
+    string(REGEX REPLACE
+           "^#define[ \t]+CEF_VERSION[ \t]+\"([^\"]+)\".*$"
+           "\\1"
+           _GOREECLOUD_CEF_DETECTED_VERSION
+           "${_GOREECLOUD_CEF_VERSION_LINE}")
+    if(NOT _GOREECLOUD_CEF_DETECTED_VERSION STREQUAL GOREECLOUD_CEF_PINNED_VERSION)
+      message(FATAL_ERROR
+        "GoreeCloud Browser render-beta requires pinned CEF ${GOREECLOUD_CEF_PINNED_VERSION}; "
+        "GOREECLOUD_CEF_ROOT reports ${_GOREECLOUD_CEF_DETECTED_VERSION}.")
     endif()
 
     set(CEF_ROOT "${GOREECLOUD_CEF_ROOT}")
