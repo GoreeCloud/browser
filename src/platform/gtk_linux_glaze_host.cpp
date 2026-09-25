@@ -104,7 +104,7 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
   }
   if (url == kSettingsUrl) {
     return {"BROWSER SETTINGS", "Control the browser without losing context.",
-            "Settings will grow into grouped privacy, security, appearance, search, downloads, network, permissions, and data controls.",
+            "Browse the Browser-owned settings areas below. Functional controls appear only as their owning runtime and provider integrations become available.",
             "Settings surface under development"};
   }
   if (url == kPrivateStartUrl) {
