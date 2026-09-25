@@ -7,15 +7,6 @@
 
 namespace {
 
-class GoreeCloudCefDefaultSubprocessApp final : public CefApp {
- public:
-  GoreeCloudCefDefaultSubprocessApp() = default;
-
- private:
-  IMPLEMENT_REFCOUNTING(GoreeCloudCefDefaultSubprocessApp);
-  DISALLOW_COPY_AND_ASSIGN(GoreeCloudCefDefaultSubprocessApp);
-};
-
 bool is_renderer_process(int argc, char** argv) {
   for (int index = 1; index < argc; ++index) {
     if (!argv[index]) continue;
@@ -38,8 +29,6 @@ int main(int argc, char** argv) {
   CefRefPtr<CefApp> app;
   if (renderer) {
     app = new GoreeCloudCefRenderApp();
-  } else {
-    app = new GoreeCloudCefDefaultSubprocessApp();
   }
 
   if (diagnostic) {
