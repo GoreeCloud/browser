@@ -3,7 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development and is not Release Candidate, production accepted, Stable, or Anchor-qualified.
-- Verified current stabilization base for this follow-up: `main` at `e6881cef32c9cfe95355e15bdd6aa0149ace467f`.
+- Verified current stabilization base for this follow-up: `main` at `6648aa34f1de7c8dc7100e073bd3b847d4ef898a`.
 - Android has an installable GoreeCloud-owned browser shell with direct HTTP(S) navigation, Browser-owned chrome, local start/error/search-blocked surfaces, fail-closed free-text Search delegation, adaptive/round/monochrome launcher-icon resources, and exact-source APK CI.
 - Source presence and CI do not replace representative physical-device, accessibility, performance, production-signing, platform-system, recovery, or Stable acceptance evidence.
 
@@ -16,7 +16,9 @@
 - GLAZE UI V1.6 source/qualification guards and Android-native mapping are aligned on current `main`; broader rendered/native, accessibility, large-text, localization/RTL, device/form-factor, performance, rollback, renderer-integrated, and production acceptance remain open.
 - Canonical full-color and monochrome Browser branding and fail-closed Android launcher provenance checks are integrated on current `main`.
 - Android 15 managed-emulator runtime smoke coverage for Browser-owned chrome, conservative WebView defaults, and fail-closed free-text Search is integrated on current `main`; physical-device acceptance remains separate.
-- This follow-up selectively restacks the still-relevant Search-query control/length/capability-limit hardening from historical PR #76 onto current `main` without enabling remote Search or overwriting newer Linux, Glaze, branding, callback, or emulator work.
+- Search-query control/length/capability-limit hardening is integrated through PR #95; historical PR #76 is closed unmerged as superseded.
+- The pinned Linux CEF render candidate now compiles successfully in the exact-head Ubuntu 22.04 Core CI render-build gate integrated through PR #97; representative runtime rendering acceptance remains open.
+- This follow-up selectively restacks the still-relevant Browser-chrome bidirectional-formatting control stripping from historical PR #78 onto current `main` without changing navigation authority or overwriting newer Search, Linux, Glaze, branding, callback, or emulator work.
 
 ## Maintenance notes
 

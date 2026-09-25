@@ -6,8 +6,8 @@ import java.net.URI
  * Presentation-only page-title boundary for Browser-owned Android chrome.
  *
  * Web content and the rendering engine remain untrusted presentation inputs.
- * Raw addresses, resource paths, control characters, and unbounded strings
- * must not become Browser chrome identity.
+ * Raw addresses, resource paths, control characters, bidirectional formatting
+ * controls, and unbounded strings must not become Browser chrome identity.
  */
 object PageTitlePresentation {
     const val PRODUCT_TITLE = "GoreeCloud Browser"
@@ -18,7 +18,7 @@ object PageTitlePresentation {
 
     fun safe(rawTitle: String?, currentUrl: String): String {
         val fallback = fallbackFor(currentUrl)
-        val cleaned = rawTitle.orEmpty()
+        val cleaned = ChromeTextSafety.stripBidirectionalControls(rawTitle.orEmpty())
             .map { if (it.isISOControl()) ' ' else it }
             .joinToString("")
             .replace(Regex("\\s+"), " ")

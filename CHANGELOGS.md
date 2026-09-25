@@ -5,6 +5,31 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Android browser-chrome bidirectional-text hardening
+
+### Changed
+
+- Added a shared Android Browser chrome presentation boundary that strips Unicode bidirectional formatting controls from untrusted page-title and unfocused-address text.
+- Applied the boundary to Android page-title presentation and condensed omnibox presentation without changing the full URL used for navigation authority.
+- Added focused JVM regression coverage for bidi override and isolate characters in Browser-owned title/address surfaces.
+- Preserved ordinary Browser navigation, Search, permissions, networking, and engine authority boundaries.
+
+### Acceptance boundary
+
+This is Development presentation hardening only. It does not establish complete IDN/confusable/origin/certificate/bidirectional-text acceptance, representative-device usability or accessibility, Browser-wide GLAZE UI acceptance, production signing/distribution, Release Candidate, production approval, Stable, or Anchor product maturity.
+
+## 2026-09-25 — Linux CEF render-candidate compile validation
+
+### Changed
+
+- Added an exact-head Ubuntu 22.04 Core CI job that bootstraps and compiles the pinned CEF 152 / Chromium 152 Linux render candidate with GTK/X11 dependencies.
+- Corrected the CMake C-language probe requirement, stale Linux smoke source path, CEF media-probe bridge/API usage, render-app construction, and GoreeCloud exception/RTTI build requirements exposed by real compilation.
+- Verified the resulting exact candidate through the repository Core CI render-build gate before integration.
+
+### Acceptance boundary
+
+Successful CI compilation establishes Development buildability of the pinned Linux render candidate. It does not establish representative-device HTTPS rendering, TLS/certificate presentation, renderer crash handling, private-context isolation/cleanup, accessibility, performance, packaging, Release Candidate, production approval, Stable, or Anchor product maturity.
+
 ## 2026-09-25 — Android Search-query boundary hardening
 
 ### Changed
