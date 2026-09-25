@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Page-address disclosure minimization
+
+### Changed
+
+- Replayed the still-relevant disclosure boundary from historical stacked work onto current authoritative `main` as an independent Development candidate.
+- Copy/share page-address actions are available only when the current Browser state yields a validated HTTP(S) address.
+- Explicit HTTP(S) authority user-info is removed before a page address reaches the Android clipboard or share intent.
+- Browser-local `goreecloud://` state, `data:` content, non-web schemes, malformed values, whitespace-padded values, and control-bearing values fail closed and do not receive page-address copy/share actions.
+- Added focused unit coverage for ordinary web addresses, encoded and unencoded user-info removal, Browser-local/non-web suppression, malformed input, and control-bearing input.
+
+### Lifecycle boundary
+
+This is Development privacy/security hardening only. It does not establish representative-device usability, current Glaze acceptance, live Search or platform authority, production signing/distribution, Seal, Anchor, or legacy Stable qualification.
+
 ## 2026-09-22 — Repository feature/changelog governance migration
 
 ### Added
