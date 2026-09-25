@@ -116,6 +116,12 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
       case GtkTabAction::create:
         (void)window->new_tab();
         break;
+      case GtkTabAction::next:
+        (void)window->activate_next_tab();
+        break;
+      case GtkTabAction::previous:
+        (void)window->activate_previous_tab();
+        break;
     }
     present_active_tab();
   });
@@ -142,20 +148,20 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
         host.attach_engine_view(tab->engine_view());
       }
     } catch (const std::exception&) {
-      host.show_panel("GoreeCloud Search unavailable");
+      host.show_panel("search-unavailable");
     }
   });
 
   host.set_search_control_handler([&](UnifiedSearchBarControl control) {
     switch (control) {
       case UnifiedSearchBarControl::advanced_reader_mode:
-        host.show_panel("Advanced Reader Mode");
+        host.show_panel("reader-mode");
         break;
       case UnifiedSearchBarControl::unified_bookmarks:
-        host.show_panel("Unified Bookmarks");
+        host.show_panel("bookmarks");
         break;
       case UnifiedSearchBarControl::wardveil_security:
-        host.show_panel("Wardveil Security");
+        host.show_panel("wardveil-security");
         break;
     }
   });

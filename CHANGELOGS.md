@@ -5,6 +5,22 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Linux polish, semantic panels, and keyboard navigation
+
+### Changed
+
+- Replaced the generic Linux `Browser tool` placeholder with semantic Glaze panels for Bookmarks, Reader Mode, Privacy Shield, Wardveil Security, Clipboard, DNS, Proxy, Search-unavailable, and live Development Downloads presentation.
+- Added keyboard-first desktop navigation for location focus, new/close tab, forward/back tab cycling, reload, Back/Forward, and Home without bypassing Browser-owned command routing.
+- Added explicit next/previous tab lifecycle operations to `WindowController` and smoke coverage for cyclic tab activation.
+- Added a structured Settings section grid while keeping non-implemented controls visibly non-authoritative.
+- Simplified redundant first-party Development badges so the start surfaces retain one bounded renderer/status indicator while the top chrome continues to expose Development lifecycle.
+- Added pure Browser panel-presentation contracts and smoke coverage so provider-owned privacy/security/network truth remains fail-closed.
+- Reconciled stale implementation-status references from superseded Tabmark artwork to the canonical Browser compass identity.
+
+### Acceptance boundary
+
+This tranche remains Development source work. It does not establish renderer integration, live Bookmarks/Privacy Shield/Wardveil/DNS/Proxy authority, complete Settings controls, representative-device accessibility/performance acceptance, Release Candidate, production approval, or Stable/Anchor product maturity.
+
 ## 2026-09-25 — Android 15 managed-emulator Browser smoke
 
 ### Changed

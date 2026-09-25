@@ -17,6 +17,7 @@
 #include "goreecloud/browser/media_probe_result_tracker.hpp"
 #include "goreecloud/browser/media_target_detector.hpp"
 #include "goreecloud/browser/omnibox_controller.hpp"
+#include "goreecloud/browser/panel_surface.hpp"
 #include "goreecloud/browser/services.hpp"
 #include "goreecloud/browser/toolbar.hpp"
 #include "goreecloud/browser/unified_search_bar.hpp"
@@ -117,6 +118,22 @@ int main() {
   assert(browser_location_text(kNewTabUrl).empty());
   assert(browser_location_text(kHomeUrl).empty());
   assert(browser_location_text("https://example.com/") == "https://example.com/");
+
+  {
+    const auto bookmarks_panel = browser_panel_presentation("bookmarks");
+    assert(bookmarks_panel.title == "Bookmarks");
+    assert(bookmarks_panel.eyebrow == "LIBRARY");
+    assert(bookmarks_panel.body.find("Local Bookmarks") != std::string::npos);
+
+    const auto downloads_panel = browser_panel_presentation(
+        "Advanced Download Manager\nActive 0  Completed 0\nNo downloads.");
+    assert(downloads_panel.title == "Downloads");
+    assert(downloads_panel.body.find("No downloads.") != std::string::npos);
+
+    const auto security_panel = browser_panel_presentation("wardveil-security");
+    assert(security_panel.title == "Security");
+    assert(security_panel.status.find("pending") != std::string::npos);
+  }
 
   {
     EngineMediaHitTest hit;
@@ -284,6 +301,10 @@ int main() {
   const auto initial_chrome = smoke_chrome.snapshot();
   assert(initial_chrome.tabs.size() == 2);
   assert(initial_chrome.tabs.back().active);
+  assert(window.activate_previous_tab());
+  assert(window.active_tab() && window.active_tab()->id() == first.id());
+  assert(window.activate_next_tab());
+  assert(window.active_tab() && window.active_tab()->id() == second.id());
   const bool selected_first = window.select_tab(first.id(), false);
   const bool selected_second = window.select_tab(second.id(), true);
   const bool pinned = window.pin_selected_tabs(true);
