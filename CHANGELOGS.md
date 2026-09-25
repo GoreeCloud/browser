@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Android launcher branding provenance guard
+
+### Changed
+
+- Added fail-closed source checks that pin the Browser-local full-color and monochrome branding assets to the current canonical `GoreeCloud/branding-assets` Git blobs.
+- Pinned the reviewed Android launcher background, foreground, and monochrome packaging derivatives so silent redraws or substitutions fail CI.
+- Tightened adaptive-icon validation to require the expected Browser launcher drawable references.
+- Updated Android Beta workflow path filters so branding-only changes under `assets/branding/**` trigger launcher identity validation and APK verification.
+- Preserved the newer canonical Browser artwork and branding documentation already integrated by the Linux visual-acceptance tranche rather than reapplying superseded PR #75 artwork.
+
+### Acceptance boundary
+
+These checks establish source provenance and CI coverage only. They do not establish physical-launcher rendering quality, representative-device acceptance, accessibility, production signing, Release Candidate, production approval, or Stable/Anchor product maturity.
+
 ## 2026-09-25 — Linux real-device visual acceptance follow-up
 
 ### Changed
@@ -18,7 +32,7 @@
 
 ### Authority and acceptance boundary
 
-Canonical Browser branding is now verified at `GoreeCloud/branding-assets` main revision `a831479976fd3f82dc31cf9b7785145a757e7e28`. This tranche remains Development source work pending exact-head CI and fresh owner-device rendered review; it does not establish Browser-wide Glaze acceptance, renderer acceptance, Release Candidate, production approval, or Stable/Anchor product maturity.
+Canonical Browser branding is verified at `GoreeCloud/branding-assets` main revision `a831479976fd3f82dc31cf9b7785145a757e7e28`. Exact-head Browser Core CI and security workflows passed for the integrated Linux follow-up; fresh owner-device rendered review remains required. Android branding validation did not run for branding-only changes under the prior workflow path filter, which is corrected by the launcher-provenance follow-up below. This does not establish Browser-wide Glaze acceptance, renderer acceptance, Release Candidate, production approval, or Stable/Anchor product maturity.
 
 ## 2026-09-25 — Glaze V1.6 contract and responsive follow-up
 
