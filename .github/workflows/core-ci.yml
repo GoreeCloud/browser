@@ -156,6 +156,7 @@ jobs:
       - name: Launch sandboxed CEF runtime under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
         run: |
           set -euo pipefail
 
