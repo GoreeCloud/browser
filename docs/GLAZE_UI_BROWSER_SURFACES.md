@@ -1,6 +1,6 @@
 # GoreeCloud Browser — Glaze UI Surface Model
 
-This document maps Glaze UI 2.0 Stable into Browser-owned product surfaces. It is an implementation specification, not a claim that every surface has completed acceptance.
+This document maps GLAZE UI V1.6 / 1.6.0 into Browser-owned product surfaces. Canonical GoreeCloud lifecycle is Anchor; retained Stable terminology refers only to the compatible consumer release channel. It is an implementation specification, not a claim that every surface has completed acceptance.
 
 ## Browser chrome
 
@@ -8,14 +8,17 @@ The primary Browser frame uses Glaze semantic layout, spacing, color, material, 
 
 ### Material hierarchy
 
-- **Canvas** — root application/background plane.
-- **Surface** — high-legibility content and control regions.
-- **Soft Glaze** — low-emphasis contextual translucency where readability remains deterministic.
-- **Glaze** — primary bounded translucent controls such as navigation/search capsules.
-- **Deep Glaze** — stronger separation for sheets, panels, menus, and other layered UI.
-- **Live Glaze** — bounded active-context surfaces whose motion/translucency safely degrades under accessibility preferences.
+Browser maps the V1.6 material roles into native platform primitives:
 
-Reduced-transparency or readability constraints must collapse translucent treatments to a suitable solid Surface rather than preserving a visual effect at the expense of legibility.
+- **Canvas** — root application/background plane.
+- **Solid / Raised** — high-legibility reading, settings, warning, and durable content surfaces.
+- **Functional Glass** — bounded navigation, omnibox, toolbar, and transient-control surfaces.
+- **Clear Glass** — specialized presentation only where media/background context remains readable.
+- **Overlay** — explicit layered separation for menus, popovers, dialogs, and sheets.
+
+The inherited Browser names Soft Glaze, Glaze, Deep Glaze, and Live Glaze remain compatibility mappings where they are already implemented; they do not override the V1.6 clarity and accessibility rules.
+
+Reduced Transparency, unsupported backdrop effects, runtime pressure, or readability constraints must collapse optional effects toward solid/raised presentation without losing hierarchy, labels, focus, state, or task continuity.
 
 ## Appearance, clarity, and expression
 
@@ -68,4 +71,13 @@ Safe areas, system bars, window controls, virtual keyboards, display cutouts, fo
 
 ## Production acceptance
 
-Compiling against Glaze UI 2.0 metadata is not production acceptance. Representative Browser task flows must demonstrate current-Stable behavior across supported platforms, layout/input/accessibility modes, and relevant form-factor constraints before Browser can use that evidence for release qualification.
+Compiling against GLAZE UI V1.6 / 1.6.0 metadata is not production acceptance. Representative Browser task flows must demonstrate current-Stable behavior across supported platforms, layout/input/accessibility modes, and relevant form-factor constraints before Browser can use that evidence for release qualification.
+
+
+## Linux GTK stabilization mapping
+
+The GTK/X11 beta shell uses a Browser-owned V1.6 native mapping rather than framework-default chrome. Primary navigation is grouped, the omnibox remains the dominant navigation capsule, privacy/security entry points remain neutral until authoritative state is supplied, and secondary tools use an accessible overflow surface. Browser-owned New Tab, Home, Settings, Private, and tool surfaces use structured solid/raised presentation rather than raw centered status text.
+
+Symbolic theme icons are used only when the local GTK icon theme provides them; compact local text glyphs remain the deterministic fallback so missing theme assets cannot create blank controls. Tooltips and accessible names remain authoritative labels.
+
+This source mapping is implementation evidence only. Native rendered review, narrow-window behavior, assistive-technology review, large-text, localization/RTL, reduced-effects, performance, and representative-device acceptance remain required.
