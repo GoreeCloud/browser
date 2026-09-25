@@ -189,6 +189,9 @@ class GoreeCloudSearchContractTest {
             "browser\rquery",
             "browser\u007fquery",
             "browser\u0085query",
+            "browser\u061cquery",
+            "browser\u202equery",
+            "browser\u2066query",
             "\nbrowser", "browser\n", "\tbrowser", "browser\r",
             "x".repeat(GoreeCloudSearchContract.MAX_QUERY_CHARS + 1),
         )
@@ -206,6 +209,17 @@ class GoreeCloudSearchContractTest {
                 decision,
             )
         }
+    }
+
+    @Test
+    fun ordinaryUnicodeShapingRemainsAllowed() {
+        val decision = GoreeCloudSearchContract.authorize(
+            query = "family 👩‍💻 search",
+            capability = capability(),
+            privacyAuthorization = authorization(),
+            requesterAuthentication = requesterAuthentication(),
+        )
+        assertTrue(decision is GoreeCloudSearchContract.Decision.Allowed)
     }
 
     @Test
