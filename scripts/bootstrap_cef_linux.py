@@ -23,6 +23,8 @@ CEF_DISTRIBUTION_KIND = "minimal"
 CEF_DISTRIBUTION = f"cef_binary_{CEF_VERSION}_{CEF_PLATFORM}_{CEF_DISTRIBUTION_KIND}"
 CEF_ARCHIVE = f"{CEF_DISTRIBUTION}.tar.bz2"
 CEF_DOWNLOAD_BASE = "https://cef-builds.spotifycdn.com"
+CEF_ARCHIVE_SHA1 = "9711b86c105fb590da576fe5a829802f1a79d520"
+CEF_ARCHIVE_SHA256 = "daf8c2b6e63787d6a91d666205a8a4521419937eabaf47723738c86aea7135bd"
 USER_AGENT = "GoreeCloud-Browser-CEF-Bootstrap/0.1"
 PROVENANCE_FILE = ".goreecloud-cef-provenance.json"
 _REQUIRED_FILES = (
@@ -77,7 +79,14 @@ def _fetch_official_sha1() -> str:
         raise BootstrapError(f"Unable to fetch official CEF checksum: {exc}") from exc
     if not re.fullmatch(r"[0-9a-fA-F]{40}", value):
         raise BootstrapError("Official CEF checksum response is not a valid SHA-1 digest")
-    return value.lower()
+    value = value.lower()
+    if value != CEF_ARCHIVE_SHA1:
+        raise BootstrapError(
+            "Official CEF checksum no longer matches the source-pinned minimal archive "
+            f"SHA-1: expected {CEF_ARCHIVE_SHA1}, got {value}. "
+            "A reviewed dependency update is required."
+        )
+    return value
 
 
 def _download_archive(destination: Path, expected_sha1: str) -> str:
@@ -85,11 +94,15 @@ def _download_archive(destination: Path, expected_sha1: str) -> str:
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     if destination.exists():
-        current = _sha1(destination)
-        if current == expected_sha1:
-            _log(f"Using verified cached archive: {destination}")
-            return _sha256(destination)
-        _log("Cached archive checksum mismatch; replacing the invalid cache entry.")
+        current_sha1 = _sha1(destination)
+        current_sha256 = _sha256(destination)
+        if (
+            current_sha1 == expected_sha1 == CEF_ARCHIVE_SHA1
+            and current_sha256 == CEF_ARCHIVE_SHA256
+        ):
+            _log(f"Using source-pinned verified cached archive: {destination}")
+            return current_sha256
+        _log("Cached archive hash mismatch; replacing the invalid cache entry.")
         destination.unlink()
 
     partial = destination.with_suffix(destination.suffix + ".part")
@@ -121,14 +134,20 @@ def _download_archive(destination: Path, expected_sha1: str) -> str:
         raise BootstrapError(f"Unable to download pinned CEF archive: {exc}") from exc
 
     actual_sha1 = digest1.hexdigest()
-    if actual_sha1 != expected_sha1:
+    actual_sha256 = digest256.hexdigest()
+    if actual_sha1 != expected_sha1 or actual_sha1 != CEF_ARCHIVE_SHA1:
         partial.unlink(missing_ok=True)
         raise BootstrapError(
-            f"CEF archive checksum mismatch: expected {expected_sha1}, got {actual_sha1}"
+            f"CEF archive SHA-1 mismatch: expected {CEF_ARCHIVE_SHA1}, got {actual_sha1}"
+        )
+    if actual_sha256 != CEF_ARCHIVE_SHA256:
+        partial.unlink(missing_ok=True)
+        raise BootstrapError(
+            f"CEF archive SHA-256 mismatch: expected {CEF_ARCHIVE_SHA256}, got {actual_sha256}"
         )
     partial.replace(destination)
-    _log("CEF archive checksum verified against the official CEF checksum endpoint.")
-    return digest256.hexdigest()
+    _log("CEF archive verified against the source-pinned SHA-1 and SHA-256 identities.")
+    return actual_sha256
 
 
 def _validate_member(member: tarfile.TarInfo) -> None:
@@ -178,8 +197,8 @@ def _cached_root_is_accepted(root: Path) -> bool:
         and provenance.get("chromium_version") == CHROMIUM_VERSION
         and provenance.get("platform") == CEF_PLATFORM
         and provenance.get("distribution") == CEF_DISTRIBUTION_KIND
-        and bool(re.fullmatch(r"[0-9a-f]{40}", provenance.get("official_sha1", "")))
-        and bool(re.fullmatch(r"[0-9a-f]{64}", provenance.get("archive_sha256", "")))
+        and provenance.get("official_sha1") == CEF_ARCHIVE_SHA1
+        and provenance.get("archive_sha256") == CEF_ARCHIVE_SHA256
     )
 
 
@@ -250,6 +269,8 @@ def _spec() -> dict:
         "archive": CEF_ARCHIVE,
         "archive_url": _official_url(CEF_ARCHIVE),
         "checksum_url": _official_url(f"{CEF_ARCHIVE}.sha1"),
+        "archive_sha1": CEF_ARCHIVE_SHA1,
+        "archive_sha256": CEF_ARCHIVE_SHA256,
     }
 
 

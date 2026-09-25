@@ -36,7 +36,7 @@ It must not be represented as:
 
 `ChromiumEngineAdapter` defines the current integration seam. Chromium/Blink implementation types must remain behind that boundary.
 
-The Linux Development render candidate is source-pinned to CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`. The Browser-owned bootstrap verifies the official CEF checksum before extraction, records local SHA-256 provenance, validates safe extraction and expected runtime layout, and CMake rejects a CEF root whose reported version differs from the source pin. The exact archive hashes are emitted by the compile-validation workflow so they can be promoted into immutable repository evidence after successful exact-head validation.
+The Linux Development render candidate is source-pinned to CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`. The Browser-owned bootstrap requires the official CEF checksum to match repository-pinned SHA-1 `9711b86c105fb590da576fe5a829802f1a79d520`, verifies the minimal archive against repository-pinned SHA-256 `daf8c2b6e63787d6a91d666205a8a4521419937eabaf47723738c86aea7135bd`, validates safe extraction and expected runtime layout, and CMake rejects a CEF root whose reported version differs from the source pin.
 
 The first render-capable acceptance milestone still requires:
 

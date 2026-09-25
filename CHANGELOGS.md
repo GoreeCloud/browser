@@ -12,7 +12,8 @@
 - Added a narrowly triggered Ubuntu 22.04 workflow that downloads the checksum-verified pinned CEF distribution and compiles the actual CEF-enabled GoreeCloud Browser when renderer/bootstrap source changes.
 - Enabled the C language in the Browser CMake project because current Stable CEF performs C compiler capability checks during configuration.
 - Made the CEF version a source-owned constant rather than a user-overridable CMake cache value, so changing the renderer pin requires a reviewed repository change.
-- Emit exact official SHA-1 and observed SHA-256 archive identities during bootstrap/provenance validation so accepted bytes can be promoted into immutable dependency evidence.
+- Promoted the verified minimal CEF archive identities into repository-owned dependency pins: SHA-1 `9711b86c105fb590da576fe5a829802f1a79d520` and SHA-256 `daf8c2b6e63787d6a91d666205a8a4521419937eabaf47723738c86aea7135bd`.
+- Corrected the Chromium adapter smoke target to use the checked-in `apps/browser/chromium_adapter_smoke.cpp` source instead of the nonexistent `apps/browser/chromium_smoke.cpp`.
 - The gate runs the repository render-candidate build script, CTest suite, linked-library resolution check, copied CEF runtime-layout check, and extracted provenance-record validation.
 - The workflow does not launch a graphical browser or claim runtime-render acceptance; its purpose is to detect CEF API, link, packaging-layout, and toolchain incompatibilities before representative-device testing.
 

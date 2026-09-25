@@ -93,6 +93,6 @@ jobs:
           assert record["chromium_version"] == "152.0.7977.83"
           assert record["platform"] == "linux64"
           assert record["distribution"] == "minimal"
-          assert len(record["official_sha1"]) == 40
-          assert len(record["archive_sha256"]) == 64
+          assert record["official_sha1"] == "9711b86c105fb590da576fe5a829802f1a79d520"
+          assert record["archive_sha256"] == "daf8c2b6e63787d6a91d666205a8a4521419937eabaf47723738c86aea7135bd"
           PY
