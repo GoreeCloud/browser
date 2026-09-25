@@ -1,26 +1,28 @@
 package io.goreecloud.browser
 
 /**
- * Browser-owned Android-native mapping for GLAZE UI V1.5 / 1.5.1 Stable.
+ * Browser-owned Android-native mapping for GLAZE UI V1.6 / 1.6.0.
  *
- * V1.5 inherits the V1.4.1 optical hardening baseline and adds a bounded
- * context/capability presentation-resolution layer. Glaze consumes authority
- * truth supplied by the owning system; it never creates authorization,
- * permission, provider precedence, navigation authority, or execution authority.
+ * V1.6 retains the inherited optical and authority boundaries while adding
+ * stronger component-state, accessibility, large-text, responsive-continuity,
+ * localization, status-provenance, and bounded-complexity requirements. Glaze
+ * consumes authority truth supplied by the owning system; it never creates
+ * authorization, permission, provider precedence, navigation authority, or
+ * execution authority.
  *
  * This source is implementation/mapping evidence only. Browser-local rendered,
  * accessibility, representative-device, performance, rollback, release, and
  * production acceptance remain separate gates.
  */
 object GlazeContract {
-    const val VERSION = "1.5.1"
-    const val STABLE_RELEASE_REVISION = "98da57064ede0f334627b632bc16801f580331af"
-    const val REVIEWED_IMPLEMENTATION_ANCHOR = "ee1032a0822ab8e103f8afe48e5c1859fde65cc9"
-    const val QUALIFICATION_SOURCE_ANCHOR = "5b59d0e36950d737dba35b58ae58058684e0831b"
-    const val QUALIFICATION_INTEGRATION_REVISION = "f7ef915f0aabea6cf92748018f2220a99e3a9c92"
+    const val VERSION = "1.6.0"
+    const val STABLE_RELEASE_REVISION = "a7180679ea851389e0f3004515f9a25f420e716d"
+    const val REVIEWED_IMPLEMENTATION_ANCHOR = "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"
+    const val QUALIFICATION_SOURCE_ANCHOR = "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"
+    const val QUALIFICATION_INTEGRATION_REVISION = "354f5759385c28596fcfec26a3ad525e89fb1c35"
     const val OPTICAL_BASELINE_VERSION = "1.4.1"
     const val OPTICAL_BASELINE_REVISION = "4fab9da0fad2e5c974e0e66ec88632c61745751c"
-    const val IMMEDIATE_ROLLBACK_VERSION = "1.5.0"
+    const val IMMEDIATE_ROLLBACK_VERSION = "1.5.1"
 
     // Compatibility names retained for existing Browser source consumers.
     // ACCEPTED_VISUAL_SOURCE identifies the reviewed central Glaze implementation
@@ -170,6 +172,10 @@ object GlazeContract {
         val usesVectorChromeIcons: Boolean,
         val usesPlatformPopupMenu: Boolean,
         val scrollAwareTopChrome: Boolean,
+        val supportsLargeTextReflow: Boolean,
+        val preservesNonColorStatusMeaning: Boolean,
+        val distinguishesCapabilityStates: Boolean,
+        val boundedVisualComplexity: Boolean,
     )
 
     val ANDROID_BROWSER_MAPPING = AndroidBrowserMapping(
@@ -193,6 +199,10 @@ object GlazeContract {
         usesVectorChromeIcons = true,
         usesPlatformPopupMenu = false,
         scrollAwareTopChrome = true,
+        supportsLargeTextReflow = true,
+        preservesNonColorStatusMeaning = true,
+        distinguishesCapabilityStates = true,
+        boundedVisualComplexity = true,
     )
 
     fun targetFloorDp(touchAssistance: Boolean): Int =
