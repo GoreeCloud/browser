@@ -9,6 +9,7 @@
 #include "goreecloud/browser/development_engine.hpp"
 #include "goreecloud/browser/in_memory_tab_manager.hpp"
 #include "goreecloud/browser/internal_pages.hpp"
+#include "goreecloud/browser/glaze.hpp"
 #include "goreecloud/browser/media_hover.hpp"
 #include "goreecloud/browser/media_hover_controller.hpp"
 #include "goreecloud/browser/media_hover_ui.hpp"
@@ -26,6 +27,15 @@ int main() {
 
   static_assert(kDefaultToolbar.size() == 12);
   static_assert(kUnifiedSearchBarControls.size() == 3);
+  static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.6.0"});
+  static_assert(kCurrentGlazeUiStableRevision ==
+                std::string_view{"a7180679ea851389e0f3004515f9a25f420e716d"});
+  static_assert(kCurrentGlazeUiQualificationSourceAnchor ==
+                std::string_view{"c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"});
+  static_assert(kGlazeUiImmediateRollbackVersion == std::string_view{"1.5.1"});
+  static_assert(kBrowserGlazeCapabilities.complete_component_states);
+  static_assert(kBrowserGlazeCapabilities.large_text_reflow);
+  static_assert(kBrowserGlazeCapabilities.non_color_semantic_indicators);
   static_assert(!kAlternateSearchProvidersAllowed);
   static_assert(!kSilentSearchFallbackAllowed);
   static_assert(kBetaChannel);
