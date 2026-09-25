@@ -30,7 +30,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Installable Development APK target with Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product policy and behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
-- Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search for non-URL input.
+- Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search classification for non-URL input; the dormant Search-delegation boundary rejects over-limit queries plus C0/C1 and Unicode Bidi_Control formatting characters before request construction while preserving ordinary Unicode shaping text.
 - Browser-intent handling for HTTP/HTTPS links.
 - TLS errors fail closed; Android Safe Browsing enabled with return-to-safety behavior.
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
