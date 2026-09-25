@@ -19,7 +19,7 @@ struct CefRuntimeOptions {
   char** process_argv{nullptr};
   bool enable_gpu{true};
   bool enable_sandbox{true};
-  bool external_message_pump{true};
+  bool external_message_pump{false};
   bool windowless_rendering{false};
 };
 
