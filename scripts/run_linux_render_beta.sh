@@ -38,4 +38,9 @@ export GOREECLOUD_BROWSER_RESOURCES="$build_dir"
 export GOREECLOUD_BROWSER_LOCALES="$build_dir/locales"
 export LD_LIBRARY_PATH="$build_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+# CEF resolves Linux runtime data relative to the loaded runtime/executable
+# environment. Run from the verified payload directory so libcef.so,
+# icudtl.dat, pak files, snapshots, locales, and the subprocess executable
+# share one canonical runtime location.
+cd "$build_dir"
 exec "$browser" "$@"
