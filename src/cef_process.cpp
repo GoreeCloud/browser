@@ -22,7 +22,16 @@ int execute_cef_subprocess_if_needed(int argc, char** argv) {
   }
 
   CefMainArgs main_args(argc, argv);
-  CefRefPtr<GoreeCloudCefRenderApp> app = new GoreeCloudCefRenderApp();
+
+  CefRefPtr<CefApp> app;
+  for (int index = 1; index < argc; ++index) {
+    if (!argv[index]) continue;
+    if (std::string_view{argv[index]} == "--type=renderer") {
+      app = new GoreeCloudCefRenderApp();
+      break;
+    }
+  }
+
   const int exit_code = CefExecuteProcess(main_args, app, nullptr);
 
   if (diagnostic) {
