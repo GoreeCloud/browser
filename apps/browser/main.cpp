@@ -31,7 +31,11 @@ int main(int argc, char** argv) {
     options.initial_private_session_id = launch.isolated_private_window
                                              ? "isolated-private-1"
                                              : "shared-private";
-    if (!launch.urls.empty()) {
+    const char* initial_url_env =
+        std::getenv("GOREECLOUD_BROWSER_INITIAL_URL");
+    if (initial_url_env && *initial_url_env) {
+      options.initial_url = initial_url_env;
+    } else if (!launch.urls.empty()) {
       options.initial_url = launch.urls.front();
     } else {
       options.initial_url = launch.private_window
