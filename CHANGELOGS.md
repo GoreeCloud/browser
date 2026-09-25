@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Linux CEF render-candidate compile gate
+
+### Changed
+
+- Added an exact-head Ubuntu 22.04 Core CI lane that fetches the repository-pinned official CEF Linux x86_64 minimal distribution through the checksum-verifying Browser bootstrap.
+- Builds the real Chromium/CEF + GTK/X11 Browser configuration using the same `scripts/build_linux_render_beta.sh` path intended for owner-device testing.
+- Installs the Linux desktop/runtime development packages required by the selected CEF candidate without disabling sandbox, site isolation, TLS, or other renderer protections.
+- Verifies that the resulting Browser executable and required CEF runtime payload are present after the build.
+
+### Acceptance boundary
+
+A passing compile lane establishes exact-head source/dependency/build integration evidence only. It does not establish that a page rendered successfully, that the Linux sandbox is operational on a representative installation, that private contexts are isolated at runtime, or that the Browser has reached render-capable Beta, Release Candidate, production approval, or Stable/Anchor maturity.
+
 ## 2026-09-25 — Pinned Linux CEF render bootstrap
 
 ### Changed
