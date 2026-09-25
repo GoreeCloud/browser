@@ -122,19 +122,7 @@ class GoreeCloudCefClient final : public CefClient,
     args->SetDouble(0, static_cast<double>(sequence));
     args->SetInt(1, viewport_x);
     args->SetInt(2, viewport_y);
-    if (!frame->SendProcessMessage(PID_RENDERER, message)) {
-      MediaProbeCallback failed;
-      {
-        std::scoped_lock lock(media_probe_mutex_);
-        auto it = pending_media_probes_.find(sequence);
-        if (it != pending_media_probes_.end()) {
-          failed = std::move(it->second);
-          pending_media_probes_.erase(it);
-        }
-      }
-      if (failed) failed(sequence, std::nullopt);
-      return false;
-    }
+    frame->SendProcessMessage(PID_RENDERER, message);
     return true;
   }
 
