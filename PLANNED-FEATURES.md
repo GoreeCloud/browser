@@ -29,7 +29,7 @@ Items here are planned, incomplete, blocked, or acceptance-gated. Their presence
 - Browser-owned tab strip/tab switcher and multi-tab lifecycle.
 - Bookmarks, history, library, settings, downloads UI, Reader Mode, and Wayfinder mobile surfaces.
 - Full private-browsing product surfaces and Close & Forget behavior.
-- Complete navigation/address safety for malformed URLs, user-info disclosure, IDN/confusable/spoofing, origin/certificate presentation, bidirectional text, and any future explicitly authorized external-app/deep-link handoff. The current Android shell keeps unsupported web-initiated schemes fail-closed and now provides payload-minimized local feedback for blocked top-level attempts.
+- Complete navigation/address safety for malformed URLs, user-info disclosure, IDN/confusable/spoofing, origin/certificate presentation, bidirectional text, and any future explicitly authorized external-app/deep-link handoff. The current Android shell keeps unsupported web-initiated schemes fail-closed, provides payload-minimized local feedback for blocked top-level attempts, and applies a restrictive CSP/no-referrer document policy to Browser-owned local pages; representative-device and full navigation-trust acceptance remain open.
 - Mature session restoration and Browser-owned durable recovery.
 - Complete native extension installation, sandbox/process runtime, trusted developer-key authority, extension networking/storage/UI, privileged APIs, updates, developer tooling, and production trust/acceptance.
 - Complete desktop render-capable runtime acceptance and preserve rendering-engine replaceability.
