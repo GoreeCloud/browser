@@ -14,21 +14,21 @@ class GlazeContractTest {
 
     @Test
     fun androidBrowserTargetsCurrentStableGlazeContract() {
-        assertEquals("1.5.1", GlazeContract.VERSION)
+        assertEquals("1.6.0", GlazeContract.VERSION)
         assertEquals(
-            "98da57064ede0f334627b632bc16801f580331af",
+            "a7180679ea851389e0f3004515f9a25f420e716d",
             GlazeContract.STABLE_RELEASE_REVISION,
         )
         assertEquals(
-            "ee1032a0822ab8e103f8afe48e5c1859fde65cc9",
+            "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a",
             GlazeContract.REVIEWED_IMPLEMENTATION_ANCHOR,
         )
         assertEquals(
-            "5b59d0e36950d737dba35b58ae58058684e0831b",
+            "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a",
             GlazeContract.QUALIFICATION_SOURCE_ANCHOR,
         )
         assertEquals(
-            "f7ef915f0aabea6cf92748018f2220a99e3a9c92",
+            "354f5759385c28596fcfec26a3ad525e89fb1c35",
             GlazeContract.QUALIFICATION_INTEGRATION_REVISION,
         )
         assertEquals("1.4.1", GlazeContract.OPTICAL_BASELINE_VERSION)
@@ -36,7 +36,7 @@ class GlazeContractTest {
             "4fab9da0fad2e5c974e0e66ec88632c61745751c",
             GlazeContract.OPTICAL_BASELINE_REVISION,
         )
-        assertEquals("1.5.0", GlazeContract.IMMEDIATE_ROLLBACK_VERSION)
+        assertEquals("1.5.1", GlazeContract.IMMEDIATE_ROLLBACK_VERSION)
         assertEquals(
             GlazeContract.STABLE_RELEASE_REVISION,
             GlazeContract.SOURCE_INTEGRATION_ANCHOR,
@@ -201,6 +201,10 @@ class GlazeContractTest {
         assertTrue(mapping.usesVectorChromeIcons)
         assertFalse(mapping.usesPlatformPopupMenu)
         assertTrue(mapping.scrollAwareTopChrome)
+        assertTrue(mapping.supportsLargeTextReflow)
+        assertTrue(mapping.preservesNonColorStatusMeaning)
+        assertTrue(mapping.distinguishesCapabilityStates)
+        assertTrue(mapping.boundedVisualComplexity)
     }
 
     @Test
