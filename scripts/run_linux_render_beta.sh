@@ -34,8 +34,13 @@ fi
 
 export GOREECLOUD_BROWSER_RUNTIME_ROOT="$build_dir"
 subprocess="$build_dir/goreecloud-browser-subprocess"
+if [[ ! -x "$subprocess" && -x "$build_dir/Release/goreecloud-browser-subprocess" ]]; then
+  subprocess="$build_dir/Release/goreecloud-browser-subprocess"
+fi
 if [[ ! -x "$subprocess" ]]; then
-  echo "CEF subprocess helper missing from build output: $subprocess" >&2
+  echo "CEF subprocess helper missing from build output." >&2
+  echo "Checked: $build_dir/goreecloud-browser-subprocess" >&2
+  echo "Checked: $build_dir/Release/goreecloud-browser-subprocess" >&2
   exit 1
 fi
 export GOREECLOUD_BROWSER_SUBPROCESS="$subprocess"
