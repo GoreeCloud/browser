@@ -1,5 +1,6 @@
 #include "goreecloud/browser/platform/gtk_linux_glaze_host.hpp"
 
+#include <array>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -14,6 +15,7 @@
 #include "goreecloud/browser/live_media_hover_coordinator.hpp"
 #include "goreecloud/browser/media_hit_test_provider.hpp"
 #include "goreecloud/browser/native_engine_surface.hpp"
+#include "goreecloud/browser/panel_surface.hpp"
 #include "goreecloud/browser/platform/gtk_media_hover_popover.hpp"
 
 namespace goreecloud::browser::platform {
@@ -196,6 +198,65 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (self->tab_action_handler) {
       self->tab_action_handler(GtkTabAction::create, {});
     }
+  }
+
+  static gboolean on_window_key_press(GtkWidget*, GdkEventKey* event,
+                                      gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (!event) return FALSE;
+
+    const bool control = (event->state & GDK_CONTROL_MASK) != 0;
+    const bool shift = (event->state & GDK_SHIFT_MASK) != 0;
+    const bool alt = (event->state & GDK_MOD1_MASK) != 0;
+
+    if (control && event->keyval == GDK_KEY_l && self->search_entry) {
+      gtk_widget_grab_focus(self->search_entry);
+      gtk_editable_select_region(GTK_EDITABLE(self->search_entry), 0, -1);
+      return TRUE;
+    }
+    if (control && !shift && event->keyval == GDK_KEY_t &&
+        self->tab_action_handler) {
+      self->tab_action_handler(GtkTabAction::create, {});
+      return TRUE;
+    }
+    if (control && !shift && event->keyval == GDK_KEY_w &&
+        self->tab_action_handler && !self->active_tab_id.empty()) {
+      self->tab_action_handler(GtkTabAction::close, self->active_tab_id);
+      return TRUE;
+    }
+    if (control &&
+        (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_Page_Down) &&
+        self->tab_action_handler) {
+      self->tab_action_handler(shift ? GtkTabAction::previous
+                                     : GtkTabAction::next,
+                               {});
+      return TRUE;
+    }
+    if (control &&
+        (event->keyval == GDK_KEY_ISO_Left_Tab ||
+         event->keyval == GDK_KEY_Page_Up) &&
+        self->tab_action_handler) {
+      self->tab_action_handler(GtkTabAction::previous, {});
+      return TRUE;
+    }
+    if ((control && event->keyval == GDK_KEY_r) ||
+        event->keyval == GDK_KEY_F5) {
+      if (self->toolbar_handler) self->toolbar_handler(ToolbarItem::refresh);
+      return TRUE;
+    }
+    if (alt && event->keyval == GDK_KEY_Left) {
+      if (self->toolbar_handler) self->toolbar_handler(ToolbarItem::back);
+      return TRUE;
+    }
+    if (alt && event->keyval == GDK_KEY_Right) {
+      if (self->toolbar_handler) self->toolbar_handler(ToolbarItem::forward);
+      return TRUE;
+    }
+    if (alt && event->keyval == GDK_KEY_Home) {
+      if (self->toolbar_handler) self->toolbar_handler(ToolbarItem::home);
+      return TRUE;
+    }
+    return FALSE;
   }
 
   static void on_search_activate(GtkEntry* entry, gpointer data) {
@@ -442,6 +503,25 @@ class GtkLinuxGlazeWindowHost::Impl {
       .gc-quick-action:hover {
         background-color: alpha(@theme_fg_color, 0.07);
       }
+      .gc-settings-grid {
+        margin-top: 8px;
+      }
+      .gc-settings-section {
+        min-width: 150px;
+        min-height: 44px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background-color: alpha(@theme_fg_color, 0.035);
+        border: 1px solid alpha(@theme_fg_color, 0.08);
+      }
+      .gc-panel-eyebrow {
+        opacity: 0.68;
+        font-size: 0.82em;
+        font-weight: 700;
+      }
+      .gc-panel-status {
+        margin-top: 4px;
+      }
       .gc-status-row { margin-top: 10px; }
       .gc-status-chip {
         padding: 6px 10px;
@@ -476,6 +556,8 @@ class GtkLinuxGlazeWindowHost::Impl {
     add_style_class(window, "gc-browser-window");
     if (private_window) add_style_class(window, "gc-private-window");
     g_signal_connect(window, "destroy", G_CALLBACK(on_window_destroy), this);
+    g_signal_connect(window, "key-press-event",
+                     G_CALLBACK(on_window_key_press), this);
 
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(window), root);
@@ -539,6 +621,14 @@ class GtkLinuxGlazeWindowHost::Impl {
 
   void render_tabs(const BrowserChromeState& state) {
     if (!tab_list) return;
+
+    active_tab_id.clear();
+    for (const auto& tab : state.tabs) {
+      if (tab.active) {
+        active_tab_id = tab.id;
+        break;
+      }
+    }
 
     std::string signature;
     for (const auto& tab : state.tabs) {
@@ -769,17 +859,33 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_box_pack_start(GTK_BOX(internal_card), internal_actions,
                        FALSE, FALSE, 0);
 
+    settings_grid = gtk_flow_box_new();
+    gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(settings_grid), GTK_SELECTION_NONE);
+    gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(settings_grid), 8);
+    gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(settings_grid), 8);
+    gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(settings_grid), 1);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(settings_grid), 3);
+    add_style_class(settings_grid, "gc-settings-grid");
+    constexpr std::array<const char*, 9> kVisibleSettingsSections{
+        "General", "Appearance", "Search",
+        "Privacy & blocking", "Wardveil Security", "Downloads",
+        "Network & DNS", "Accessibility", "Advanced"};
+    for (const auto* section : kVisibleSettingsSections) {
+      auto* label = gtk_label_new(section);
+      gtk_label_set_xalign(GTK_LABEL(label), 0.0F);
+      add_style_class(label, "gc-settings-section");
+      set_accessible_name(label, section);
+      gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid), label, -1);
+    }
+    gtk_box_pack_start(GTK_BOX(internal_card), settings_grid, FALSE, FALSE, 0);
+
     auto* status_row = gtk_flow_box_new();
     gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(status_row), GTK_SELECTION_NONE);
     gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(status_row), 7);
     gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(status_row), 7);
     gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(status_row), 1);
-    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(status_row), 3);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(status_row), 1);
     add_style_class(status_row, "gc-status-row");
-    gtk_flow_box_insert(GTK_FLOW_BOX(status_row),
-                        make_status_chip("Development build"), -1);
-    gtk_flow_box_insert(GTK_FLOW_BOX(status_row),
-                        make_status_chip("Glaze UI 1.6"), -1);
     internal_status = make_status_chip("Desktop renderer integration pending");
     gtk_flow_box_insert(GTK_FLOW_BOX(status_row), internal_status, -1);
     gtk_box_pack_start(GTK_BOX(internal_card), status_row, FALSE, FALSE, 0);
@@ -798,6 +904,11 @@ class GtkLinuxGlazeWindowHost::Impl {
     add_style_class(panel_card, "gc-panel-card");
     gtk_box_pack_start(GTK_BOX(panel_canvas), panel_card, TRUE, FALSE, 0);
 
+    panel_eyebrow = gtk_label_new("GOREECLOUD BROWSER");
+    gtk_label_set_xalign(GTK_LABEL(panel_eyebrow), 0.0F);
+    add_style_class(panel_eyebrow, "gc-panel-eyebrow");
+    gtk_box_pack_start(GTK_BOX(panel_card), panel_eyebrow, FALSE, FALSE, 0);
+
     panel_title = gtk_label_new("Browser tool");
     gtk_label_set_xalign(GTK_LABEL(panel_title), 0.0F);
     add_style_class(panel_title, "gc-panel-title");
@@ -809,6 +920,10 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_label_set_max_width_chars(GTK_LABEL(panel_label), 72);
     add_style_class(panel_label, "gc-panel-copy");
     gtk_box_pack_start(GTK_BOX(panel_card), panel_label, FALSE, FALSE, 0);
+
+    panel_status = make_status_chip("Development surface");
+    add_style_class(panel_status, "gc-panel-status");
+    gtk_box_pack_start(GTK_BOX(panel_card), panel_status, FALSE, FALSE, 0);
 
     gtk_stack_add_named(GTK_STACK(content_stack), panel_canvas, "panel");
   }
@@ -829,11 +944,30 @@ class GtkLinuxGlazeWindowHost::Impl {
     }
 
     const bool launch_surface = url == kNewTabUrl || url == kHomeUrl;
+    const bool settings_surface = url == kSettingsUrl;
     if (internal_search_entry) {
       gtk_widget_set_visible(internal_search_entry, launch_surface);
       if (launch_surface) gtk_entry_set_text(GTK_ENTRY(internal_search_entry), "");
     }
     if (internal_actions) gtk_widget_set_visible(internal_actions, launch_surface);
+    if (settings_grid) gtk_widget_set_visible(settings_grid, settings_surface);
+  }
+
+  void set_panel_surface_copy(std::string_view payload) {
+    const auto presentation = browser_panel_presentation(payload);
+    if (panel_eyebrow) {
+      gtk_label_set_text(GTK_LABEL(panel_eyebrow), presentation.eyebrow.c_str());
+    }
+    if (panel_title) {
+      gtk_label_set_text(GTK_LABEL(panel_title), presentation.title.c_str());
+    }
+    if (panel_label) {
+      gtk_label_set_text(GTK_LABEL(panel_label), presentation.body.c_str());
+    }
+    if (panel_status) {
+      gtk_label_set_text(GTK_LABEL(panel_status), presentation.status.c_str());
+      gtk_widget_set_visible(panel_status, !presentation.status.empty());
+    }
   }
 
   void show() {
@@ -936,17 +1070,21 @@ class GtkLinuxGlazeWindowHost::Impl {
   GtkWidget* internal_subtitle{nullptr};
   GtkWidget* internal_search_entry{nullptr};
   GtkWidget* internal_actions{nullptr};
+  GtkWidget* settings_grid{nullptr};
   GtkWidget* internal_status{nullptr};
   GtkWidget* panel_canvas{nullptr};
   GtkWidget* panel_card{nullptr};
+  GtkWidget* panel_eyebrow{nullptr};
   GtkWidget* panel_title{nullptr};
   GtkWidget* panel_label{nullptr};
+  GtkWidget* panel_status{nullptr};
   GtkCssProvider* css{nullptr};
 
   EngineView* attached_view{nullptr};
   NativeWindowMetrics metrics{1280, 800, 1.0F};
   guint media_hover_timer_id{0};
   std::string tab_signature;
+  std::string active_tab_id;
   bool private_window{false};
   bool created{false};
   bool close_requested{false};
@@ -1053,7 +1191,7 @@ void GtkLinuxGlazeWindowHost::show_panel(std::string_view panel_id) {
   impl_->media_hover.invalidate();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
   if (!impl_->content_stack || !impl_->panel_label) return;
-  gtk_label_set_text(GTK_LABEL(impl_->panel_label), std::string{panel_id}.c_str());
+  impl_->set_panel_surface_copy(panel_id);
   gtk_stack_set_visible_child_name(GTK_STACK(impl_->content_stack), "panel");
 }
 

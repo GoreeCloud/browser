@@ -17,6 +17,8 @@ enum class GtkTabAction {
   activate,
   close,
   create,
+  next,
+  previous,
 };
 
 class GtkLinuxGlazeWindowHost final : public NativeWindowHost {

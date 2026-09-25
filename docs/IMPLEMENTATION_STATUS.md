@@ -16,7 +16,7 @@ The repository currently contains GoreeCloud-owned contracts and initial runtime
 - Explicit Local Bookmarks versus GoreeCloud Bookmarks destination selection.
 - Explicit Local Vault versus GoreeCloud Vault destination selection.
 - Latest-approved-Stable Glaze UI build baseline enforcement.
-- Approved Tabmark artwork and artwork governance.
+- Canonical Browser compass artwork synchronized from `GoreeCloud/branding-assets` with consumer provenance checks.
 - Flatpak packaging scaffold for Linux.
 - WiX installer scaffold for Windows `.exe` distribution.
 - Android Gradle application scaffold with HTTP/HTTPS browser-role intent declarations for future APK builds.
@@ -59,29 +59,29 @@ The first adapter milestone requires:
 
 ### Linux Flatpak
 
-`packaging/flatpak/io.goreecloud.Browser.yml` establishes the initial Flatpak application identity and permission surface. It is not production-ready until Chromium runtime packaging, sandbox behavior, portals, codecs, desktop metadata, Tabmark derivatives, signing, and installation/upgrade validation are complete.
+`packaging/flatpak/io.goreecloud.Browser.yml` establishes the initial Flatpak application identity and permission surface. It is not production-ready until Chromium runtime packaging, sandbox behavior, portals, codecs, desktop metadata, canonical compass derivatives, signing, and installation/upgrade validation are complete.
 
 ### Windows
 
-`packaging/windows/GoreeCloudBrowser.wxs` establishes the initial WiX installer definition for an eventual signed Windows installer executable. Production readiness additionally requires signed executable/installer artifacts, supported default-browser registration, application associations, upgrade/repair/uninstall validation, Chromium runtime packaging, Tabmark resources, and release-integrity evidence.
+`packaging/windows/GoreeCloudBrowser.wxs` establishes the initial WiX installer definition for an eventual signed Windows installer executable. Production readiness additionally requires signed executable/installer artifacts, supported default-browser registration, application associations, upgrade/repair/uninstall validation, Chromium runtime packaging, canonical compass resources, and release-integrity evidence.
 
 ### Android APK
 
-`apps/android` establishes a native Android application module using `io.goreecloud.browser`. The manifest declares launcher behavior and HTTP/HTTPS browsing intents. It deliberately does not implement the Browser as a generic WebView shell. Production APK acceptance requires native Browser runtime integration, Glaze UI, Chromium/approved engine integration, Tabmark adaptive/round/monochrome assets, external signing configuration, upgrade validation, and real-device evidence.
+`apps/android` establishes a native Android application module using `io.goreecloud.browser`. The manifest declares launcher behavior and HTTP/HTTPS browsing intents. It deliberately does not implement the Browser as a generic WebView shell. Production APK acceptance requires native Browser runtime integration, Glaze UI, Chromium/approved engine integration, canonical compass adaptive/round/monochrome assets, external signing configuration, upgrade validation, and real-device evidence.
 
 Signing secrets must remain outside source control for every platform.
 
 ## Next implementation milestones
 
-1. Implement the Linux Chromium adapter and native application window host.
-2. Connect Glaze UI Browser chrome to `WindowController`, `EngineView`, toolbar, and unified search state.
-3. Render GoreeCloud New Tab, Home, and Settings through the first-party internal-page host.
-4. Add Local Bookmarks persistence and GoreeCloud Bookmarks synchronization adapter.
-5. Add Local Vault persistence and GoreeCloud Vault synchronization adapter with explicit destination controls.
-6. Add local profile/session persistence and crash-safe restoration.
-7. Implement Privacy Shield interception boundaries and evidence reporting.
-8. Route Chromium download interception into GoreeCloud Advanced Download Manager.
-9. Add GoreeCloud Identity, Sync, DNS, Network, and service adapters.
+1. Complete the Linux CEF/Chromium render-capable runtime path and validate real HTTPS rendering on representative desktop hardware without weakening sandboxing or site isolation.
+2. Turn the current Development Bookmarks/Library surface into persisted Local Bookmarks plus an accepted GoreeCloud Bookmarks synchronization adapter with explicit authority separation.
+3. Turn the structured Settings surface into functional Browser-owned controls backed by authoritative provider/runtime state.
+4. Add Local Vault persistence and GoreeCloud Vault synchronization adapter with explicit destination controls.
+5. Complete local profile/session persistence and crash-safe restoration.
+6. Implement Privacy Shield interception boundaries and evidence reporting.
+7. Route Chromium download interception into GoreeCloud Advanced Download Manager.
+8. Add GoreeCloud Identity, Sync, DNS, Network, Policy, Observability, and remaining service adapters.
+9. Complete history/library/Reader Mode production surfaces and keyboard/accessibility behavior.
 10. Make Flatpak, Windows installer, and Android APK pipelines consume exact accepted Browser source and signed release metadata.
 
 ## Production rule
