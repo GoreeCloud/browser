@@ -38,16 +38,16 @@ if(GOREECLOUD_ENABLE_LINUX_GTK_HOST AND NOT UNIX)
   message(FATAL_ERROR "GOREECLOUD_ENABLE_LINUX_GTK_HOST is currently supported only on Linux/Unix")
 endif()
 
-set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "1.5.1" CACHE STRING
+set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "1.6.0" CACHE STRING
     "Current approved Stable Glaze UI version required by GoreeCloud Browser")
 set(GOREECLOUD_GLAZE_UI_STABLE_REVISION
-    "98da57064ede0f334627b632bc16801f580331af" CACHE STRING
+    "a7180679ea851389e0f3004515f9a25f420e716d" CACHE STRING
     "Exact reviewed Glaze UI Stable source integration anchor")
 
-if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "1.5.1")
+if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "1.6.0")
   message(FATAL_ERROR
-    "GoreeCloud Browser source currently accepts Glaze UI Stable 1.5.1. "
-    "Update the Browser Glaze adoption contract and acceptance evidence before changing the build baseline.")
+    "GoreeCloud Browser source currently targets Glaze UI V1.6 / 1.6.0. "
+    "Update the Browser Glaze adoption contract and exact-source evidence before changing the build baseline.")
 endif()
 
 add_library(goreecloud_browser_core INTERFACE)
