@@ -1,7 +1,9 @@
 #include "goreecloud/browser/cef_runtime.hpp"
 
+#include <chrono>
 #include <mutex>
 #include <optional>
+#include <thread>
 #include <stdexcept>
 #include <utility>
 
@@ -231,6 +233,19 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     if (!CefInitialize(main_args, settings, app, nullptr)) {
       throw std::runtime_error("CEF initialization failed");
     }
+
+    const auto context_deadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (!app->browser_context_initialized() &&
+           std::chrono::steady_clock::now() < context_deadline) {
+      CefDoMessageLoopWork();
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    if (!app->browser_context_initialized()) {
+      CefShutdown();
+      throw std::runtime_error(
+          "CEF browser context did not initialize before the startup deadline");
+    }
 #endif
     initialized_ = true;
   }
@@ -267,7 +282,7 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
   void do_message_loop_work() override {
     if (!initialized_) return;
 #if GOREECLOUD_ENABLE_CEF
-    if (options_.external_message_pump) CefDoMessageLoopWork();
+    CefDoMessageLoopWork();
 #endif
   }
 
