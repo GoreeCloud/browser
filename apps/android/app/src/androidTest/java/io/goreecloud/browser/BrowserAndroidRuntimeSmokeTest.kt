@@ -36,11 +36,16 @@ class BrowserAndroidRuntimeSmokeTest {
                     .any { it.text?.toString() == "GoreeCloud Browser" })
                 assertTrue(views.filterIsInstance<EditText>()
                     .any { it.contentDescription?.toString() == "Search or address bar" })
-                val controls = views.filterIsInstance<ImageButton>()
-                    .mapNotNull { it.contentDescription?.toString() }
+                val buttons = views.filterIsInstance<ImageButton>()
+                val controls = buttons.mapNotNull { it.contentDescription?.toString() }
                 assertTrue(controls.contains("Go"))
+                assertTrue(controls.contains("Back"))
+                assertTrue(controls.contains("Forward"))
                 assertTrue(controls.contains("Start page"))
                 assertTrue(controls.contains("Browser menu"))
+                assertTrue(controls.contains("Reload") || controls.contains("Stop loading"))
+                assertFalse(buttons.first { it.contentDescription?.toString() == "Back" }.isEnabled)
+                assertFalse(buttons.first { it.contentDescription?.toString() == "Forward" }.isEnabled)
 
                 val webView = views.filterIsInstance<WebView>().single()
                 val settings = webView.settings
