@@ -151,19 +151,7 @@ class GoreeCloudCefClient final : public CefClient,
     args->SetInt(3, request.maximum_width);
     args->SetInt(4, request.maximum_height);
 
-    if (!frame->SendProcessMessage(PID_RENDERER, message)) {
-      MediaPreviewCallback failed;
-      {
-        std::scoped_lock lock(media_preview_mutex_);
-        auto it = pending_media_previews_.find(request_id);
-        if (it != pending_media_previews_.end()) {
-          failed = std::move(it->second);
-          pending_media_previews_.erase(it);
-        }
-      }
-      if (failed) failed(std::nullopt, "Failed to send media preview request to renderer.");
-      return false;
-    }
+    frame->SendProcessMessage(PID_RENDERER, message);
     return true;
   }
 
