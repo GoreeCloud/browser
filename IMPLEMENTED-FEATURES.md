@@ -17,6 +17,8 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 ### Browser core and authority boundaries
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
+- Pinned Linux x86_64 CEF render-candidate bootstrap for CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`, with official-checksum verification, safe extraction, local SHA-256 provenance, exact-version CMake enforcement, and one-command Development build/launch scripts.
+- CEF browser-process initialization now receives the host Linux `argc/argv`, and X11 native child-window embedding uses the CEF integral window-handle type.
 - Linux GTK/X11 native beta shell build path.
 - Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, and keyboard-first shortcuts for common tab/navigation actions.
 - First-party Linux New Tab/Home search field and wired Bookmarks, Downloads, and Settings quick actions.

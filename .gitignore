@@ -1,0 +1,3 @@
+# Local Browser build/runtime caches
+.cache/cef/
+build-cef-render/

@@ -5,6 +5,22 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Pinned Linux CEF render bootstrap
+
+### Changed
+
+- Pinned the current Linux render milestone to CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83` using the official CEF Linux x86_64 minimal binary distribution.
+- Added a Browser-owned bootstrap that fetches the official CEF checksum first, verifies the archive, rejects unsafe extraction members, records local SHA-256 provenance, and reuses only a matching accepted cache.
+- Added CMake validation that rejects a CEF root whose `cef_version.h` does not report the exact repository pin.
+- Added one-command Linux render-candidate build and sandbox-preserving launch scripts.
+- Propagated the host Browser process `argc/argv` into CEF browser-process initialization and corrected the default subprocess executable name.
+- Corrected the X11 parent-window conversion to the integral CEF Linux window-handle type.
+- Added an offline CI contract gate that syntax-checks the bootstrap/launch scripts and verifies the bootstrap and CMake pins cannot silently diverge.
+
+### Acceptance boundary
+
+This establishes reproducible Development dependency/bootstrap evidence only. It does not establish successful CEF compilation on a representative machine, HTTPS rendering, private-context runtime acceptance, render-capable Beta status, Release Candidate, production approval, or Stable/Anchor product maturity.
+
 ## 2026-09-25 — Linux polish, semantic panels, and keyboard navigation
 
 ### Changed
