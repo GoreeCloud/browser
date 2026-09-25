@@ -48,6 +48,7 @@ This tranche is Development source implementation only. It does not establish re
 - Removed the obsolete requirement to synchronize feature-roadmap authority with Google Drive.
 - Preserved `FEATURES.md`, `SPECIFICATIONS.md`, supporting contracts, Git history, pull requests, workflow evidence, and `NOTES.md` as product/specification/evidence sources rather than duplicate feature-lifecycle authority.
 - Recorded the current V1.5.1 Browser source mapping as migration-required against current Official Stable GLAZE UI V1.6 / 1.6.0 rather than silently rebinding earlier evidence.
+- Added an identifier-level migration ledger for all 43 legacy Drive roadmap records (FR-001 through FR-003 and FR-010 through FR-049), preserving their last Drive-side priority/state/evidence as historical migration context while keeping current lifecycle authority repository-native.
 
 ### Lifecycle boundary
 
