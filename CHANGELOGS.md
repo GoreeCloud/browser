@@ -11,7 +11,7 @@
 
 - Replayed only the still-unintegrated IDN host-identity logic from historical PR #46 onto current authoritative Android architecture.
 - Unicode DNS host names are converted to ASCII A-label form before direct HTTP(S) navigation and Browser-owned unfocused address presentation.
-- STD3-invalid labels, invalid port syntax/ranges, credential-bearing authorities, and bracketed hosts that are not valid IPv6 literals fail closed.
+- STD3-invalid labels, invalid port syntax/ranges, credential-bearing authorities, bracketed hosts that are not valid IPv6 literals, and ambiguous numeric dotted host forms fail closed; only canonical four-octet decimal IPv4 is accepted as numeric direct-navigation identity.
 - Preserved path, query, fragment, explicit port, Search-versus-navigation classification, and existing fail-closed unsupported-scheme behavior.
 - Added current-main regression coverage for direct and scheme-less Unicode domains, A-label presentation, invalid STD3 labels, explicit ports, and bracketed IPv6 validation.
 
