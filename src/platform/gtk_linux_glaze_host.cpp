@@ -26,20 +26,52 @@ void set_accessible_name(GtkWidget* widget, const char* name) {
   if (auto* accessible = gtk_widget_get_accessible(widget)) atk_object_set_name(accessible, name);
 }
 
-GtkWidget* make_toolbar_button(const char* visible_label, const char* accessible_name) {
-  auto* button = gtk_button_new_with_label(visible_label);
+GtkWidget* make_icon_or_label(const char* icon_name, const char* fallback_label) {
+  auto* theme = gtk_icon_theme_get_default();
+  if (theme && icon_name && gtk_icon_theme_has_icon(theme, icon_name)) {
+    return gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_BUTTON);
+  }
+
+  auto* label = gtk_label_new(fallback_label);
+  gtk_style_context_add_class(gtk_widget_get_style_context(label), "gc-button-glyph");
+  return label;
+}
+
+GtkWidget* make_toolbar_button(const char* icon_name,
+                               const char* fallback_label,
+                               const char* accessible_name) {
+  auto* button = gtk_button_new();
+  gtk_container_add(GTK_CONTAINER(button), make_icon_or_label(icon_name, fallback_label));
   gtk_widget_set_size_request(button, kGlazeInteractiveTargetPx, kGlazeInteractiveTargetPx);
   gtk_style_context_add_class(gtk_widget_get_style_context(button), "gc-toolbar-button");
   set_accessible_name(button, accessible_name);
   return button;
 }
 
-std::string internal_surface_text(std::string_view url) {
-  if (url == kNewTabUrl) return "GoreeCloud Browser\n\nSearch or enter an address using the unified search bar.";
-  if (url == kHomeUrl) return "GoreeCloud Home\n\nYour first-party GoreeCloud Browser home surface.";
-  if (url == kSettingsUrl) return "GoreeCloud Settings\n\nBrowser settings use the latest approved Glaze UI design language.";
-  if (url == kPrivateStartUrl) return "Private Browsing\n\nTemporary local browsing state. Privacy Shield and Wardveil Security remain active according to their actual protection state. Private Browsing is not a guarantee of network anonymity.";
-  return std::string{url};
+struct InternalSurfaceCopy {
+  std::string eyebrow;
+  std::string title;
+  std::string body;
+};
+
+InternalSurfaceCopy internal_surface_copy(std::string_view url) {
+  if (url == kNewTabUrl) {
+    return {"GOREECLOUD BROWSER", "New Tab",
+            "Search with GoreeCloud Search or enter an address. Direct HTTP(S) navigation remains independent from search availability."};
+  }
+  if (url == kHomeUrl) {
+    return {"GOREECLOUD BROWSER", "Home",
+            "Your first-party GoreeCloud Browser home surface."};
+  }
+  if (url == kSettingsUrl) {
+    return {"BROWSER SETTINGS", "Settings",
+            "Browser-owned settings use the current Glaze UI presentation contract while underlying privacy, security, identity, and policy truth remains provider-owned."};
+  }
+  if (url == kPrivateStartUrl) {
+    return {"PRIVATE BROWSING", "Browse without local history persistence",
+            "This window uses temporary local browsing state. Privacy Shield and Wardveil Security remain authoritative for their own protection state. Private Browsing is not a guarantee of network anonymity."};
+  }
+  return {"GOREECLOUD BROWSER", "Browser Surface", std::string{url}};
 }
 
 }  // namespace
