@@ -13,6 +13,7 @@
 - Android icon resources and Browser chrome exist in source, but issue #33 still reports failed representative physical-device usability and incorrect launcher appearance. The canonical blue-compass asset and the older Tabmark consumer SVG/ARTWORK description also remain inconsistent; source packaging, official-asset derivation, and actual GoreeCloud Launcher/Trebuchet rendering require verified acceptance.
 - Browser platform conformance remains nonconformant; accepted runtime Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, Observability, and Browser-local Glaze acceptance remain incomplete.
 - Downloads and website permissions intentionally remain fail-closed where required authority has not been accepted.
+- The current Search-query boundary candidate rejects original C0/C1 and Unicode Bidi_Control formatting characters before omnibox classification or Search authorization, while preserving ordinary Unicode shaping such as ZWJ-based emoji. Remote Search remains dormant until accepted Privacy Shield, Identity, production capability, and transport evidence exists.
 
 ## Maintenance notes
 
