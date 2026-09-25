@@ -244,28 +244,14 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     CefString(&settings.root_cache_path) = options_.cache_root.string();
     CefString(&settings.locale) = options_.locale;
 
-    CefRefPtr<GoreeCloudCefRenderApp> app = new GoreeCloudCefRenderApp();
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] entering CefInitialize" << std::endl;
     }
-    if (!CefInitialize(main_args, settings, app, nullptr)) {
+    if (!CefInitialize(main_args, settings, nullptr, nullptr)) {
       throw std::runtime_error("CEF initialization failed");
     }
-
-    const auto context_deadline =
-        std::chrono::steady_clock::now() + std::chrono::seconds(5);
-    while (!app->browser_context_initialized() &&
-           std::chrono::steady_clock::now() < context_deadline) {
-      CefDoMessageLoopWork();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
-    }
-    if (!app->browser_context_initialized()) {
-      CefShutdown();
-      throw std::runtime_error(
-          "CEF browser context did not initialize before the startup deadline");
-    }
     if (cef_runtime_diagnostics_enabled()) {
-      std::cerr << "[GoreeCloud CEF] browser context initialized" << std::endl;
+      std::cerr << "[GoreeCloud CEF] CefInitialize completed" << std::endl;
     }
 #endif
     initialized_ = true;
