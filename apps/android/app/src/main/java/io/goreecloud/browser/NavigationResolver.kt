@@ -47,7 +47,7 @@ object NavigationResolver {
     fun classify(rawInput: String): Intent {
         // Reject controls before trimming: otherwise leading/trailing control
         // characters disappear before navigation/Search classification.
-        if (rawInput.any(Char::isISOControl)) return Intent.Blocked(rawInput)
+        if (SearchBoundaryTextSafety.containsUnsupportedControl(rawInput)) return Intent.Blocked(rawInput)
         val input = rawInput.trim()
         if (input.isEmpty()) return Intent.Home
 
@@ -88,7 +88,7 @@ object NavigationResolver {
             value.startsWith("http://", ignoreCase = true)
 
     private fun normalizeWebUrl(raw: String): String? {
-        if (raw.any(Char::isISOControl)) return null
+        if (SearchBoundaryTextSafety.containsUnsupportedControl(raw)) return null
         val uri = runCatching { URI(raw.trim()) }.getOrNull() ?: return null
         val scheme = uri.scheme?.lowercase(Locale.ROOT) ?: return null
         if (scheme != "https" && scheme != "http") return null
