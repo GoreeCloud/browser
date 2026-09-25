@@ -147,6 +147,7 @@ jobs:
       - name: Verify render-candidate runtime payload
         run: |
           test -x build-cef-render/goreecloud-browser
+          test -x build-cef-render/goreecloud-browser-subprocess
           test -f build-cef-render/libcef.so
           test -f build-cef-render/icudtl.dat
           test -d build-cef-render/locales
