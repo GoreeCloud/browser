@@ -36,6 +36,22 @@ class InternationalizedHostPolicyTest {
     }
 
     @Test
+    fun numericHostsRequireCanonicalDottedDecimalIpv4() {
+        assertEquals(
+            "https://127.0.0.1/path",
+            InternationalizedHostPolicy.canonicalizeHttpUrl("https://127.0.0.1/path"),
+        )
+        for (raw in listOf(
+            "https://256.0.0.1/path",
+            "https://127.1/path",
+            "https://127.00.0.1/path",
+            "https://1.2.3.4.5/path",
+        )) {
+            assertNull(InternationalizedHostPolicy.canonicalizeHttpUrl(raw))
+        }
+    }
+
+    @Test
     fun invalidPortAndStd3HostFailClosed() {
         assertNull(InternationalizedHostPolicy.canonicalizeHttpUrl("https://example.com:0"))
         assertNull(InternationalizedHostPolicy.canonicalizeHttpUrl("https://[::1]:0/path"))
