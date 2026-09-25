@@ -17,7 +17,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 ### Browser core and authority boundaries
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
-- Linux GTK/X11 native beta shell build path.
+- Linux GTK/X11 native beta shell build path with grouped primary navigation, dominant omnibox, accessible secondary-tool overflow, symbolic-icon fallbacks, visible focus/pressed states, and structured Browser-owned internal/tool surfaces.
 - GoreeCloud Search integration as the sole integrated query authority while direct structurally valid HTTP(S) navigation remains independent from search.
 - Fail-closed first-party capability evidence that does not manufacture Search, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, or Bookmarks authority.
 - Browser-owned Sync submission/retrieval contracts with bounded validation, pagination, privacy-safe tombstones, and signer-shape checks.
@@ -62,7 +62,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 The following foundations exist but remain acceptance-gated and therefore also appear in `PLANNED-FEATURES.md`:
 
 - Android Browser runtime without representative-device/accessibility/performance/production acceptance.
-- Current repository source mapping to GLAZE UI V1.5.1; current shared Stable authority is V1.6, so Browser requires a fresh V1.6 migration/acceptance tranche.
+- Current repository source target is GLAZE UI V1.6 / 1.6.0 at accepted release source `a7180679ea851389e0f3004515f9a25f420e716d`, with compile/test pins and Android/Linux native mapping updates. Browser-local rendered/native, accessibility, device, performance, rollback, and production acceptance remain incomplete.
 - Session recovery without authenticated encrypted persistence, lifecycle wiring, restore execution, Everkeep integration, and runtime acceptance.
 - PermissionBroker without Android prompt/OS/live-authority adapters and durable Normal-context decision storage.
 - Native extension package/signature/permission foundations without installation, execution, sandboxing, privileged APIs, trusted developer-key authority, or production acceptance.
