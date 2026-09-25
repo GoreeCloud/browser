@@ -1,6 +1,8 @@
 #include "goreecloud/browser/cef_runtime.hpp"
 
 #include <chrono>
+#include <cstdlib>
+#include <iostream>
 #include <mutex>
 #include <optional>
 #include <thread>
@@ -20,6 +22,11 @@ namespace goreecloud::browser {
 namespace {
 
 #if GOREECLOUD_ENABLE_CEF
+
+bool cef_runtime_diagnostics_enabled() {
+  const char* value = std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
+  return value && *value && std::string_view{value} != "0";
+}
 
 class CefRuntimeView final : public ChromiumRuntimeView {
  public:
@@ -128,6 +135,14 @@ class CefRuntimeView final : public ChromiumRuntimeView {
         browser_settings,
         nullptr,
         request_context_);
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] CreateBrowser accepted="
+                << (created ? "yes" : "no")
+                << " url=" << initial_url
+                << " parent=" << surface.window_handle
+                << " size=" << surface.width << "x" << surface.height
+                << std::endl;
+    }
     attached_ = created;
     return created;
   }
@@ -245,6 +260,9 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
       CefShutdown();
       throw std::runtime_error(
           "CEF browser context did not initialize before the startup deadline");
+    }
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] browser context initialized" << std::endl;
     }
 #endif
     initialized_ = true;
