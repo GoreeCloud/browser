@@ -57,7 +57,10 @@ internal object InternationalizedHostPolicy {
             if (!validPortSuffix(suffix)) return null
 
             val literal = host.substring(1, host.length - 1)
-            if ('%' in literal) return null
+            if ('%' in literal || ':' !in literal) return null
+            // Bracketed DNS names and IPv4 text are rejected before the InetAddress
+            // parser so classification cannot trigger a hostname lookup. A colon
+            // is not valid in a DNS label, leaving only IPv6-shaped input here.
             val parsed = runCatching { InetAddress.getByName(literal) }.getOrNull()
             if (parsed !is Inet6Address) return null
             val canonicalHost = host.lowercase(Locale.ROOT)
