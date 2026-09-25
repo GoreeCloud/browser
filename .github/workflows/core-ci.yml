@@ -118,3 +118,38 @@ jobs:
           assert "GOREECLOUD_CEF_PINNED_VERSION" in cmake
           assert expected in cmake
           PY
+
+
+  linux-cef-render-build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Install Linux CEF/GTK build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3 cmake ninja-build build-essential pkg-config \
+            libgtk-3-dev libx11-dev libcurl4-openssl-dev \
+            libnss3-dev libxss-dev libasound2-dev libcups2-dev \
+            libdrm-dev libgbm-dev
+      - name: Bootstrap pinned CEF and build render candidate
+        env:
+          GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+        run: ./scripts/build_linux_render_beta.sh
+      - name: Verify render-candidate runtime payload
+        run: |
+          test -x build-cef-render/goreecloud-browser
+          test -f build-cef-render/libcef.so
+          test -f build-cef-render/icudtl.dat
+          test -d build-cef-render/locales
+          test -f build-cef-render/resources.pak
+          test -f build-cef-render/chrome_100_percent.pak
+          test -f build-cef-render/v8_context_snapshot.bin
