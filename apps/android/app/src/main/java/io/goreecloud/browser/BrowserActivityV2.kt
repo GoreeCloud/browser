@@ -409,8 +409,7 @@ class BrowserActivityV2 : Activity() {
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(query)
         val html = """
-            <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>${baseCss()}</style></head><body><main>
+            <!doctype html><html>${BrowserLocalPages.secureHead(baseCss())}<body><main>
             <div class="mark">G</div><h1>Search authorization required</h1>
             <p>This Development build has not accepted the runtime Privacy Shield authorization and compatible GoreeCloud Search capability evidence required for remote Search delegation.</p>
             <p>Your query was not sent to GoreeCloud Search.</p>
@@ -430,8 +429,7 @@ class BrowserActivityV2 : Activity() {
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(input)
         val html = """
-            <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>${baseCss()}</style></head><body><main>
+            <!doctype html><html>${BrowserLocalPages.secureHead(baseCss())}<body><main>
             <div class="mark">G</div><h1>Navigation blocked</h1>
             <p>Browser rejected this input because it is not a valid safe HTTP(S) destination and must not be silently reinterpreted as a Search query.</p>
             <p>The input was not opened and was not sent to GoreeCloud Search.</p>
@@ -488,8 +486,7 @@ class BrowserActivityV2 : Activity() {
     }
 
     private fun startHtml(): String = """
-        <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-        <style>${baseCss()}</style></head><body><main>
+        <!doctype html><html>${BrowserLocalPages.secureHead(baseCss())}<body><main>
         <div class="mark">G</div>
         <h1>Browse the web</h1>
         <p>Enter a website address above. This Development build blocks third-party cookies and denies site permissions by default.</p>
