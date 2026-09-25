@@ -127,9 +127,9 @@ external_dependencies:
     required: true
     version_constraint: null
   - name: chromium-cef
-    purpose: Rendering-engine foundation for the desktop render-capable path while GoreeCloud-owned Browser layers remain separated behind explicit engine interfaces.
+    purpose: Rendering-engine foundation for the desktop render-capable path while GoreeCloud-owned Browser layers remain separated behind explicit engine interfaces. Development source currently pins reviewed CEF Stable 152.0.6 with Chromium 152.0.7977.83; runtime and production acceptance remain incomplete.
     required: false
-    version_constraint: null
+    version_constraint: '==152.0.6+g708dc14+chromium-152.0.7977.83'
 
 compatibility:
   platform_contract: '0.4'
