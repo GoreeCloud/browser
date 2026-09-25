@@ -9,9 +9,10 @@ package io.goreecloud.browser
  */
 internal object SearchBoundaryTextSafety {
     fun containsUnsupportedControl(value: String): Boolean =
-        value.any { character ->
-            Character.isISOControl(character.code) || isBidirectionalFormattingControl(character)
-        }
+        value.any(::isUnsupportedControl)
+
+    fun isUnsupportedControl(character: Char): Boolean =
+        Character.isISOControl(character.code) || isBidirectionalFormattingControl(character)
 
     private fun isBidirectionalFormattingControl(character: Char): Boolean =
         when (character) {
