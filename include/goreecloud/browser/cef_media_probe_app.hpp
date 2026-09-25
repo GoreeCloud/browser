@@ -19,6 +19,8 @@ namespace goreecloud::browser {
 
 class GoreeCloudCefRenderApp final : public CefApp, public CefRenderProcessHandler {
  public:
+  GoreeCloudCefRenderApp() = default;
+
   CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override { return this; }
 
   bool OnProcessMessageReceived(CefRefPtr<CefBrowser>,

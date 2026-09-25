@@ -122,19 +122,7 @@ class GoreeCloudCefClient final : public CefClient,
     args->SetDouble(0, static_cast<double>(sequence));
     args->SetInt(1, viewport_x);
     args->SetInt(2, viewport_y);
-    if (!frame->SendProcessMessage(PID_RENDERER, message)) {
-      MediaProbeCallback failed;
-      {
-        std::scoped_lock lock(media_probe_mutex_);
-        auto it = pending_media_probes_.find(sequence);
-        if (it != pending_media_probes_.end()) {
-          failed = std::move(it->second);
-          pending_media_probes_.erase(it);
-        }
-      }
-      if (failed) failed(sequence, std::nullopt);
-      return false;
-    }
+    frame->SendProcessMessage(PID_RENDERER, message);
     return true;
   }
 
@@ -163,19 +151,7 @@ class GoreeCloudCefClient final : public CefClient,
     args->SetInt(3, request.maximum_width);
     args->SetInt(4, request.maximum_height);
 
-    if (!frame->SendProcessMessage(PID_RENDERER, message)) {
-      MediaPreviewCallback failed;
-      {
-        std::scoped_lock lock(media_preview_mutex_);
-        auto it = pending_media_previews_.find(request_id);
-        if (it != pending_media_previews_.end()) {
-          failed = std::move(it->second);
-          pending_media_previews_.erase(it);
-        }
-      }
-      if (failed) failed(std::nullopt, "Failed to send media preview request to renderer.");
-      return false;
-    }
+    frame->SendProcessMessage(PID_RENDERER, message);
     return true;
   }
 
@@ -205,7 +181,9 @@ class GoreeCloudCefClient final : public CefClient,
     hit.page_url = frame ? frame->GetURL().ToString() : state_.url;
     hit.media_url = params->GetSourceUrl().ToString();
     hit.link_url = params->GetLinkUrl().ToString();
-    hit.mime_type = params->GetSourceMimeType().ToString();
+    // Context-menu parameters do not expose source MIME in current CEF.
+    // The asynchronous renderer probe supplies MIME when available.
+    hit.mime_type.clear();
     hit.alt_text = params->GetTitleText().ToString();
 
     const auto media_type = params->GetMediaType();

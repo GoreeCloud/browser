@@ -18,6 +18,31 @@ enum class EngineMediaElementKind {
   embedded_media,
 };
 
+struct RawMediaHitTest {
+  MediaKind kind{MediaKind::unknown};
+  std::string page_url;
+  std::string media_url;
+  std::string link_url;
+  std::string mime_type;
+  std::string alt_text;
+  int intrinsic_width{0};
+  int intrinsic_height{0};
+  int displayed_width{0};
+  int displayed_height{0};
+  double duration_seconds{0.0};
+  bool animated{false};
+  bool secure_resource{false};
+  bool downloadable{false};
+  bool copyable{false};
+  bool frame_capture_supported{false};
+  bool protected_media{false};
+  bool drm_protected{false};
+  bool cross_origin{false};
+  bool linked{false};
+  bool region_selectable{false};
+  bool ocr_supported{false};
+};
+
 struct EngineMediaHitTest {
   EngineMediaElementKind kind{EngineMediaElementKind::none};
   std::string page_url;

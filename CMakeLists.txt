@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(goreecloud_browser
   VERSION 0.1.0
   DESCRIPTION "GoreeCloud first-party native browser"
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 include(CTest)
@@ -67,6 +67,12 @@ function(goreecloud_apply_warnings target)
     target_compile_options(${target} PRIVATE /W4 /permissive-)
   else()
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+endfunction()
+
+function(goreecloud_restore_cpp_runtime_features target)
+  if(NOT MSVC)
+    target_compile_options(${target} PRIVATE -fexceptions -frtti)
   endif()
 endfunction()
 
@@ -140,6 +146,7 @@ if(GOREECLOUD_ENABLE_CHROMIUM)
     )
     target_compile_definitions(goreecloud_browser_chromium PUBLIC GOREECLOUD_ENABLE_CEF=1)
     SET_LIBRARY_TARGET_PROPERTIES(goreecloud_browser_chromium)
+    goreecloud_restore_cpp_runtime_features(goreecloud_browser_chromium)
   else()
     target_compile_definitions(goreecloud_browser_chromium PUBLIC GOREECLOUD_ENABLE_CEF=0)
   endif()
@@ -169,6 +176,7 @@ if(GOREECLOUD_ENABLE_CEF)
   target_include_directories(goreecloud_browser PRIVATE ${CEF_INCLUDE_PATH})
   target_link_libraries(goreecloud_browser PRIVATE libcef_dll_wrapper libcef_lib ${CEF_STANDARD_LIBS})
   SET_EXECUTABLE_TARGET_PROPERTIES(goreecloud_browser)
+  goreecloud_restore_cpp_runtime_features(goreecloud_browser)
 
   if(OS_LINUX OR OS_WINDOWS)
     SET_CEF_TARGET_OUT_DIR()
@@ -259,10 +267,11 @@ target_link_libraries(goreecloud_browser_extension_runtime_authority_smoke
 goreecloud_apply_warnings(goreecloud_browser_extension_runtime_authority_smoke)
 
 if(GOREECLOUD_ENABLE_CHROMIUM)
-  add_executable(goreecloud_browser_chromium_smoke apps/browser/chromium_smoke.cpp)
+  add_executable(goreecloud_browser_chromium_smoke apps/browser/chromium_adapter_smoke.cpp)
   target_link_libraries(goreecloud_browser_chromium_smoke PRIVATE goreecloud_browser_core goreecloud_browser_chromium)
   if(GOREECLOUD_ENABLE_CEF)
     SET_EXECUTABLE_TARGET_PROPERTIES(goreecloud_browser_chromium_smoke)
+    goreecloud_restore_cpp_runtime_features(goreecloud_browser_chromium_smoke)
   endif()
   goreecloud_apply_warnings(goreecloud_browser_chromium_smoke)
 endif()
