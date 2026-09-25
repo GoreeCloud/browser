@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Android Search and omnibox control-boundary hardening
+
+### Changed
+
+- Bounded dormant Browser-to-Search query preparation to 2,048 normalized characters and the advertised Search result limit to 100 before any future transport construction.
+- Reject C0/C1 controls and the Unicode Bidi_Control formatting set before Android omnibox navigation/Search classification and before Search request authorization.
+- Preserve ordinary Unicode shaping characters outside that narrow control set, including ZWJ-based emoji text.
+- Keep free-text Search fail-closed until independently accepted Privacy Shield, Identity, Search capability, and runtime transport evidence exists.
+
+### Lifecycle boundary
+
+This is Development source hardening only. It does not activate remote Search, establish complete IDN/confusable/origin safety, satisfy representative-device usability, or establish production/Anchor qualification.
+
 ## 2026-09-22 — Repository feature/changelog governance migration
 
 ### Added
