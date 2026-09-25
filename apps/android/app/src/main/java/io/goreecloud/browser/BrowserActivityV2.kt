@@ -59,6 +59,7 @@ class BrowserActivityV2 : Activity() {
     private var loading = false
     private var failedMainFrameUrl: String? = null
     private var chromeOverrideTitle: String? = null
+    private var blockedWebNavigationVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,7 +69,16 @@ class BrowserActivityV2 : Activity() {
         configureWebView()
 
         if (savedInstanceState != null && webView.restoreState(savedInstanceState) != null) {
-            currentUrl = webView.url ?: INTERNAL_HOME
+            blockedWebNavigationVisible =
+                savedInstanceState.getBoolean(STATE_BLOCKED_WEB_NAVIGATION_VISIBLE, false)
+            val restoredUrl = webView.url
+            if (blockedWebNavigationVisible && restoredUrl?.let(::isInternalStartUrl) == true) {
+                currentUrl = INTERNAL_HOME
+                chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
+            } else {
+                blockedWebNavigationVisible = false
+                currentUrl = restoredUrl ?: INTERNAL_HOME
+            }
             refreshChrome()
         } else {
             val external = intent?.data?.toString().orEmpty()
@@ -84,6 +94,7 @@ class BrowserActivityV2 : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(STATE_BLOCKED_WEB_NAVIGATION_VISIBLE, blockedWebNavigationVisible)
         webView.saveState(outState)
         super.onSaveInstanceState(outState)
     }
@@ -295,7 +306,10 @@ class BrowserActivityV2 : Activity() {
 
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                return !NavigationResolver.isAllowedWebUrl(request.url.toString())
+                val target = request.url.toString()
+                if (NavigationResolver.isAllowedWebUrl(target)) return false
+                if (request.isForMainFrame) showBlockedWebNavigation(target)
+                return true
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
@@ -303,6 +317,7 @@ class BrowserActivityV2 : Activity() {
                     currentUrl = url
                     failedMainFrameUrl = null
                     chromeOverrideTitle = null
+                    blockedWebNavigationVisible = false
                 }
                 loading = true
                 progressBar.visibility = View.VISIBLE
@@ -365,6 +380,7 @@ class BrowserActivityV2 : Activity() {
     private fun navigateToUrl(target: String) {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
+        blockedWebNavigationVisible = false
         currentUrl = target
         addressField.clearFocus()
         hideKeyboard()
@@ -376,6 +392,7 @@ class BrowserActivityV2 : Activity() {
     private fun showStartPage() {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
+        blockedWebNavigationVisible = false
         currentUrl = INTERNAL_HOME
         addressField.clearFocus()
         hideKeyboard()
@@ -386,13 +403,13 @@ class BrowserActivityV2 : Activity() {
     private fun showSearchAuthorizationRequired(query: String) {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
+        blockedWebNavigationVisible = false
         currentUrl = INTERNAL_HOME
         addressField.clearFocus()
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(query)
         val html = """
-            <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>${baseCss()}</style></head><body><main>
+            <!doctype html><html>${BrowserLocalPages.secureHead(baseCss())}<body><main>
             <div class="mark">G</div><h1>Search authorization required</h1>
             <p>This Development build has not accepted the runtime Privacy Shield authorization and compatible GoreeCloud Search capability evidence required for remote Search delegation.</p>
             <p>Your query was not sent to GoreeCloud Search.</p>
@@ -406,13 +423,13 @@ class BrowserActivityV2 : Activity() {
     private fun showBlockedNavigation(input: String) {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
+        blockedWebNavigationVisible = false
         currentUrl = INTERNAL_HOME
         addressField.clearFocus()
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(input)
         val html = """
-            <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-            <style>${baseCss()}</style></head><body><main>
+            <!doctype html><html>${BrowserLocalPages.secureHead(baseCss())}<body><main>
             <div class="mark">G</div><h1>Navigation blocked</h1>
             <p>Browser rejected this input because it is not a valid safe HTTP(S) destination and must not be silently reinterpreted as a Search query.</p>
             <p>The input was not opened and was not sent to GoreeCloud Search.</p>
@@ -423,7 +440,30 @@ class BrowserActivityV2 : Activity() {
         refreshChrome()
     }
 
+    private fun showBlockedWebNavigation(target: String) {
+        failedMainFrameUrl = null
+        chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
+        blockedWebNavigationVisible = true
+        currentUrl = INTERNAL_HOME
+        loading = false
+        progressBar.visibility = View.GONE
+        addressField.clearFocus()
+        hideKeyboard()
+        webView.loadDataWithBaseURL(
+            START_BASE_URL,
+            BrowserLocalPages.blockedWebNavigationHtml(
+                baseCss(),
+                BlockedNavigationPresentation.label(target),
+            ),
+            "text/html",
+            "UTF-8",
+            null,
+        )
+        refreshChrome()
+    }
+
     private fun showPageUnavailable(failedUrl: String?) {
+        blockedWebNavigationVisible = false
         val retryUrl = failedUrl
             ?.takeIf(NavigationResolver::isAllowedWebUrl)
             ?: currentUrl.takeIf(NavigationResolver::isAllowedWebUrl)
@@ -446,8 +486,7 @@ class BrowserActivityV2 : Activity() {
     }
 
     private fun startHtml(): String = """
-        <!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
-        <style>${baseCss()}</style></head><body><main>
+        <!doctype html><html>${BrowserLocalPages.secureHead(baseCss())}<body><main>
         <div class="mark">G</div>
         <h1>Browse the web</h1>
         <p>Enter a website address above. This Development build blocks third-party cookies and denies site permissions by default.</p>
@@ -588,5 +627,8 @@ class BrowserActivityV2 : Activity() {
     companion object {
         private const val INTERNAL_HOME = "goreecloud://start"
         private const val START_BASE_URL = "https://start.goreecloud.local/"
+        private const val BLOCKED_WEB_NAVIGATION_TITLE = "Navigation blocked"
+        private const val STATE_BLOCKED_WEB_NAVIGATION_VISIBLE =
+            "goreecloud.browser.blocked_web_navigation_visible"
     }
 }

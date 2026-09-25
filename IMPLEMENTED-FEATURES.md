@@ -32,6 +32,8 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
 - Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search for non-URL input.
 - Browser-intent handling for HTTP/HTTPS links.
+- Web-initiated unsupported top-level schemes fail closed with a Browser-owned local explanation that exposes only a bounded scheme label, not the target payload; subframe unsupported-scheme attempts remain blocked without surfacing payload data. Android instance-state recreation preserves only a boolean blocked-surface marker, not the blocked target, so the synthetic local rendering origin is not promoted to visible/copyable page identity.
+- Browser-owned local start, authorization, blocked-navigation, and recovery documents share a restrictive document head with `default-src 'none'`, inline-style-only allowance, blocked base/form/object capabilities, and `no-referrer`, preventing the globally JavaScript-capable WebView from granting local safety pages unintended active or remote content authority.
 - TLS errors fail closed; Android Safe Browsing enabled with return-to-safety behavior.
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
 - Website permissions/geolocation denied until Browser-owned policy surfaces and authority adapters are accepted.

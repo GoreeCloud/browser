@@ -5,6 +5,21 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-23 — Privacy-safe blocked deep-link feedback
+
+### Changed
+
+- Web-initiated unsupported main-frame schemes remain fail-closed but now show a Browser-owned local explanation instead of failing silently.
+- The local surface receives only a syntactically bounded scheme label such as `mailto: link`; phone numbers, email addresses, intent extras, tokens, and other target payload data are not rendered.
+- Unsupported subframe/custom-scheme attempts remain blocked without creating a user-facing payload surface.
+- The blocked top-level safety-surface marker survives Android instance-state recreation without persisting the blocked target, preventing the synthetic local rendering origin from becoming Browser-visible/copyable page state after rotation or recreation.
+- Browser-owned local start, Search-authorization, blocked-input, blocked-web-navigation, and recovery surfaces now share a fail-closed document policy (`default-src 'none'`, inline styles only, blocked base/form/object capabilities, and `no-referrer`) so local safety content cannot silently gain script, network, form, object, or referrer authority from the globally JavaScript-capable WebView.
+- Added focused unit coverage for scheme-only labeling, the generic local safety page, and the local-document CSP/referrer boundary.
+
+### Lifecycle boundary
+
+This Development hardening does not enable external-app handoff, deep-link execution, new intent permissions, Search delegation, production website permissions, representative-device acceptance, Release Candidate, or Stable qualification.
+
 ## 2026-09-22 — Repository feature/changelog governance migration
 
 ### Added
