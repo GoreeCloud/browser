@@ -481,11 +481,15 @@ class GtkLinuxGlazeWindowHost::Impl {
     return true;
   }
 
-  void add_toolbar_button(ToolbarItem item, const char* visible, const char* accessible) {
-    auto* button = make_toolbar_button(visible, accessible);
+  void add_toolbar_button(ToolbarItem item,
+                          const char* icon_name,
+                          const char* fallback_label,
+                          const char* accessible,
+                          GtkWidget* container) {
+    auto* button = make_toolbar_button(icon_name, fallback_label, accessible);
     toolbar_bindings.emplace(button, item);
     g_signal_connect(button, "clicked", G_CALLBACK(on_toolbar_clicked), this);
-    gtk_box_pack_start(GTK_BOX(toolbar), button, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(container), button, FALSE, FALSE, 0);
   }
 
   void build_unified_search() {
@@ -502,20 +506,59 @@ class GtkLinuxGlazeWindowHost::Impl {
     g_signal_connect(search_entry, "activate", G_CALLBACK(on_search_activate), this);
     gtk_box_pack_start(GTK_BOX(search_shell), search_entry, TRUE, TRUE, 0);
 
-    add_search_control(UnifiedSearchBarControl::advanced_reader_mode, "Reader", "Advanced Reader Mode");
-    add_search_control(UnifiedSearchBarControl::unified_bookmarks, "★", "Unified Bookmarks");
-    add_search_control(UnifiedSearchBarControl::wardveil_security, "W", "Wardveil Security");
+    add_search_control(UnifiedSearchBarControl::advanced_reader_mode,
+                       "accessories-text-editor-symbolic", "R", "Advanced Reader Mode");
+    add_search_control(UnifiedSearchBarControl::unified_bookmarks,
+                       "starred-symbolic", "★", "Unified Bookmarks");
+    add_search_control(UnifiedSearchBarControl::wardveil_security,
+                       "security-high-symbolic", "W", "Wardveil Security");
     gtk_box_pack_start(GTK_BOX(toolbar), search_shell, TRUE, TRUE, 0);
   }
 
-  void add_search_control(UnifiedSearchBarControl control, const char* visible, const char* accessible) {
-    auto* button = gtk_button_new_with_label(visible);
+  void add_search_control(UnifiedSearchBarControl control,
+                          const char* icon_name,
+                          const char* fallback_label,
+                          const char* accessible) {
+    auto* button = gtk_button_new();
+    gtk_container_add(GTK_CONTAINER(button), make_icon_or_label(icon_name, fallback_label));
     gtk_widget_set_size_request(button, kGlazeInteractiveTargetPx, kGlazeInteractiveTargetPx);
     gtk_style_context_add_class(gtk_widget_get_style_context(button), "gc-search-control");
     set_accessible_name(button, accessible);
     search_control_bindings.emplace(button, control);
     g_signal_connect(button, "clicked", G_CALLBACK(on_search_control_clicked), this);
     gtk_box_pack_start(GTK_BOX(search_shell), button, FALSE, FALSE, 0);
+  }
+
+  void build_overflow_menu() {
+    more_button = gtk_menu_button_new();
+    gtk_container_add(GTK_CONTAINER(more_button), make_icon_or_label("open-menu-symbolic", "⋮"));
+    gtk_widget_set_size_request(more_button, kGlazeInteractiveTargetPx, kGlazeInteractiveTargetPx);
+    gtk_style_context_add_class(gtk_widget_get_style_context(more_button), "gc-overflow-button");
+    set_accessible_name(more_button, "More Browser tools");
+
+    overflow_popover = gtk_popover_new(more_button);
+    gtk_style_context_add_class(gtk_widget_get_style_context(overflow_popover), "gc-overflow-popover");
+    overflow_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    gtk_container_add(GTK_CONTAINER(overflow_popover), overflow_box);
+    gtk_menu_button_set_popover(GTK_MENU_BUTTON(more_button), overflow_popover);
+
+    add_overflow_action(ToolbarItem::advanced_download_manager, "Downloads");
+    add_overflow_action(ToolbarItem::clipboard, "Clipboard");
+    add_overflow_action(ToolbarItem::dns_cache, "Clear DNS Cache");
+    add_overflow_action(ToolbarItem::advanced_proxy_manager, "Advanced Proxy Manager");
+    add_overflow_action(ToolbarItem::settings, "Settings");
+
+    gtk_box_pack_end(GTK_BOX(toolbar), more_button, FALSE, FALSE, 0);
+  }
+
+  void add_overflow_action(ToolbarItem item, const char* label) {
+    auto* button = gtk_button_new_with_label(label);
+    gtk_widget_set_halign(button, GTK_ALIGN_FILL);
+    gtk_style_context_add_class(gtk_widget_get_style_context(button), "gc-overflow-action");
+    set_accessible_name(button, label);
+    toolbar_bindings.emplace(button, item);
+    g_signal_connect(button, "clicked", G_CALLBACK(on_toolbar_clicked), this);
+    gtk_box_pack_start(GTK_BOX(overflow_box), button, FALSE, FALSE, 0);
   }
 
   void show() {
