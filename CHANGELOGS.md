@@ -5,6 +5,21 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Android Search-query boundary hardening
+
+### Changed
+
+- Added one shared Android Search-boundary text-safety policy used before omnibox classification and again before remote Search request construction.
+- Reject C0/C1 control characters and the narrow Unicode Bidi_Control formatting set before trimming or delegation, while preserving ordinary Unicode shaping such as ZWJ emoji.
+- Bounded normalized free-text Search input to 2,048 characters before transport construction.
+- Reject Search capability evidence that advertises more than the Browser-supported 100-result maximum.
+- Added focused JVM regression coverage for leading/trailing/interior controls, bidirectional formatting controls, exact-limit and over-limit queries, ordinary Unicode shaping, and incompatible capability limits.
+- Preserved direct structurally valid HTTP(S) navigation and all existing Privacy Shield, Identity, production-capability, POST-body, no-telemetry, and fail-closed remote-Search boundaries.
+
+### Acceptance boundary
+
+This is Development input/contract hardening only. It does not enable remote Search, establish live Search/Privacy Shield/Identity authority, prove representative physical-device usability, complete Unicode confusable/origin trust acceptance, satisfy Browser-wide GLAZE UI acceptance, or establish Release Candidate, production, Stable, or Anchor product maturity.
+
 ## 2026-09-25 — Pinned Linux CEF render bootstrap
 
 ### Changed
