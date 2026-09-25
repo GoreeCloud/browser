@@ -32,7 +32,7 @@ Items here are planned, incomplete, blocked, or acceptance-gated. Their presence
 - Complete navigation/address safety for malformed URLs, schemes/deep links, user-info disclosure, IDN/confusable/spoofing, origin/certificate presentation, and bidirectional text.
 - Mature session restoration and Browser-owned durable recovery.
 - Complete native extension installation, sandbox/process runtime, trusted developer-key authority, extension networking/storage/UI, privileged APIs, updates, developer tooling, and production trust/acceptance.
-- Complete desktop render-capable runtime acceptance and preserve rendering-engine replaceability.
+- Complete the pinned Linux CEF render candidate through real CEF compilation and representative-device runtime validation: HTTPS rendering/navigation, engine-owned multi-tab behavior including reordering, TLS/certificate state, sandbox/site-isolation preservation, renderer crash handling, private-context isolation/cleanup, accessibility, performance, packaging, and the remaining `docs/BETA_0_1.md` render-capable gates while preserving rendering-engine replaceability.
 - Canonical artwork/package provenance and representative launcher/device rendering acceptance.
 - Sustained device validation across supported Android versions, screen sizes, WebView versions, accessibility services, locales, large text, reduced effects, network transitions, background/process restoration, battery, and compatibility.
 

@@ -15,6 +15,8 @@ struct CefRuntimeOptions {
   std::filesystem::path locales_path;
   std::filesystem::path cache_root;
   std::string locale{"en-US"};
+  int process_argc{0};
+  char** process_argv{nullptr};
   bool enable_gpu{true};
   bool enable_sandbox{true};
   bool external_message_pump{true};

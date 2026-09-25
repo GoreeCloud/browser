@@ -21,7 +21,8 @@ struct RuntimeEngineSelection {
   std::string mode;
 };
 
-inline RuntimeEngineSelection create_runtime_engine_from_environment() {
+inline RuntimeEngineSelection create_runtime_engine_from_environment(
+    int process_argc = 0, char** process_argv = nullptr) {
 #if GOREECLOUD_ENABLE_CHROMIUM
   const char* runtime_root_env = std::getenv("GOREECLOUD_BROWSER_RUNTIME_ROOT");
   if (!runtime_root_env || std::string{runtime_root_env}.empty()) {
@@ -31,11 +32,13 @@ inline RuntimeEngineSelection create_runtime_engine_from_environment() {
 
   ChromiumAdapterOptions options;
   options.runtime_root = std::filesystem::path{runtime_root_env};
+  options.process_argc = process_argc;
+  options.process_argv = process_argv;
 
   if (const char* subprocess = std::getenv("GOREECLOUD_BROWSER_SUBPROCESS")) {
     options.subprocess_path = std::filesystem::path{subprocess};
   } else {
-    options.subprocess_path = options.runtime_root / "goreecloud_browser";
+    options.subprocess_path = options.runtime_root / "goreecloud-browser";
   }
   if (const char* resources = std::getenv("GOREECLOUD_BROWSER_RESOURCES")) {
     options.resources_path = std::filesystem::path{resources};

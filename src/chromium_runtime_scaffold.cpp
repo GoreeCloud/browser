@@ -195,6 +195,8 @@ std::unique_ptr<ChromiumRuntimeDelegate> create_chromium_runtime_delegate(
   cef.resources_path = options.resources_path;
   cef.locales_path = options.locales_path;
   cef.cache_root = options.runtime_root / "profile-cache";
+  cef.process_argc = options.process_argc;
+  cef.process_argv = options.process_argv;
   cef.enable_gpu = options.enable_gpu;
   cef.enable_sandbox = options.enable_sandbox;
   cef.external_message_pump = true;
