@@ -264,7 +264,9 @@ def bootstrap(cache_dir: Path, *, refresh: bool = False) -> Path:
         return root
 
     official_sha1 = _fetch_official_sha1()
+    _log(f"Official CEF archive SHA-1: {official_sha1}")
     archive_sha256 = _download_archive(archive, official_sha1)
+    _log(f"Observed CEF archive SHA-256: {archive_sha256}")
     _extract_archive(archive, cache_dir, root, refresh=refresh)
     _write_provenance(root, archive, official_sha1, archive_sha256)
     _log(f"Pinned CEF runtime prepared: {root}")
