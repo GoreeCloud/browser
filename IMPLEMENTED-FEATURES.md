@@ -41,7 +41,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
 - Website permissions/geolocation denied until Browser-owned policy surfaces and authority adapters are accepted.
 - Downloads remain fail-closed until the Wardveil release contract is satisfied.
-- CI covers Browser-owned navigation behavior, Android lint/build, package/signature verification, SHA-256, and artifact provenance.
+- CI covers Browser-owned navigation behavior, Android lint/build, package/signature verification, SHA-256, artifact provenance, and an Android 15 managed-emulator smoke lane for Browser-owned chrome, conservative WebView defaults, and fail-closed local Search behavior.
 
 ### PermissionBroker Development foundation
 
