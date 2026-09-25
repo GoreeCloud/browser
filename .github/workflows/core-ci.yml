@@ -138,7 +138,7 @@ jobs:
             python3 cmake ninja-build build-essential pkg-config \
             libgtk-3-dev libx11-dev libcurl4-openssl-dev \
             libnss3-dev libxss-dev libasound2-dev libcups2-dev \
-            libdrm-dev libgbm-dev
+            libdrm-dev libgbm-dev xvfb xauth procps
       - name: Bootstrap pinned CEF and build render candidate
         env:
           GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
@@ -153,3 +153,54 @@ jobs:
           test -f build-cef-render/resources.pak
           test -f build-cef-render/chrome_100_percent.pak
           test -f build-cef-render/v8_context_snapshot.bin
+      - name: Launch sandboxed CEF runtime under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-runtime.log"
+          renderer_file="${RUNNER_TEMP}/goreecloud-cef-renderers.txt"
+          : > "${log_file}"
+          : > "${renderer_file}"
+
+          timeout --signal=TERM --kill-after=5s 20s \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            stdbuf -oL -eL ./scripts/run_linux_render_beta.sh https://example.com/ \
+            >"${log_file}" 2>&1 &
+          runtime_pid=$!
+
+          runtime_ready=0
+          for _ in $(seq 1 30); do
+            if grep -q "Runtime mode: cef" "${log_file}" && \
+               pgrep -af -- "--type=renderer" > "${renderer_file}"; then
+              runtime_ready=1
+              break
+            fi
+            if ! kill -0 "${runtime_pid}" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          set +e
+          wait "${runtime_pid}"
+          runtime_status=$?
+          set -e
+
+          cat "${log_file}"
+          cat "${renderer_file}"
+
+          test "${runtime_ready}" -eq 1
+          grep -q "Runtime mode: cef" "${log_file}"
+          test -s "${renderer_file}"
+
+          if [[ "${runtime_status}" -ne 0 && "${runtime_status}" -ne 124 ]]; then
+            echo "CEF runtime exited unexpectedly with status ${runtime_status}" >&2
+            exit "${runtime_status}"
+          fi
