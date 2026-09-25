@@ -542,15 +542,20 @@ class BrowserActivityV2 : Activity() {
             )
         }
 
-        addAction("Copy page address") {
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Page address", currentUrl))
-        }
-        addAction("Share page") {
-            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, currentUrl)
-            }, "Share page"))
+        val externalAddress = AddressDisclosurePolicy.forExternalUse(currentUrl)
+        if (externalAddress != null) {
+            addAction("Copy page address") {
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(
+                    android.content.ClipData.newPlainText("Page address", externalAddress),
+                )
+            }
+            addAction("Share page") {
+                startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, externalAddress)
+                }, "Share page"))
+            }
         }
         addAction("About this development build") {
             Toast.makeText(
