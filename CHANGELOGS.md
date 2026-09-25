@@ -5,6 +5,17 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Glaze UI V1.6 source adoption and GTK chrome stabilization
+
+- Migrated Browser source/build pins from GLAZE UI V1.5.1 to consumer-eligible GLAZE UI V1.6 / 1.6.0 using accepted release source `a7180679ea851389e0f3004515f9a25f420e716d`, qualification source `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`, and qualification evidence integration `354f5759385c28596fcfec26a3ad525e89fb1c35`.
+- Expanded Browser-local V1.6 capability and acceptance contracts for component-state completeness, large-text reflow, non-color semantic meaning, responsive continuity, localization, provenance, bounded complexity, and accessibility/performance fallback behavior.
+- Migrated the Android-native Glaze contract to V1.6 and added explicit disabled control presentation while preserving authority boundaries and deterministic effects-free fallback.
+- Reworked the Linux GTK beta shell from a flat text-heavy toolbar into grouped primary navigation, a dominant omnibox, neutral privacy/security entry points, accessible secondary-tool overflow, local symbolic-icon fallbacks, structured tabs, and structured Browser-owned internal/tool surfaces.
+- Corrected stale Browser Glaze documentation, including the obsolete "Glaze UI 2.0" surface-model reference and the outdated stabilization-base revision.
+- Added exact-source smoke gates for the V1.6 version, release source, qualification source, rollback baseline, and required Browser presentation capabilities.
+
+This tranche is implementation/source-adoption evidence only. Browser remains Development and non-production-approved; exact-revision rendered/native visual, accessibility, large-text, localization/RTL, representative-device/form-factor, performance, rollback, and production acceptance remain open.
+
 ## 2026-09-22 — Repository feature/changelog governance migration
 
 ### Added
