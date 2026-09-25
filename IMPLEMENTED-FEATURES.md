@@ -18,7 +18,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
 - Linux GTK/X11 native beta shell build path.
-- Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, and keyboard-first shortcuts for common tab/navigation actions.
+- Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, keyboard-first shortcuts for common tab/navigation actions, Ctrl+K/F6 location focus, and Escape dismissal for Browser-owned panels.
 - First-party Linux New Tab/Home search field and wired Bookmarks, Downloads, and Settings quick actions.
 - Semantic Linux Browser panels for Bookmarks, Reader Mode, Privacy Shield, Wardveil Security, Clipboard, DNS, Proxy, Search-unavailable, and Development Downloads state without manufacturing provider-owned authority.
 - Structured Linux Settings section presentation for current Browser-owned settings taxonomy; functional controls remain acceptance-gated.

@@ -5,6 +5,21 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Linux panel-dismissal and visual-density follow-up
+
+### Changed
+
+- Added explicit close affordances to Browser-owned Linux Development panels and restored the prior internal/web content surface when a panel is dismissed.
+- Added Escape panel dismissal plus Ctrl+K and F6 unified-location focus alongside the existing keyboard-first Browser controls.
+- Normalized GTK symbolic icon sizing to 20 px and changed the Downloads toolbar glyph to a more reliable native save/download symbol.
+- Pulled first-party cards and Browser panels upward from the vertical dead zone while preserving Glaze spacing and responsive minimums.
+- Reduced the visual prominence of the Development lifecycle badge without removing lifecycle truth.
+- Corrected literal escaped-newline text in the Linux build guide and documented the current keyboard control set.
+
+### Acceptance boundary
+
+This follow-up remains Development presentation behavior. It does not establish renderer integration, complete accessibility acceptance, production-grade panel behavior, Release Candidate, production approval, or Stable/Anchor maturity.
+
 ## 2026-09-25 — Linux polish, semantic panels, and keyboard navigation
 
 ### Changed

@@ -40,6 +40,7 @@ void set_button_icon(GtkWidget* button, const char* fallback_label,
   auto* theme = gtk_icon_theme_get_default();
   if (theme && icon_name && gtk_icon_theme_has_icon(theme, icon_name)) {
     auto* image = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_BUTTON);
+    gtk_image_set_pixel_size(GTK_IMAGE(image), 20);
     gtk_button_set_image(GTK_BUTTON(button), image);
     gtk_button_set_always_show_image(GTK_BUTTON(button), TRUE);
   } else {
@@ -209,7 +210,10 @@ class GtkLinuxGlazeWindowHost::Impl {
     const bool shift = (event->state & GDK_SHIFT_MASK) != 0;
     const bool alt = (event->state & GDK_MOD1_MASK) != 0;
 
-    if (control && event->keyval == GDK_KEY_l && self->search_entry) {
+    if (((control && (event->keyval == GDK_KEY_l ||
+                       event->keyval == GDK_KEY_k)) ||
+         event->keyval == GDK_KEY_F6) &&
+        self->search_entry) {
       gtk_widget_grab_focus(self->search_entry);
       gtk_editable_select_region(GTK_EDITABLE(self->search_entry), 0, -1);
       return TRUE;
@@ -256,6 +260,10 @@ class GtkLinuxGlazeWindowHost::Impl {
       if (self->toolbar_handler) self->toolbar_handler(ToolbarItem::home);
       return TRUE;
     }
+    if (event->keyval == GDK_KEY_Escape && self->panel_is_visible()) {
+      self->close_panel();
+      return TRUE;
+    }
     return FALSE;
   }
 
@@ -264,6 +272,10 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (!self->search_handler) return;
     const char* value = gtk_entry_get_text(entry);
     self->search_handler(value ? std::string_view{value} : std::string_view{});
+  }
+
+  static void on_panel_close_clicked(GtkButton*, gpointer data) {
+    static_cast<Impl*>(data)->close_panel();
   }
 
   static void on_content_size_allocate(GtkWidget*, GtkAllocation*,
@@ -380,6 +392,7 @@ class GtkLinuxGlazeWindowHost::Impl {
         background-color: alpha(@theme_fg_color, 0.07);
       }
       .gc-stage-badge {
+        opacity: 0.74;
         padding: 5px 10px;
         border-radius: 999px;
         background-color: alpha(@theme_selected_bg_color, 0.10);
@@ -521,6 +534,21 @@ class GtkLinuxGlazeWindowHost::Impl {
       }
       .gc-panel-status {
         margin-top: 4px;
+      }
+      .gc-panel-header {
+        margin-bottom: 2px;
+      }
+      .gc-panel-close {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 0;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: transparent;
+        box-shadow: none;
+      }
+      .gc-panel-close:hover {
+        background-color: alpha(@theme_fg_color, 0.07);
       }
       .gc-status-row { margin-top: 10px; }
       .gc-status-chip {
@@ -695,7 +723,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     add_toolbar_button(ToolbarItem::home, "⌂", "go-home-symbolic", "Home");
     build_unified_search();
     add_toolbar_button(ToolbarItem::advanced_download_manager, "↓",
-                       "folder-download-symbolic", "Advanced Download Manager");
+                       "document-save-symbolic", "Advanced Download Manager");
     build_overflow_menu();
     add_toolbar_button(ToolbarItem::settings, "⚙",
                        "preferences-system-symbolic", "Settings");
@@ -791,7 +819,8 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     internal_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 11);
     gtk_widget_set_halign(internal_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(internal_card, GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(internal_card, GTK_ALIGN_START);
+    gtk_widget_set_margin_top(internal_card, 34);
     gtk_widget_set_size_request(internal_card, 320, -1);
     add_style_class(internal_card, "gc-internal-card");
     gtk_box_pack_start(GTK_BOX(internal_canvas), internal_card, TRUE, FALSE, 0);
@@ -899,15 +928,28 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     panel_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
     gtk_widget_set_halign(panel_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(panel_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_size_request(panel_card, 320, -1);
+    gtk_widget_set_valign(panel_card, GTK_ALIGN_START);
+    gtk_widget_set_margin_top(panel_card, 44);
+    gtk_widget_set_size_request(panel_card, 420, -1);
     add_style_class(panel_card, "gc-panel-card");
     gtk_box_pack_start(GTK_BOX(panel_canvas), panel_card, TRUE, FALSE, 0);
+
+    auto* panel_header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    add_style_class(panel_header, "gc-panel-header");
 
     panel_eyebrow = gtk_label_new("GOREECLOUD BROWSER");
     gtk_label_set_xalign(GTK_LABEL(panel_eyebrow), 0.0F);
     add_style_class(panel_eyebrow, "gc-panel-eyebrow");
-    gtk_box_pack_start(GTK_BOX(panel_card), panel_eyebrow, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(panel_header), panel_eyebrow, TRUE, TRUE, 0);
+
+    panel_close = gtk_button_new();
+    set_button_icon(panel_close, "×", "window-close-symbolic");
+    add_style_class(panel_close, "gc-panel-close");
+    set_accessible_name(panel_close, "Close panel");
+    g_signal_connect(panel_close, "clicked",
+                     G_CALLBACK(on_panel_close_clicked), this);
+    gtk_box_pack_end(GTK_BOX(panel_header), panel_close, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(panel_card), panel_header, FALSE, FALSE, 0);
 
     panel_title = gtk_label_new("Browser tool");
     gtk_label_set_xalign(GTK_LABEL(panel_title), 0.0F);
@@ -968,6 +1010,20 @@ class GtkLinuxGlazeWindowHost::Impl {
       gtk_label_set_text(GTK_LABEL(panel_status), presentation.status.c_str());
       gtk_widget_set_visible(panel_status, !presentation.status.empty());
     }
+  }
+
+  [[nodiscard]] bool panel_is_visible() const {
+    if (!content_stack) return false;
+    const auto* name =
+        gtk_stack_get_visible_child_name(GTK_STACK(content_stack));
+    return name && std::string_view{name} == "panel";
+  }
+
+  void close_panel() {
+    if (!content_stack) return;
+    const auto target = panel_return_child.empty() ? std::string{"internal"}
+                                                   : panel_return_child;
+    gtk_stack_set_visible_child_name(GTK_STACK(content_stack), target.c_str());
   }
 
   void show() {
@@ -1078,6 +1134,7 @@ class GtkLinuxGlazeWindowHost::Impl {
   GtkWidget* panel_title{nullptr};
   GtkWidget* panel_label{nullptr};
   GtkWidget* panel_status{nullptr};
+  GtkWidget* panel_close{nullptr};
   GtkCssProvider* css{nullptr};
 
   EngineView* attached_view{nullptr};
@@ -1085,6 +1142,7 @@ class GtkLinuxGlazeWindowHost::Impl {
   guint media_hover_timer_id{0};
   std::string tab_signature;
   std::string active_tab_id;
+  std::string panel_return_child{"internal"};
   bool private_window{false};
   bool created{false};
   bool close_requested{false};
@@ -1191,6 +1249,13 @@ void GtkLinuxGlazeWindowHost::show_panel(std::string_view panel_id) {
   impl_->media_hover.invalidate();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
   if (!impl_->content_stack || !impl_->panel_label) return;
+
+  if (const auto* visible =
+          gtk_stack_get_visible_child_name(GTK_STACK(impl_->content_stack));
+      visible && std::string_view{visible} != "panel") {
+    impl_->panel_return_child = visible;
+  }
+
   impl_->set_panel_surface_copy(panel_id);
   gtk_stack_set_visible_child_name(GTK_STACK(impl_->content_stack), "panel");
 }
