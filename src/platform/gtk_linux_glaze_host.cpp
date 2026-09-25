@@ -627,14 +627,27 @@ class GtkLinuxGlazeWindowHost::Impl {
   GtkWidget* window{nullptr};
   GtkWidget* root{nullptr};
   GtkWidget* tab_strip{nullptr};
+  GtkWidget* tab_capsule{nullptr};
   GtkWidget* tab_label{nullptr};
+  GtkWidget* private_badge{nullptr};
   GtkWidget* toolbar{nullptr};
+  GtkWidget* navigation_cluster{nullptr};
+  GtkWidget* status_cluster{nullptr};
   GtkWidget* search_shell{nullptr};
   GtkWidget* search_entry{nullptr};
+  GtkWidget* more_button{nullptr};
+  GtkWidget* overflow_popover{nullptr};
+  GtkWidget* overflow_box{nullptr};
   GtkWidget* content_stack{nullptr};
   GtkWidget* content_area{nullptr};
-  GtkWidget* internal_label{nullptr};
-  GtkWidget* panel_label{nullptr};
+  GtkWidget* internal_surface{nullptr};
+  GtkWidget* internal_eyebrow{nullptr};
+  GtkWidget* internal_title{nullptr};
+  GtkWidget* internal_body{nullptr};
+  GtkWidget* panel_surface{nullptr};
+  GtkWidget* panel_eyebrow{nullptr};
+  GtkWidget* panel_title{nullptr};
+  GtkWidget* panel_body{nullptr};
   GtkCssProvider* css{nullptr};
   EngineView* attached_view{nullptr};
   NativeWindowMetrics metrics{1280, 800, 1.0F};
@@ -682,8 +695,22 @@ void GtkLinuxGlazeWindowHost::set_title(std::string_view title) {
 }
 
 void GtkLinuxGlazeWindowHost::render_chrome(const BrowserChromeState& state) {
-  if (impl_->search_entry && !gtk_widget_has_focus(impl_->search_entry)) gtk_entry_set_text(GTK_ENTRY(impl_->search_entry), state.unified_search.display_text.c_str());
-  if (impl_->tab_label && !state.tabs.empty()) gtk_label_set_text(GTK_LABEL(impl_->tab_label), state.tabs.front().title.c_str());
+  if (impl_->search_entry && !gtk_widget_has_focus(impl_->search_entry)) {
+    gtk_entry_set_text(GTK_ENTRY(impl_->search_entry), state.unified_search.display_text.c_str());
+  }
+
+  if (impl_->tab_label && !state.tabs.empty()) {
+    const auto& tab = state.tabs.front();
+    gtk_label_set_text(GTK_LABEL(impl_->tab_label), tab.title.empty() ? "New Tab" : tab.title.c_str());
+    if (impl_->tab_capsule) {
+      auto* context = gtk_widget_get_style_context(impl_->tab_capsule);
+      if (tab.loading) {
+        gtk_style_context_add_class(context, "gc-loading");
+      } else {
+        gtk_style_context_remove_class(context, "gc-loading");
+      }
+    }
+  }
 }
 
 void GtkLinuxGlazeWindowHost::attach_engine_view(EngineView& view) {
@@ -709,18 +736,33 @@ void GtkLinuxGlazeWindowHost::detach_engine_view() {
 void GtkLinuxGlazeWindowHost::show_internal_surface(std::string_view internal_url) {
   impl_->media_hover.invalidate();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
-  if (!impl_->content_stack || !impl_->internal_label) return;
-  const auto text = internal_surface_text(internal_url);
-  gtk_label_set_text(GTK_LABEL(impl_->internal_label), text.c_str());
+  if (!impl_->content_stack || !impl_->internal_eyebrow || !impl_->internal_title ||
+      !impl_->internal_body) {
+    return;
+  }
+
+  const auto copy = internal_surface_copy(internal_url);
+  gtk_label_set_text(GTK_LABEL(impl_->internal_eyebrow), copy.eyebrow.c_str());
+  gtk_label_set_text(GTK_LABEL(impl_->internal_title), copy.title.c_str());
+  gtk_label_set_text(GTK_LABEL(impl_->internal_body), copy.body.c_str());
   gtk_stack_set_visible_child_name(GTK_STACK(impl_->content_stack), "internal");
 }
 
 void GtkLinuxGlazeWindowHost::show_panel(std::string_view panel_id) {
   impl_->media_hover.invalidate();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
-  if (!impl_->content_stack || !impl_->panel_label) return;
-  const std::string text = "GoreeCloud Browser — " + std::string{panel_id};
-  gtk_label_set_text(GTK_LABEL(impl_->panel_label), text.c_str());
+  if (!impl_->content_stack || !impl_->panel_title || !impl_->panel_body) return;
+
+  const auto line_break = panel_id.find('\n');
+  const std::string title{
+      line_break == std::string_view::npos ? panel_id : panel_id.substr(0, line_break)};
+  const std::string body =
+      line_break == std::string_view::npos
+          ? "Browser-owned tool surface. Availability and status remain bound to the underlying authoritative capability."
+          : std::string{panel_id.substr(line_break + 1)};
+
+  gtk_label_set_text(GTK_LABEL(impl_->panel_title), title.c_str());
+  gtk_label_set_text(GTK_LABEL(impl_->panel_body), body.c_str());
   gtk_stack_set_visible_child_name(GTK_STACK(impl_->content_stack), "panel");
 }
 
