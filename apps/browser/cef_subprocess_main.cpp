@@ -2,20 +2,57 @@
 #include <iostream>
 #include <string_view>
 
-#include "goreecloud/browser/cef_process.hpp"
+#include "goreecloud/browser/cef_media_probe_app.hpp"
+#include "include/cef_app.h"
+
+namespace {
+
+class GoreeCloudCefDefaultSubprocessApp final : public CefApp {
+ public:
+  GoreeCloudCefDefaultSubprocessApp() = default;
+
+ private:
+  IMPLEMENT_REFCOUNTING(GoreeCloudCefDefaultSubprocessApp);
+  DISALLOW_COPY_AND_ASSIGN(GoreeCloudCefDefaultSubprocessApp);
+};
+
+bool is_renderer_process(int argc, char** argv) {
+  for (int index = 1; index < argc; ++index) {
+    if (!argv[index]) continue;
+    if (std::string_view{argv[index]} == "--type=renderer") return true;
+  }
+  return false;
+}
+
+}  // namespace
 
 int main(int argc, char** argv) {
-  const int exit_code =
-      goreecloud::browser::execute_cef_subprocess_if_needed(argc, argv);
-
-  if (exit_code >= 0) return exit_code;
+  using namespace goreecloud::browser;
 
   const char* diagnostics =
       std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
-  if (diagnostics && *diagnostics && std::string_view{diagnostics} != "0") {
-    std::cerr
-        << "[GoreeCloud CEF] subprocess helper invoked without a CEF process type"
-        << std::endl;
+  const bool diagnostic =
+      diagnostics && *diagnostics && std::string_view{diagnostics} != "0";
+
+  const bool renderer = is_renderer_process(argc, argv);
+  CefRefPtr<CefApp> app;
+  if (renderer) {
+    app = new GoreeCloudCefRenderApp();
+  } else {
+    app = new GoreeCloudCefDefaultSubprocessApp();
   }
-  return 1;
+
+  if (diagnostic) {
+    std::cerr << "[GoreeCloud CEF] subprocess role="
+              << (renderer ? "renderer" : "default") << std::endl;
+  }
+
+  CefMainArgs main_args(argc, argv);
+  const int exit_code = CefExecuteProcess(main_args, app, nullptr);
+
+  if (diagnostic) {
+    std::cerr << "[GoreeCloud CEF] subprocess exit=" << exit_code << std::endl;
+  }
+
+  return exit_code >= 0 ? exit_code : 1;
 }
