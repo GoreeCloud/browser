@@ -14,6 +14,10 @@ set(GOREECLOUD_CEF_STABLE_VERSION
     "152.0.6+g708dc14+chromium-152.0.7977.83")
 set(GOREECLOUD_CEF_STABLE_CHROMIUM_VERSION
     "152.0.7977.83")
+set(GOREECLOUD_CEF_STABLE_SHA1
+    "8f7596039f1a30fbcfc142a07a5fc7b5dc89fc95")
+set(GOREECLOUD_CEF_STABLE_SHA256
+    "43b3be39bfe8bfe3b9a7c3e666397d00d129f008792265400099af472a6c5305")
 set(GOREECLOUD_CEF_OFFICIAL_BASE_URL
     "https://cef-builds.spotifycdn.com")
 
@@ -79,16 +83,24 @@ function(goreecloud_prepare_pinned_cef download_dir out_root)
       "Official CEF integrity sidecar was malformed for ${distribution}.")
   endif()
 
+  string(TOLOWER "${expected_sha1}" expected_sha1_lower)
+  string(TOLOWER "${GOREECLOUD_CEF_STABLE_SHA1}" pinned_sha1_lower)
+  if(NOT expected_sha1_lower STREQUAL pinned_sha1_lower)
+    message(FATAL_ERROR
+      "Official CEF sidecar no longer matches the source-pinned SHA-1 for "
+      "${GOREECLOUD_CEF_STABLE_VERSION}. A dependency review is required.")
+  endif()
+
   set(download_required TRUE)
   if(EXISTS "${archive}")
-    file(SHA1 "${archive}" cached_sha1)
-    string(TOLOWER "${cached_sha1}" cached_sha1)
-    string(TOLOWER "${expected_sha1}" expected_sha1_lower)
-    if(cached_sha1 STREQUAL expected_sha1_lower)
+    file(SHA256 "${archive}" cached_sha256)
+    string(TOLOWER "${cached_sha256}" cached_sha256)
+    string(TOLOWER "${GOREECLOUD_CEF_STABLE_SHA256}" pinned_sha256_lower)
+    if(cached_sha256 STREQUAL pinned_sha256_lower)
       set(download_required FALSE)
-      message(STATUS "Verified cached CEF archive SHA-1 ${cached_sha1}")
+      message(STATUS "Verified cached CEF archive SHA-256 ${cached_sha256}")
     else()
-      message(WARNING "Discarding cached CEF archive with mismatched integrity hash.")
+      message(WARNING "Discarding cached CEF archive with mismatched SHA-256.")
       file(REMOVE "${archive}")
     endif()
   endif()
@@ -102,7 +114,7 @@ function(goreecloud_prepare_pinned_cef download_dir out_root)
       DOWNLOAD
         "${escaped_download_url}"
         "${partial}"
-      EXPECTED_HASH "SHA1=${expected_sha1}"
+      EXPECTED_HASH "SHA256=${GOREECLOUD_CEF_STABLE_SHA256}"
       TLS_VERIFY ON
       STATUS archive_status
       LOG archive_log
@@ -118,9 +130,18 @@ function(goreecloud_prepare_pinned_cef download_dir out_root)
     file(RENAME "${partial}" "${archive}")
   endif()
 
+  file(SHA1 "${archive}" archive_sha1)
   file(SHA256 "${archive}" archive_sha256)
-  message(STATUS "Verified pinned CEF archive SHA-1: ${expected_sha1}")
-  message(STATUS "Observed pinned CEF archive SHA-256: ${archive_sha256}")
+  string(TOLOWER "${archive_sha1}" archive_sha1)
+  string(TOLOWER "${archive_sha256}" archive_sha256)
+  if(NOT archive_sha1 STREQUAL pinned_sha1_lower OR
+     NOT archive_sha256 STREQUAL pinned_sha256_lower)
+    file(REMOVE "${archive}")
+    message(FATAL_ERROR
+      "Pinned CEF archive failed post-download integrity verification.")
+  endif()
+  message(STATUS "Verified pinned CEF archive SHA-1: ${archive_sha1}")
+  message(STATUS "Verified pinned CEF archive SHA-256: ${archive_sha256}")
 
   file(REMOVE_RECURSE "${root}")
   message(STATUS "Extracting pinned CEF Stable into ${download_dir}")

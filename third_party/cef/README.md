@@ -7,6 +7,8 @@
 **Chromium version:** `152.0.7977.83`  
 **Initial reviewed platform:** Linux x86_64 / `linux64`  
 **Official binary source:** `https://cef-builds.spotifycdn.com`  
+**Pinned archive SHA-1:** `8f7596039f1a30fbcfc142a07a5fc7b5dc89fc95`  
+**Pinned archive SHA-256:** `43b3be39bfe8bfe3b9a7c3e666397d00d129f008792265400099af472a6c5305`  
 **Acquisition:** Explicit opt-in only through `GOREECLOUD_CEF_AUTO_DOWNLOAD=ON`
 
 ## Integrity model
@@ -15,12 +17,12 @@ The Development acquisition helper follows the official CEF sample-project distr
 
 1. Select the exact source-controlled Stable CEF version and platform.
 2. Fetch the matching official `.sha1` sidecar over HTTPS.
-3. Reject malformed sidecars.
-4. Verify the downloaded archive against that upstream-published hash before extraction.
-5. Validate the expected CEF header and CMake entry points after extraction.
-6. Emit the observed SHA-256 into the configure log for evidence and follow-up pinning.
+3. Reject malformed sidecars or a sidecar that differs from the reviewed source-pinned SHA-1.
+4. Verify the archive against the source-pinned SHA-256 during download.
+5. Verify both pinned SHA-1 and SHA-256 after download and before extraction.
+6. Validate the expected CEF header and CMake entry points after extraction.
 
-The upstream SHA-1 sidecar is transport/integrity evidence, not independent production trust or a substitute for GoreeCloud release certification. Production dependency acceptance still requires the applicable vulnerability, provenance, licensing, update, packaging, rollback, runtime, and release evidence.
+The upstream SHA-1 sidecar is corroborating transport/integrity evidence. The source-pinned SHA-256 prevents an upstream sidecar change from silently selecting different bytes. Neither alone substitutes for GoreeCloud production dependency certification. Production dependency acceptance still requires the applicable vulnerability, provenance, licensing, update, packaging, rollback, runtime, and release evidence.
 
 ## Security boundary
 

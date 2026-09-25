@@ -11,7 +11,8 @@
 
 - Pinned the Linux Development CEF dependency to reviewed Stable CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`.
 - Added an explicit opt-in CMake acquisition path that downloads only the pinned Linux x86_64 distribution from the official CEF automated-build CDN.
-- Added upstream integrity-sidecar validation, cached-archive verification, extracted-layout validation, and observed SHA-256 reporting.
+- Added upstream integrity-sidecar validation, source-pinned SHA-1/SHA-256 verification, cached-archive verification, extracted-layout validation, and fail-closed handling when official sidecar bytes diverge from the reviewed pin.
+- Enabled the C language in the CMake project because current Stable CEF performs C compiler capability checks during configuration.
 - Added an Ubuntu 22.04 exact-head CI lane that compiles GoreeCloud Browser against the pinned Stable CEF distribution and GTK host.
 - Documented dependency provenance and preserved the manual reviewed-local-distribution path.
 
