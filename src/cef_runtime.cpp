@@ -245,6 +245,9 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     CefString(&settings.locale) = options_.locale;
 
     CefRefPtr<GoreeCloudCefRenderApp> app = new GoreeCloudCefRenderApp();
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] entering CefInitialize" << std::endl;
+    }
     if (!CefInitialize(main_args, settings, app, nullptr)) {
       throw std::runtime_error("CEF initialization failed");
     }
