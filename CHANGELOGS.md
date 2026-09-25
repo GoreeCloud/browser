@@ -12,6 +12,7 @@
 - Web-initiated unsupported main-frame schemes remain fail-closed but now show a Browser-owned local explanation instead of failing silently.
 - The local surface receives only a syntactically bounded scheme label such as `mailto: link`; phone numbers, email addresses, intent extras, tokens, and other target payload data are not rendered.
 - Unsupported subframe/custom-scheme attempts remain blocked without creating a user-facing payload surface.
+- The blocked top-level safety-surface marker survives Android instance-state recreation without persisting the blocked target, preventing the synthetic local rendering origin from becoming Browser-visible/copyable page state after rotation or recreation.
 - Added focused unit coverage for scheme-only labeling and the generic local safety page.
 
 ### Lifecycle boundary
