@@ -80,7 +80,7 @@ GoreeCloud Sync remains a separately governed application/service capability. Th
 
 Workflow: `.github/workflows/android-beta.yml`
 
-The workflow uses Java 17, Android API 35, Android Build Tools 35.0.0, and Gradle 8.9. The separately gated Android 15 managed-emulator job exercises a bounded native launcher/chrome smoke test and verifies the free-text Search authorization-required local page; it does not substitute for representative physical-device acceptance. It runs:
+The workflow uses Java 17, Android API 35, Android Build Tools 35.0.0, and Gradle 8.9. The separately gated Android 15 managed-emulator job exercises a bounded native launcher/chrome smoke test, requires the Back, Forward, Start page, Reload/Stop, Browser menu, and Go controls with initial history controls disabled, and verifies the free-text Search authorization-required local page; it does not substitute for representative physical-device acceptance. It runs:
 
 ```text
 gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
