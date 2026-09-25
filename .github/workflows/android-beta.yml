@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "apps/android/**"
+      - "assets/branding/**"
       - "docs/ANDROID_BETA.md"
       - ".github/workflows/android-beta.yml"
   push:
@@ -11,6 +12,7 @@ on:
       - main
     paths:
       - "apps/android/**"
+      - "assets/branding/**"
       - "docs/ANDROID_BETA.md"
       - ".github/workflows/android-beta.yml"
   workflow_dispatch:
