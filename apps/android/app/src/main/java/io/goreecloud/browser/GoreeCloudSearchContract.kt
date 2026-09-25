@@ -142,7 +142,7 @@ object GoreeCloudSearchContract {
     ): Decision {
         // Validate the original value: trimming first would silently erase
         // leading or trailing controls before the Search authorization gate.
-        if (query.any(Char::isISOControl)) {
+        if (SearchBoundaryTextSafety.containsUnsupportedControl(query)) {
             return Decision.Rejected(RejectionReason.INVALID_QUERY)
         }
         val normalizedQuery = query.trim()
