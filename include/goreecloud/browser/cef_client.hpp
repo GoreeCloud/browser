@@ -181,7 +181,9 @@ class GoreeCloudCefClient final : public CefClient,
     hit.page_url = frame ? frame->GetURL().ToString() : state_.url;
     hit.media_url = params->GetSourceUrl().ToString();
     hit.link_url = params->GetLinkUrl().ToString();
-    hit.mime_type = params->GetSourceMimeType().ToString();
+    // Context-menu parameters do not expose source MIME in current CEF.
+    // The asynchronous renderer probe supplies MIME when available.
+    hit.mime_type.clear();
     hit.alt_text = params->GetTitleText().ToString();
 
     const auto media_type = params->GetMediaType();
