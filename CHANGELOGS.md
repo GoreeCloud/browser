@@ -13,7 +13,8 @@
 - The local surface receives only a syntactically bounded scheme label such as `mailto: link`; phone numbers, email addresses, intent extras, tokens, and other target payload data are not rendered.
 - Unsupported subframe/custom-scheme attempts remain blocked without creating a user-facing payload surface.
 - The blocked top-level safety-surface marker survives Android instance-state recreation without persisting the blocked target, preventing the synthetic local rendering origin from becoming Browser-visible/copyable page state after rotation or recreation.
-- Added focused unit coverage for scheme-only labeling and the generic local safety page.
+- Browser-owned local start, Search-authorization, blocked-input, blocked-web-navigation, and recovery surfaces now share a fail-closed document policy (`default-src 'none'`, inline styles only, blocked base/form/object capabilities, and `no-referrer`) so local safety content cannot silently gain script, network, form, object, or referrer authority from the globally JavaScript-capable WebView.
+- Added focused unit coverage for scheme-only labeling, the generic local safety page, and the local-document CSP/referrer boundary.
 
 ### Lifecycle boundary
 
