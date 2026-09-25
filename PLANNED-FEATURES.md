@@ -12,7 +12,7 @@ Items here are planned, incomplete, blocked, or acceptance-gated. Their presence
 
 ## Current stabilization obligations
 
-- Migrate Browser presentation from its current V1.5.1 source mapping to current Official Stable GLAZE UI V1.6 / 1.6.0, then complete Browser-specific rendered, accessibility, large-text, localization/RTL, adaptive/form-factor/posture, reduced-effects, performance, rollback, Human Visual Excellence, and representative-device acceptance.
+- Complete Browser-specific acceptance for the current GLAZE UI V1.6 / 1.6.0 source mapping and Linux desktop presentation tranche: rendered review, accessibility, large text, localization/RTL, adaptive/form-factor/posture behavior, reduced effects, performance, rollback, Human Visual Excellence, and representative-device acceptance.
 - Complete issue #33 representative physical-device usability, accessibility, performance, launcher rendering, and practical browser behavior against an exact candidate.
 - Complete Browser-owned multi-tab/session/profile state and process-death/OEM/WebView/network recovery acceptance.
 - Complete website-permission/geolocation UX plus Android runtime-permission mapping, live GoreeCloud Policy/Privacy Shield/Wardveil authority adapters, durable Normal-context decision storage, revocation/reset, private-context cleanup, and representative-device acceptance.
