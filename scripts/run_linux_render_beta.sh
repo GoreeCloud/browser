@@ -33,7 +33,9 @@ EOF
 fi
 
 export GOREECLOUD_BROWSER_RUNTIME_ROOT="$build_dir"
-export GOREECLOUD_BROWSER_SUBPROCESS="$browser"
+# Leave GOREECLOUD_BROWSER_SUBPROCESS unset for the supported Linux
+# same-executable CEF subprocess model. A future distinct helper may set it.
+unset GOREECLOUD_BROWSER_SUBPROCESS
 export GOREECLOUD_BROWSER_RESOURCES="$build_dir"
 export GOREECLOUD_BROWSER_LOCALES="$build_dir/locales"
 export LD_LIBRARY_PATH="$build_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
