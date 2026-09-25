@@ -27,6 +27,10 @@ enum class GlazeAcceptanceArea {
   capability_truth,
   authority_conflicts,
   explainable_adaptation,
+  component_states,
+  large_text,
+  status_provenance,
+  performance_adaptation,
 };
 
 struct GlazeAcceptanceRequirement {
@@ -73,19 +77,27 @@ inline constexpr std::array kGlazeAcceptanceRequirements{
                                "Missing or conflicting provider ownership fails closed without inferred provider precedence."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::explainable_adaptation,
                                "Unavailable, degraded, recovery, and fallback presentation remains privacy-safe, user-initiated where consequential, and free of sensitive diagnostic payloads."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::component_states,
+                               "Applicable controls expose default, hover, focus, pressed, selected, disabled, loading, and error states without color-only meaning."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::large_text,
+                               "Large-text and text-expansion behavior reflows rather than clipping or reducing supported interaction targets."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::status_provenance,
+                               "Privacy, security, connectivity, source, and capability status presentation remains attributable to authoritative state and leaves unknown state unverified."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::performance_adaptation,
+                               "Presentation may reduce optional effects under runtime pressure while preserving semantics, interaction capability, and task continuity."},
 };
 
 inline constexpr bool kGlazeAcceptanceRequiredForProduction = true;
 
-static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.5.1"});
+static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.6.0"});
 static_assert(kCurrentGlazeUiStableRevision ==
-              std::string_view{"98da57064ede0f334627b632bc16801f580331af"});
+              std::string_view{"a7180679ea851389e0f3004515f9a25f420e716d"});
 static_assert(kCurrentGlazeUiQualificationSourceAnchor ==
-              std::string_view{"5b59d0e36950d737dba35b58ae58058684e0831b"});
+              std::string_view{"c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"});
 static_assert(kCurrentGlazeUiQualificationIntegrationRevision ==
-              std::string_view{"f7ef915f0aabea6cf92748018f2220a99e3a9c92"});
+              std::string_view{"354f5759385c28596fcfec26a3ad525e89fb1c35"});
 static_assert(kGlazeUiOpticalBaselineVersion == std::string_view{"1.4.1"});
-static_assert(kGlazeUiImmediateRollbackVersion == std::string_view{"1.5.0"});
+static_assert(kGlazeUiImmediateRollbackVersion == std::string_view{"1.5.1"});
 static_assert(kGlazeAcceptanceRequiredForProduction);
 
 }  // namespace goreecloud::browser

@@ -332,11 +332,11 @@ class GtkLinuxGlazeWindowHost::Impl {
         background-color: alpha(@theme_fg_color, 0.06);
       }
       .gc-internal-canvas {
-        padding: 54px 42px;
+        padding: 36px 20px;
         background-color: @theme_base_color;
       }
       .gc-internal-card, .gc-panel-card {
-        min-width: 540px;
+        min-width: 320px;
         padding: 30px 34px;
         border-radius: 28px;
         background-color: alpha(@theme_bg_color, 0.96);
@@ -561,7 +561,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     internal_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 11);
     gtk_widget_set_halign(internal_card, GTK_ALIGN_CENTER);
     gtk_widget_set_valign(internal_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_size_request(internal_card, 600, -1);
+    gtk_widget_set_size_request(internal_card, 320, -1);
     add_style_class(internal_card, "gc-internal-card");
     gtk_box_pack_start(GTK_BOX(internal_canvas), internal_card, TRUE, FALSE, 0);
 
@@ -577,6 +577,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     internal_title = gtk_label_new("A focused place to start.");
     gtk_label_set_xalign(GTK_LABEL(internal_title), 0.0F);
     gtk_label_set_line_wrap(GTK_LABEL(internal_title), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(internal_title), 48);
     add_style_class(internal_title, "gc-internal-title");
     gtk_box_pack_start(GTK_BOX(internal_card), internal_title, FALSE, FALSE, 0);
 
@@ -584,17 +585,23 @@ class GtkLinuxGlazeWindowHost::Impl {
         "Search with GoreeCloud Search or enter an address in the navigation capsule above.");
     gtk_label_set_xalign(GTK_LABEL(internal_subtitle), 0.0F);
     gtk_label_set_line_wrap(GTK_LABEL(internal_subtitle), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(internal_subtitle), 68);
     add_style_class(internal_subtitle, "gc-internal-subtitle");
     gtk_box_pack_start(GTK_BOX(internal_card), internal_subtitle, FALSE, FALSE, 0);
 
-    auto* status_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 7);
+    auto* status_row = gtk_flow_box_new();
+    gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(status_row), GTK_SELECTION_NONE);
+    gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(status_row), 7);
+    gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(status_row), 7);
+    gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(status_row), 1);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(status_row), 3);
     add_style_class(status_row, "gc-status-row");
-    gtk_box_pack_start(GTK_BOX(status_row), make_status_chip("Development build"),
-                       FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(status_row), make_status_chip("Glaze UI 1.6"),
-                       FALSE, FALSE, 0);
+    gtk_flow_box_insert(GTK_FLOW_BOX(status_row),
+                        make_status_chip("Development build"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(status_row),
+                        make_status_chip("Glaze UI 1.6"), -1);
     internal_status = make_status_chip("Desktop renderer integration pending");
-    gtk_box_pack_start(GTK_BOX(status_row), internal_status, FALSE, FALSE, 0);
+    gtk_flow_box_insert(GTK_FLOW_BOX(status_row), internal_status, -1);
     gtk_box_pack_start(GTK_BOX(internal_card), status_row, FALSE, FALSE, 0);
 
     gtk_stack_add_named(GTK_STACK(content_stack), internal_canvas, "internal");
@@ -607,7 +614,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     panel_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
     gtk_widget_set_halign(panel_card, GTK_ALIGN_CENTER);
     gtk_widget_set_valign(panel_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_size_request(panel_card, 560, -1);
+    gtk_widget_set_size_request(panel_card, 320, -1);
     add_style_class(panel_card, "gc-panel-card");
     gtk_box_pack_start(GTK_BOX(panel_canvas), panel_card, TRUE, FALSE, 0);
 
@@ -619,6 +626,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     panel_label = gtk_label_new(nullptr);
     gtk_label_set_xalign(GTK_LABEL(panel_label), 0.0F);
     gtk_label_set_line_wrap(GTK_LABEL(panel_label), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(panel_label), 72);
     add_style_class(panel_label, "gc-panel-copy");
     gtk_box_pack_start(GTK_BOX(panel_card), panel_label, FALSE, FALSE, 0);
 

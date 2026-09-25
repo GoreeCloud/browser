@@ -3,7 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development/Beta and is not Stable or production accepted.
-- Verified current stabilization base: `main` at `9fe772d0ae4875f43b546bb408f809b12b5ead4e`.
+- Verified current stabilization base for this follow-up: `main` at `c4050690ce158c57264759b0058b85a994f5e79c`.
 - Android has an installable GoreeCloud-owned browser shell with direct HTTP(S) navigation, Browser-owned chrome, local start/error/search-blocked surfaces, fail-closed free-text Search delegation, adaptive/round/monochrome launcher-icon resources, and exact-source APK CI.
 - Source presence and CI do not replace representative physical-device, accessibility, performance, production-signing, platform-system, recovery, or Stable acceptance evidence.
 
@@ -13,6 +13,7 @@
 - The original icon-resource and basic-browser-chrome gaps are now source-addressed on current `main`, but launcher rendering and practical usability still require fresh representative-device validation.
 - Browser platform conformance remains nonconformant; accepted runtime Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, Observability, and Browser-local Glaze acceptance remain incomplete.
 - Downloads and website permissions intentionally remain fail-closed where required authority has not been accepted.
+- GLAZE UI V1.6 source migration is present on current `main`, but this follow-up corrects stale V1.5 qualification guards that survived that merge, aligns Android-native Glaze mapping to V1.6, and removes fixed-width GTK card assumptions before broader rendered acceptance.
 
 ## Maintenance notes
 

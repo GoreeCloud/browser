@@ -8,14 +8,19 @@ last_updated: "2026-09-25"
 
 # GoreeCloud Browser — Glaze UI Adoption
 
-GoreeCloud Browser tracks the **latest approved Stable Glaze UI release**. Shared Glaze stability does not automatically grant Browser acceptance.
+GoreeCloud Browser tracks the current consumer-eligible Glaze UI release. Canonical GoreeCloud lifecycle for GLAZE UI V1.6 is **Anchor**; retained Stable naming is compatibility/release-channel vocabulary. Shared Glaze qualification does not automatically grant Browser acceptance.
 
 ## Current baseline
 
-- Official Stable: **GLAZE UI V1.6 / 1.6.0**
-- Stable tag: `v1.6.0`
+- Current consumer release: **GLAZE UI V1.6 / 1.6.0**
+- Canonical lifecycle: **Anchor**
+- Compatibility release-channel label: Stable
+- Release tag: `v1.6.0`
 - Canonical repository: `GoreeCloud/glaze-ui`
-- Exact Stable release source: `a7180679ea851389e0f3004515f9a25f420e716d`
+- Exact accepted release source: `a7180679ea851389e0f3004515f9a25f420e716d`
+- Qualification source anchor: `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`
+- Qualification evidence integration: `354f5759385c28596fcfec26a3ad525e89fb1c35`
+- Published artifact SHA-256: `687268b5eb76917eccae9d935ffa1bead333d5dee50b6098e996a3f44cee50af`
 - Browser policy: `latest-approved-stable`
 - Browser lifecycle: **Development / non-Stable**
 - Browser Glaze result after source migration: **applicable-blocked**
@@ -25,7 +30,7 @@ The previous Browser V1.5/V1.5.1 evidence remains historical provenance. Reviewe
 
 ## Current Browser source state
 
-Browser source maps its Glaze version/revision guard to exact Stable V1.6 source and the Linux GTK/X11 host carries a Browser-owned V1.6 desktop presentation tranche.
+Browser source maps its Glaze version/revision and qualification guards to exact V1.6 evidence. The Linux GTK/X11 host carries a Browser-owned V1.6 desktop presentation tranche, and the Android-native contract now targets the same V1.6 source/qualification anchors.
 
 That tranche includes:
 
@@ -37,7 +42,8 @@ That tranche includes:
 - approved Browser branding on chrome and first-party internal surfaces when the canonical asset is available;
 - redesigned New Tab, Home, Settings, Private Browsing, and generic Browser panel presentation;
 - visible focus treatment and 48 px minimum primary interactive targets;
-- explicit Development and renderer-pending state rather than production-like claims.
+- explicit Development and renderer-pending state rather than production-like claims;
+- Android-native V1.6 mapping with explicit disabled-state presentation and effects-free accessibility fallback.
 
 This is source implementation evidence, not rendered acceptance.
 

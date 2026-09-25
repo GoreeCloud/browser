@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Glaze V1.6 contract and responsive follow-up
+
+### Changed
+
+- Reconciled stale V1.5.1 qualification assertions and evidence anchors that remained after the Linux V1.6 source migration.
+- Added exact V1.6 smoke gates for accepted release source, qualification source, qualification evidence integration, rollback baseline, and Browser presentation invariants.
+- Migrated the Android-native Glaze contract and tests from V1.5.1 to V1.6 / 1.6.0 and added explicit disabled-control presentation.
+- Hardened the GTK first-party cards for narrower windows by removing 560–600 px minimum-size assumptions, constraining text measure, and allowing status chips to wrap.
+- Reconciled the Browser adoption record with canonical GLAZE UI V1.6 Anchor lifecycle terminology while retaining Stable as compatibility release-channel vocabulary.
+
+### Lifecycle boundary
+
+This follow-up remains Development source evidence. Browser-wide rendered/native, accessibility, large-text, localization/RTL, representative-device/form-factor, performance, rollback, renderer-integrated, release, and production acceptance remain open.
+
 ## 2026-09-25 — Linux desktop Glaze V1.6 source migration tranche
 
 ### Changed

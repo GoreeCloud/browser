@@ -18,7 +18,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
 - Linux GTK/X11 native beta shell build path.
-- GLAZE UI V1.6 / 1.6.0 source mapping with a Browser-owned Linux desktop Development presentation tranche: branded chrome, compact active-tab surface, primary navigation capsule, bounded secondary tools popover, friendly internal-page titles, and redesigned first-party internal surfaces.
+- GLAZE UI V1.6 / 1.6.0 source mapping with exact accepted release/qualification anchors, Android-native V1.6 mapping, and a Browser-owned Linux desktop Development presentation tranche: branded chrome, compact active-tab surface, primary navigation capsule, bounded secondary tools popover, responsive first-party cards, friendly internal-page titles, and redesigned first-party internal surfaces.
 - GoreeCloud Search integration as the sole integrated query authority while direct structurally valid HTTP(S) navigation remains independent from search.
 - Fail-closed first-party capability evidence that does not manufacture Search, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, or Bookmarks authority.
 - Browser-owned Sync submission/retrieval contracts with bounded validation, pagination, privacy-safe tombstones, and signer-shape checks.
