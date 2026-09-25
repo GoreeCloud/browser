@@ -3,7 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development/Beta and is not Stable or production accepted.
-- Verified current stabilization base: `main` at `9fe772d0ae4875f43b546bb408f809b12b5ead4e`.
+- Verified current stabilization base for this tranche: `main` at `ae1ee34e317d79c6bcc8998d00f4263f88f6d32f`.
 - Android has an installable GoreeCloud-owned browser shell with direct HTTP(S) navigation, Browser-owned chrome, local start/error/search-blocked surfaces, fail-closed free-text Search delegation, adaptive/round/monochrome launcher-icon resources, and exact-source APK CI.
 - Source presence and CI do not replace representative physical-device, accessibility, performance, production-signing, platform-system, recovery, or Stable acceptance evidence.
 
@@ -12,7 +12,7 @@
 - GitHub issue #33 remains the Android usability/device-acceptance gate.
 - The original icon-resource and basic-browser-chrome gaps are now source-addressed on current `main`, but launcher rendering and practical usability still require fresh representative-device validation.
 - Browser platform conformance remains nonconformant; accepted runtime Manager, Privacy Shield, Wardveil Security, Everkeep, Mesh, Identity, Policy, Observability, and Browser-local Glaze acceptance remain incomplete.
-- Downloads and website permissions intentionally remain fail-closed where required authority has not been accepted.
+- Downloads and website permissions intentionally remain fail-closed where required authority has not been accepted.\n- Current stabilization work migrates the Browser source contract to GLAZE UI V1.6 / 1.6.0 and replaces the rough GTK desktop toolbar with grouped primary navigation, a dominant omnibox, neutral privacy/security entry points, an accessible overflow menu, and structured Browser-owned surfaces. This remains implementation evidence only until exact-revision native/rendered acceptance is complete.
 
 ## Maintenance notes
 
