@@ -75,6 +75,22 @@ class WindowController {
     return false;
   }
 
+  [[nodiscard]] bool activate_next_tab() {
+    if (tabs_.empty()) return false;
+    const auto current =
+        active_index_.has_value() && *active_index_ < tabs_.size() ? *active_index_ : 0;
+    activate((current + 1) % tabs_.size());
+    return true;
+  }
+
+  [[nodiscard]] bool activate_previous_tab() {
+    if (tabs_.empty()) return false;
+    const auto current =
+        active_index_.has_value() && *active_index_ < tabs_.size() ? *active_index_ : 0;
+    activate(current == 0 ? tabs_.size() - 1 : current - 1);
+    return true;
+  }
+
   [[nodiscard]] bool select_tab(std::string_view id, bool additive) {
     if (!contains_tab(id)) return false;
     if (!additive) selected_tab_ids_.clear();

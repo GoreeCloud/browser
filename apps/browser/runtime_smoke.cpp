@@ -284,6 +284,11 @@ int main() {
   const auto initial_chrome = smoke_chrome.snapshot();
   assert(initial_chrome.tabs.size() == 2);
   assert(initial_chrome.tabs.back().active);
+  assert(window.active_tab() && window.active_tab()->id() == second.id());
+  assert(window.activate_previous_tab());
+  assert(window.active_tab() && window.active_tab()->id() == first.id());
+  assert(window.activate_next_tab());
+  assert(window.active_tab() && window.active_tab()->id() == second.id());
   const bool selected_first = window.select_tab(first.id(), false);
   const bool selected_second = window.select_tab(second.id(), true);
   const bool pinned = window.pin_selected_tabs(true);

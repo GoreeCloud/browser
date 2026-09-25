@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 
+#include <gdk/gdkkeysyms.h>
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
 
@@ -38,6 +39,7 @@ void set_button_icon(GtkWidget* button, const char* fallback_label,
   auto* theme = gtk_icon_theme_get_default();
   if (theme && icon_name && gtk_icon_theme_has_icon(theme, icon_name)) {
     auto* image = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_BUTTON);
+    gtk_image_set_pixel_size(GTK_IMAGE(image), 20);
     gtk_button_set_image(GTK_BUTTON(button), image);
     gtk_button_set_always_show_image(GTK_BUTTON(button), TRUE);
   } else {
@@ -82,6 +84,27 @@ GtkWidget* make_status_chip(const char* text) {
   return label;
 }
 
+GtkWidget* make_settings_tile(const char* title, const char* subtitle) {
+  auto* tile = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+  gtk_widget_set_size_request(tile, 180, 72);
+  add_style_class(tile, "gc-settings-tile");
+
+  auto* title_label = gtk_label_new(title);
+  gtk_label_set_xalign(GTK_LABEL(title_label), 0.0F);
+  gtk_label_set_ellipsize(GTK_LABEL(title_label), PANGO_ELLIPSIZE_END);
+  add_style_class(title_label, "gc-settings-title");
+  gtk_box_pack_start(GTK_BOX(tile), title_label, FALSE, FALSE, 0);
+
+  auto* subtitle_label = gtk_label_new(subtitle);
+  gtk_label_set_xalign(GTK_LABEL(subtitle_label), 0.0F);
+  gtk_label_set_line_wrap(GTK_LABEL(subtitle_label), TRUE);
+  gtk_label_set_max_width_chars(GTK_LABEL(subtitle_label), 26);
+  add_style_class(subtitle_label, "gc-settings-detail");
+  gtk_box_pack_start(GTK_BOX(tile), subtitle_label, FALSE, FALSE, 0);
+
+  return tile;
+}
+
 struct InternalSurfaceCopy {
   const char* eyebrow;
   const char* title;
@@ -92,18 +115,18 @@ struct InternalSurfaceCopy {
 InternalSurfaceCopy internal_surface_copy(std::string_view url) {
   if (url == kNewTabUrl) {
     return {"GOREECLOUD BROWSER", "A focused place to start.",
-            "Search with GoreeCloud Search or enter an address in the navigation capsule above.",
+            "Search with GoreeCloud Search or enter an address. Browser-owned tools stay close without crowding the page.",
             "Desktop renderer integration pending"};
   }
   if (url == kHomeUrl) {
     return {"GOREECLOUD HOME", "Your browser, your workspace.",
-            "Home is a first-party GoreeCloud surface. Rich modules and synchronized content remain development work.",
+            "Start with search, bookmarks, downloads, or settings. Synchronized Home modules remain unavailable until their owning services are integrated.",
             "Development surface"};
   }
   if (url == kSettingsUrl) {
-    return {"BROWSER SETTINGS", "Control the browser without losing context.",
-            "Settings will grow into grouped privacy, security, appearance, search, downloads, network, permissions, and data controls.",
-            "Settings surface under development"};
+    return {"BROWSER SETTINGS", "Make the browser work your way.",
+            "The settings architecture is in place now; controls remain unavailable until their owning runtime and policy surfaces are implemented and accepted.",
+            "Development settings architecture"};
   }
   if (url == kPrivateStartUrl) {
     return {"PRIVATE BROWSING", "Temporary browsing, clearly separated.",
@@ -112,6 +135,66 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
   }
   return {"GOREECLOUD BROWSER", "First-party browser surface",
           "This GoreeCloud-owned internal destination is still being implemented.",
+          "Development surface"};
+}
+
+struct PanelPresentation {
+  std::string eyebrow;
+  std::string title;
+  std::string body;
+  std::string status;
+};
+
+PanelPresentation panel_presentation(std::string_view id) {
+  if (id == "Unified Bookmarks") {
+    return {"LIBRARY", "Bookmarks",
+            "Local Bookmarks and GoreeCloud Bookmarks remain explicit destinations. No synchronization state is inferred in this Development shell.",
+            "Bookmark persistence and sync adapters pending"};
+  }
+  if (id == "Advanced Reader Mode") {
+    return {"READING", "Reader Mode",
+            "Reader Mode will simplify supported rendered pages while preserving source provenance, accessibility, and page-security boundaries.",
+            "Requires render-capable desktop engine"};
+  }
+  if (id == "Wardveil Security" || id == "wardveil-security") {
+    return {"SECURITY", "Wardveil Security",
+            "Browser security posture will be presented only from current authoritative Wardveil evidence. This shell does not manufacture a protected state.",
+            "Runtime security evidence unavailable"};
+  }
+  if (id == "privacy-shield") {
+    return {"PRIVACY", "Privacy Shield",
+            "Privacy decisions and protection state will appear here only when the Browser has accepted live Privacy Shield integration.",
+            "Runtime privacy evidence unavailable"};
+  }
+  if (id == "clipboard") {
+    return {"BROWSER TOOLS", "Clipboard",
+            "Clipboard actions stay user initiated and bounded to the current browser context.",
+            "Advanced clipboard surface pending"};
+  }
+  if (id == "dns-cache") {
+    return {"NETWORK", "DNS cache",
+            "DNS diagnostics and cache controls will live here with explicit provider ownership and clear failure state.",
+            "DNS runtime integration pending"};
+  }
+  if (id == "proxy-manager") {
+    return {"NETWORK", "Advanced Proxy Manager",
+            "Proxy profiles, routing, and connection state will appear here after Browser-owned network integration is accepted.",
+            "Proxy runtime integration pending"};
+  }
+  if (id == "GoreeCloud Search unavailable") {
+    return {"SEARCH", "Search unavailable",
+            "GoreeCloud Search could not resolve this request. The Browser did not silently substitute another search provider.",
+            "No fallback provider used"};
+  }
+  if (id.starts_with("Advanced Download Manager")) {
+    const auto newline = id.find('\n');
+    return {"DOWNLOADS", "Advanced Download Manager",
+            newline == std::string_view::npos
+                ? "Download state is available from the Browser Development runtime."
+                : std::string{id.substr(newline + 1)},
+            "Development download runtime"};
+  }
+  return {"BROWSER TOOLS", "Browser tool", std::string{id},
           "Development surface"};
 }
 
@@ -203,6 +286,62 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (!self->search_handler) return;
     const char* value = gtk_entry_get_text(entry);
     self->search_handler(value ? std::string_view{value} : std::string_view{});
+  }
+
+  static void on_panel_close_clicked(GtkButton*, gpointer data) {
+    static_cast<Impl*>(data)->close_panel();
+  }
+
+  static gboolean on_key_press(GtkWidget*, GdkEventKey* event, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    const bool ctrl = (event->state & GDK_CONTROL_MASK) != 0;
+    const bool shift = (event->state & GDK_SHIFT_MASK) != 0;
+    const bool alt = (event->state & GDK_MOD1_MASK) != 0;
+
+    if ((ctrl && (event->keyval == GDK_KEY_l || event->keyval == GDK_KEY_k)) ||
+        event->keyval == GDK_KEY_F6) {
+      if (self->search_entry) {
+        gtk_widget_grab_focus(self->search_entry);
+        gtk_editable_select_region(GTK_EDITABLE(self->search_entry), 0, -1);
+        return TRUE;
+      }
+    }
+
+    if (ctrl && event->keyval == GDK_KEY_t && self->tab_action_handler) {
+      self->tab_action_handler(GtkTabAction::create, {});
+      return TRUE;
+    }
+    if (ctrl && event->keyval == GDK_KEY_w && self->tab_action_handler &&
+        !self->active_tab_id.empty()) {
+      self->tab_action_handler(GtkTabAction::close, self->active_tab_id);
+      return TRUE;
+    }
+    if (ctrl && event->keyval == GDK_KEY_Tab && self->tab_action_handler) {
+      self->tab_action_handler(shift ? GtkTabAction::previous : GtkTabAction::next, {});
+      return TRUE;
+    }
+    if (ctrl && event->keyval == GDK_KEY_r && self->toolbar_handler) {
+      self->toolbar_handler(ToolbarItem::refresh);
+      return TRUE;
+    }
+    if (alt && event->keyval == GDK_KEY_Left && self->toolbar_handler) {
+      self->toolbar_handler(ToolbarItem::back);
+      return TRUE;
+    }
+    if (alt && event->keyval == GDK_KEY_Right && self->toolbar_handler) {
+      self->toolbar_handler(ToolbarItem::forward);
+      return TRUE;
+    }
+    if (alt && event->keyval == GDK_KEY_Home && self->toolbar_handler) {
+      self->toolbar_handler(ToolbarItem::home);
+      return TRUE;
+    }
+    if (event->keyval == GDK_KEY_Escape && self->panel_is_visible()) {
+      self->close_panel();
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
   static void on_content_size_allocate(GtkWidget*, GtkAllocation*,
@@ -319,6 +458,7 @@ class GtkLinuxGlazeWindowHost::Impl {
         background-color: alpha(@theme_fg_color, 0.07);
       }
       .gc-stage-badge {
+        opacity: 0.74;
         padding: 5px 10px;
         border-radius: 999px;
         background-color: alpha(@theme_selected_bg_color, 0.10);
@@ -397,7 +537,7 @@ class GtkLinuxGlazeWindowHost::Impl {
         background-color: alpha(@theme_fg_color, 0.06);
       }
       .gc-internal-canvas {
-        padding: 36px 20px;
+        padding: 34px 20px 48px 20px;
         background-color: @theme_base_color;
       }
       .gc-internal-card, .gc-panel-card {
@@ -442,6 +582,47 @@ class GtkLinuxGlazeWindowHost::Impl {
       .gc-quick-action:hover {
         background-color: alpha(@theme_fg_color, 0.07);
       }
+      .gc-settings-grid {
+        margin-top: 8px;
+      }
+      .gc-settings-tile {
+        min-width: 160px;
+        min-height: 66px;
+        padding: 12px 14px;
+        border-radius: 16px;
+        background-color: alpha(@theme_base_color, 0.72);
+        border: 1px solid alpha(@theme_fg_color, 0.09);
+      }
+      .gc-settings-title {
+        font-weight: 700;
+      }
+      .gc-settings-detail {
+        opacity: 0.66;
+        font-size: 0.88em;
+      }
+      .gc-panel-eyebrow {
+        opacity: 0.70;
+        font-size: 0.82em;
+        font-weight: 700;
+      }
+      .gc-panel-header {
+        margin-bottom: 2px;
+      }
+      .gc-panel-close {
+        min-width: 36px;
+        min-height: 36px;
+        padding: 0;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: transparent;
+        box-shadow: none;
+      }
+      .gc-panel-close:hover {
+        background-color: alpha(@theme_fg_color, 0.07);
+      }
+      .gc-panel-status {
+        margin-top: 8px;
+      }
       .gc-status-row { margin-top: 10px; }
       .gc-status-chip {
         padding: 6px 10px;
@@ -476,6 +657,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     add_style_class(window, "gc-browser-window");
     if (private_window) add_style_class(window, "gc-private-window");
     g_signal_connect(window, "destroy", G_CALLBACK(on_window_destroy), this);
+    g_signal_connect(window, "key-press-event", G_CALLBACK(on_key_press), this);
 
     root = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(window), root);
@@ -541,7 +723,9 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (!tab_list) return;
 
     std::string signature;
+    active_tab_id.clear();
     for (const auto& tab : state.tabs) {
+      if (tab.active) active_tab_id = tab.id;
       signature += tab.id;
       signature.push_back('|');
       signature += tab.title;
@@ -605,7 +789,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     add_toolbar_button(ToolbarItem::home, "⌂", "go-home-symbolic", "Home");
     build_unified_search();
     add_toolbar_button(ToolbarItem::advanced_download_manager, "↓",
-                       "folder-download-symbolic", "Advanced Download Manager");
+                       "document-save-symbolic", "Advanced Download Manager");
     build_overflow_menu();
     add_toolbar_button(ToolbarItem::settings, "⚙",
                        "preferences-system-symbolic", "Settings");
@@ -701,7 +885,8 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     internal_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 11);
     gtk_widget_set_halign(internal_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(internal_card, GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(internal_card, GTK_ALIGN_START);
+    gtk_widget_set_margin_top(internal_card, 34);
     gtk_widget_set_size_request(internal_card, 320, -1);
     add_style_class(internal_card, "gc-internal-card");
     gtk_box_pack_start(GTK_BOX(internal_canvas), internal_card, TRUE, FALSE, 0);
@@ -769,6 +954,33 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_box_pack_start(GTK_BOX(internal_card), internal_actions,
                        FALSE, FALSE, 0);
 
+    settings_grid = gtk_flow_box_new();
+    gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(settings_grid), GTK_SELECTION_NONE);
+    gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(settings_grid), 8);
+    gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(settings_grid), 8);
+    gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(settings_grid), 1);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(settings_grid), 3);
+    add_style_class(settings_grid, "gc-settings-grid");
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("General", "Startup, tabs, language"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Appearance", "Glaze, theme, density"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Search", "GoreeCloud Search routing"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Privacy", "Blocking and site data"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Security", "Wardveil and certificates"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Downloads", "Storage and transfer behavior"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Network", "DNS, proxy, connectivity"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Permissions", "Camera, mic, location"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(settings_grid),
+                        make_settings_tile("Accessibility", "Text, contrast, motion"), -1);
+    gtk_box_pack_start(GTK_BOX(internal_card), settings_grid, FALSE, FALSE, 0);
+
     auto* status_row = gtk_flow_box_new();
     gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(status_row), GTK_SELECTION_NONE);
     gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(status_row), 7);
@@ -793,13 +1005,34 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     panel_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
     gtk_widget_set_halign(panel_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(panel_card, GTK_ALIGN_CENTER);
-    gtk_widget_set_size_request(panel_card, 320, -1);
+    gtk_widget_set_valign(panel_card, GTK_ALIGN_START);
+    gtk_widget_set_margin_top(panel_card, 44);
+    gtk_widget_set_size_request(panel_card, 420, -1);
     add_style_class(panel_card, "gc-panel-card");
     gtk_box_pack_start(GTK_BOX(panel_canvas), panel_card, TRUE, FALSE, 0);
 
+    auto* panel_header = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    add_style_class(panel_header, "gc-panel-header");
+
+    auto* identity = make_brand_mark();
+    gtk_box_pack_start(GTK_BOX(panel_header), identity, FALSE, FALSE, 0);
+
+    panel_eyebrow = gtk_label_new("BROWSER TOOLS");
+    gtk_label_set_xalign(GTK_LABEL(panel_eyebrow), 0.0F);
+    add_style_class(panel_eyebrow, "gc-panel-eyebrow");
+    gtk_box_pack_start(GTK_BOX(panel_header), panel_eyebrow, TRUE, TRUE, 0);
+
+    panel_close = gtk_button_new();
+    set_button_icon(panel_close, "×", "window-close-symbolic");
+    add_style_class(panel_close, "gc-panel-close");
+    set_accessible_name(panel_close, "Close panel");
+    g_signal_connect(panel_close, "clicked", G_CALLBACK(on_panel_close_clicked), this);
+    gtk_box_pack_end(GTK_BOX(panel_header), panel_close, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(panel_card), panel_header, FALSE, FALSE, 0);
+
     panel_title = gtk_label_new("Browser tool");
     gtk_label_set_xalign(GTK_LABEL(panel_title), 0.0F);
+    gtk_label_set_line_wrap(GTK_LABEL(panel_title), TRUE);
     add_style_class(panel_title, "gc-panel-title");
     gtk_box_pack_start(GTK_BOX(panel_card), panel_title, FALSE, FALSE, 0);
 
@@ -807,10 +1040,44 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_label_set_xalign(GTK_LABEL(panel_label), 0.0F);
     gtk_label_set_line_wrap(GTK_LABEL(panel_label), TRUE);
     gtk_label_set_max_width_chars(GTK_LABEL(panel_label), 72);
+    gtk_label_set_selectable(GTK_LABEL(panel_label), TRUE);
     add_style_class(panel_label, "gc-panel-copy");
     gtk_box_pack_start(GTK_BOX(panel_card), panel_label, FALSE, FALSE, 0);
 
+    panel_status = make_status_chip("Development surface");
+    add_style_class(panel_status, "gc-panel-status");
+    gtk_box_pack_start(GTK_BOX(panel_card), panel_status, FALSE, FALSE, 0);
+
     gtk_stack_add_named(GTK_STACK(content_stack), panel_canvas, "panel");
+  }
+
+  void set_panel_content(std::string_view panel_id) {
+    const auto presentation = panel_presentation(panel_id);
+    if (panel_eyebrow) {
+      gtk_label_set_text(GTK_LABEL(panel_eyebrow), presentation.eyebrow.c_str());
+    }
+    if (panel_title) {
+      gtk_label_set_text(GTK_LABEL(panel_title), presentation.title.c_str());
+    }
+    if (panel_label) {
+      gtk_label_set_text(GTK_LABEL(panel_label), presentation.body.c_str());
+    }
+    if (panel_status) {
+      gtk_label_set_text(GTK_LABEL(panel_status), presentation.status.c_str());
+    }
+  }
+
+  [[nodiscard]] bool panel_is_visible() const {
+    if (!content_stack) return false;
+    const auto* name = gtk_stack_get_visible_child_name(GTK_STACK(content_stack));
+    return name && std::string_view{name} == "panel";
+  }
+
+  void close_panel() {
+    if (!content_stack) return;
+    const auto target = panel_return_child.empty() ? std::string{"internal"}
+                                                   : panel_return_child;
+    gtk_stack_set_visible_child_name(GTK_STACK(content_stack), target.c_str());
   }
 
   void set_internal_surface_copy(std::string_view url) {
@@ -829,11 +1096,17 @@ class GtkLinuxGlazeWindowHost::Impl {
     }
 
     const bool launch_surface = url == kNewTabUrl || url == kHomeUrl;
+    const bool settings_surface = url == kSettingsUrl;
     if (internal_search_entry) {
       gtk_widget_set_visible(internal_search_entry, launch_surface);
       if (launch_surface) gtk_entry_set_text(GTK_ENTRY(internal_search_entry), "");
     }
-    if (internal_actions) gtk_widget_set_visible(internal_actions, launch_surface);
+    if (internal_actions) {
+      gtk_widget_set_visible(internal_actions, launch_surface);
+    }
+    if (settings_grid) {
+      gtk_widget_set_visible(settings_grid, settings_surface);
+    }
   }
 
   void show() {
@@ -936,17 +1209,23 @@ class GtkLinuxGlazeWindowHost::Impl {
   GtkWidget* internal_subtitle{nullptr};
   GtkWidget* internal_search_entry{nullptr};
   GtkWidget* internal_actions{nullptr};
+  GtkWidget* settings_grid{nullptr};
   GtkWidget* internal_status{nullptr};
   GtkWidget* panel_canvas{nullptr};
   GtkWidget* panel_card{nullptr};
+  GtkWidget* panel_eyebrow{nullptr};
   GtkWidget* panel_title{nullptr};
   GtkWidget* panel_label{nullptr};
+  GtkWidget* panel_status{nullptr};
+  GtkWidget* panel_close{nullptr};
   GtkCssProvider* css{nullptr};
 
   EngineView* attached_view{nullptr};
   NativeWindowMetrics metrics{1280, 800, 1.0F};
   guint media_hover_timer_id{0};
   std::string tab_signature;
+  std::string active_tab_id;
+  std::string panel_return_child{"internal"};
   bool private_window{false};
   bool created{false};
   bool close_requested{false};
@@ -1053,7 +1332,14 @@ void GtkLinuxGlazeWindowHost::show_panel(std::string_view panel_id) {
   impl_->media_hover.invalidate();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
   if (!impl_->content_stack || !impl_->panel_label) return;
-  gtk_label_set_text(GTK_LABEL(impl_->panel_label), std::string{panel_id}.c_str());
+
+  if (const auto* visible =
+          gtk_stack_get_visible_child_name(GTK_STACK(impl_->content_stack));
+      visible && std::string_view{visible} != "panel") {
+    impl_->panel_return_child = visible;
+  }
+
+  impl_->set_panel_content(panel_id);
   gtk_stack_set_visible_child_name(GTK_STACK(impl_->content_stack), "panel");
 }
 

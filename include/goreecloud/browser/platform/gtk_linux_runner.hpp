@@ -116,6 +116,12 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
       case GtkTabAction::create:
         (void)window->new_tab();
         break;
+      case GtkTabAction::next:
+        (void)window->activate_next_tab();
+        break;
+      case GtkTabAction::previous:
+        (void)window->activate_previous_tab();
+        break;
     }
     present_active_tab();
   });
