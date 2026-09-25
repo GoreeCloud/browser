@@ -80,3 +80,41 @@ jobs:
         run: cmake --build build-gtk --parallel
       - name: Test Browser and download contracts
         run: ctest --test-dir build-gtk --output-on-failure
+
+
+  linux-cef-bootstrap-contract:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Syntax-check CEF bootstrap and launch scripts
+        run: |
+          python3 -m py_compile scripts/bootstrap_cef_linux.py
+          bash -n scripts/build_linux_render_beta.sh
+          bash -n scripts/run_linux_render_beta.sh
+      - name: Verify pinned CEF source contract without downloading CEF
+        run: |
+          python3 scripts/bootstrap_cef_linux.py --print-spec > /tmp/goreecloud-cef-spec.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          expected = "152.0.6+g708dc14+chromium-152.0.7977.83"
+          spec = json.loads(Path("/tmp/goreecloud-cef-spec.json").read_text())
+          assert spec["cef_version"] == expected
+          assert spec["chromium_version"] == "152.0.7977.83"
+          assert spec["platform"] == "linux64"
+          assert spec["distribution"] == "minimal"
+          assert spec["archive"].endswith("_linux64_minimal.tar.bz2")
+          assert "%2B" in spec["archive_url"]
+          assert spec["checksum_url"].endswith(".sha1")
+
+          cmake = Path("CMakeLists.txt").read_text()
+          assert "GOREECLOUD_CEF_PINNED_VERSION" in cmake
+          assert expected in cmake
+          PY

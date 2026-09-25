@@ -14,6 +14,8 @@ struct ChromiumAdapterOptions {
   std::filesystem::path subprocess_path;
   std::filesystem::path resources_path;
   std::filesystem::path locales_path;
+  int process_argc{0};
+  char** process_argv{nullptr};
   bool enable_gpu{true};
   bool enable_sandbox{true};
   bool enable_site_isolation{true};

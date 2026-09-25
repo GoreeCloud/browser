@@ -27,6 +27,12 @@ The beta source milestone requires the following Browser-owned contracts to be p
 - Runtime smoke tests through CTest.
 - Core Linux CI builds in Release and Debug configurations.
 
+## Current pinned desktop renderer candidate
+
+The Linux Development render path pins CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83` for the current render-capable milestone. The repository bootstrap uses the official CEF binary-distribution service, verifies the official checksum before extraction, records a local SHA-256 provenance value, and CMake rejects a CEF root whose reported version differs from the repository pin.
+
+This pin establishes a reproducible candidate dependency only. It does **not** by itself satisfy any render-capable Beta acceptance gate.
+
 ## Render-capable beta gate
 
 A desktop artifact must not be described as render-capable Beta until all of the following are demonstrated in an actual build using the selected CEF/Chromium runtime:
