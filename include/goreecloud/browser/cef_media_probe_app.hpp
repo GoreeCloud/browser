@@ -18,14 +18,14 @@ namespace goreecloud::browser {
 
 #if GOREECLOUD_ENABLE_CEF
 
-class GoreeCloudCefRenderApp final : public CefApp,
-                                     public CefRenderProcessHandler,
-                                     public CefBrowserProcessHandler {
+class GoreeCloudCefBrowserApp final : public CefApp,
+                                      public CefBrowserProcessHandler {
  public:
-  GoreeCloudCefRenderApp() = default;
+  GoreeCloudCefBrowserApp() = default;
 
-  CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override { return this; }
-  CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override { return this; }
+  CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override {
+    return this;
+  }
 
   void OnContextInitialized() override {
     browser_context_initialized_.store(true, std::memory_order_release);
@@ -33,6 +33,22 @@ class GoreeCloudCefRenderApp final : public CefApp,
 
   [[nodiscard]] bool browser_context_initialized() const noexcept {
     return browser_context_initialized_.load(std::memory_order_acquire);
+  }
+
+ private:
+  std::atomic_bool browser_context_initialized_{false};
+
+  IMPLEMENT_REFCOUNTING(GoreeCloudCefBrowserApp);
+  DISALLOW_COPY_AND_ASSIGN(GoreeCloudCefBrowserApp);
+};
+
+class GoreeCloudCefRenderApp final : public CefApp,
+                                     public CefRenderProcessHandler {
+ public:
+  GoreeCloudCefRenderApp() = default;
+
+  CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override {
+    return this;
   }
 
   bool OnProcessMessageReceived(CefRefPtr<CefBrowser>,
@@ -286,8 +302,6 @@ class GoreeCloudCefRenderApp final : public CefApp,
     out->SetString(2, error);
     frame->SendProcessMessage(PID_BROWSER, response);
   }
-
-  std::atomic_bool browser_context_initialized_{false};
 
   IMPLEMENT_REFCOUNTING(GoreeCloudCefRenderApp);
   DISALLOW_COPY_AND_ASSIGN(GoreeCloudCefRenderApp);
