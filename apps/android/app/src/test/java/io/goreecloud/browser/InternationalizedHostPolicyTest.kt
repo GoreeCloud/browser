@@ -37,6 +37,8 @@ class InternationalizedHostPolicyTest {
 
     @Test
     fun invalidPortAndStd3HostFailClosed() {
+        assertNull(InternationalizedHostPolicy.canonicalizeHttpUrl("https://example.com:0"))
+        assertNull(InternationalizedHostPolicy.canonicalizeHttpUrl("https://[::1]:0/path"))
         assertNull(InternationalizedHostPolicy.canonicalizeHttpUrl("https://example.com:65536"))
         assertNull(InternationalizedHostPolicy.canonicalizeHttpUrl("https://exa_mple.com/path"))
     }
