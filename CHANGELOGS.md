@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Android 15 managed-emulator Browser smoke
+
+### Changed
+
+- Added AndroidX instrumentation support and an exact-head Android 15 managed-emulator lane.
+- Added runtime smoke coverage for Browser-owned chrome controls, initial Back/Forward disabled state, package identity, conservative WebView file/content/mixed-content/cookie defaults, and fail-closed free-text Search.
+- Updated the APK build lane to assemble the instrumentation APK before the dependent emulator job.
+- Reconciled Android Beta documentation from stale V1.5.1 wording to the integrated GLAZE UI V1.6 / 1.6.0 source and qualification mapping.
+- Preserved the branding-provenance validation and `assets/branding/**` Android workflow trigger integrated on current main.
+
+### Acceptance boundary
+
+Managed-emulator evidence is Development evidence only. It does not establish representative physical-device launcher rendering, accessibility, practical network browsing, sustained performance, OEM behavior, production signing, release qualification, Production Acceptance, or Anchor product maturity.
+
 ## 2026-09-25 — Android launcher branding provenance guard
 
 ### Changed
