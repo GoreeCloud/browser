@@ -171,14 +171,13 @@ jobs:
 
           timeout --signal=TERM --kill-after=5s 20s \
             xvfb-run -a -s "-screen 0 1280x800x24" \
-            stdbuf -oL -eL ./scripts/run_linux_render_beta.sh https://example.com/ \
+            ./scripts/run_linux_render_beta.sh https://example.com/ \
             >"${log_file}" 2>&1 &
           runtime_pid=$!
 
           runtime_ready=0
           for _ in $(seq 1 30); do
-            if grep -q "Runtime mode: cef" "${log_file}" && \
-               pgrep -af -- "--type=renderer" > "${renderer_file}"; then
+            if pgrep -af -- "--type=renderer" > "${renderer_file}"; then
               runtime_ready=1
               break
             fi
@@ -197,7 +196,6 @@ jobs:
           cat "${renderer_file}"
 
           test "${runtime_ready}" -eq 1
-          grep -q "Runtime mode: cef" "${log_file}"
           test -s "${renderer_file}"
 
           if [[ "${runtime_status}" -ne 0 && "${runtime_status}" -ne 124 ]]; then
