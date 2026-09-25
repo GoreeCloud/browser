@@ -1,5 +1,7 @@
+#include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <string_view>
 #include <string>
 
 #include "goreecloud/browser/application.hpp"
@@ -37,9 +39,28 @@ int main(int argc, char** argv) {
                                 : std::string{kNewTabUrl};
     }
 
+    const char* diagnostics =
+        std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
+    const bool diagnostic =
+        diagnostics && *diagnostics && std::string_view{diagnostics} != "0";
+    if (diagnostic) {
+      std::cerr << "[GoreeCloud CEF] selecting runtime engine" << std::endl;
+    }
+
     auto selection = create_runtime_engine_from_environment(argc, argv);
+    if (diagnostic) {
+      std::cerr << "[GoreeCloud CEF] selected runtime mode="
+                << selection.mode << std::endl;
+    }
+
     BrowserApplication browser(std::move(selection.engine), options);
+    if (diagnostic) {
+      std::cerr << "[GoreeCloud CEF] initializing BrowserApplication" << std::endl;
+    }
     browser.initialize();
+    if (diagnostic) {
+      std::cerr << "[GoreeCloud CEF] BrowserApplication initialized" << std::endl;
+    }
 
     if (auto* first_window = browser.first_window()) {
       for (std::size_t index = 1; index < launch.urls.size(); ++index) {
