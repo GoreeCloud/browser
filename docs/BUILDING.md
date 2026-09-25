@@ -1,6 +1,8 @@
 # Building GoreeCloud Browser
 
-GoreeCloud Browser is on the **0.1.0-beta.1** development channel. The repository contains a build-tested Browser core, an optional visible Linux GTK/X11 Glaze shell, the Chromium engine adapter, and an optional CEF runtime path. A successful build is not production-readiness evidence.\n\nThe Linux build supports **CMake 3.22 or newer**, including the system CMake supplied by Ubuntu 22.04 / Zorin OS 17-class environments. The dedicated GTK beta-shell CI lane runs on Ubuntu 22.04 so this compatibility remains continuously checked.
+GoreeCloud Browser is on the **0.1.0-beta.1** development channel. The repository contains a build-tested Browser core, an optional visible Linux GTK/X11 Glaze shell, the Chromium engine adapter, and an optional CEF runtime path. A successful build is not production-readiness evidence.
+
+The Linux build supports **CMake 3.22 or newer**, including the system CMake supplied by Ubuntu 22.04 / Zorin OS 17-class environments. The dedicated GTK beta-shell CI lane runs on Ubuntu 22.04 so this compatibility remains continuously checked.
 
 ## Engine-independent beta core
 
@@ -97,3 +99,19 @@ GoreeCloud Browser refuses the production Chromium adapter when sandboxing or si
 ## Distribution direction
 
 The accepted source is intended to feed Linux Flatpak, Windows `.exe`, Android APK, and later approved artifacts. The current Flatpak manifest is a beta-shell manifest and intentionally leaves CEF disabled until a reviewed CEF runtime module, provenance, sandbox, codecs, and runtime packaging are incorporated.
+
+
+## Linux Development keyboard controls
+
+The GTK/X11 Development shell exposes browser-standard keyboard paths where the corresponding Browser-owned behavior exists:
+
+- `Ctrl+L`, `Ctrl+K`, or `F6` — focus/select the unified address/search field.
+- `Ctrl+T` — create a new tab.
+- `Ctrl+W` — close the active tab.
+- `Ctrl+Tab` / `Ctrl+Shift+Tab` — cycle tabs.
+- `Ctrl+R` — reload or stop.
+- `Alt+Left` / `Alt+Right` — Back / Forward.
+- `Alt+Home` — Home.
+- `Escape` — dismiss a Browser Development panel.
+
+These controls are Development behavior. They do not establish accessibility acceptance or production browser completeness.

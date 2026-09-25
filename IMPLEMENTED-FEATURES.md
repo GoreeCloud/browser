@@ -18,8 +18,11 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
 - Linux GTK/X11 native beta shell build path.
-- Linux Development tab chrome with multi-tab presentation plus create, activate, and explicit close controls.
+- Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, next-tab, and previous-tab controls.
+- Keyboard-first Linux Browser controls for location focus, new/close/cycle tab, reload, back/forward, Home, panel dismissal, and F6 address focus.
 - First-party Linux New Tab/Home search field and wired Bookmarks, Downloads, and Settings quick actions.
+- Structured Browser-owned Development panels for Bookmarks, Reader Mode, Wardveil Security, Privacy Shield, Clipboard, DNS, Proxy, Search failure, and Advanced Download Manager state instead of the earlier generic “Browser tool” placeholder.
+- First-party Settings architecture surface with explicit General, Appearance, Search, Privacy, Security, Downloads, Network, Permissions, and Accessibility group presentation without falsely claiming unavailable runtime controls.
 - Friendly Browser-owned internal-page title/location presentation that suppresses implementation-only `goreecloud://` locations from ordinary visible chrome.
 - Canonical Browser compass branding synchronized from `GoreeCloud/branding-assets` full-color and monochrome identity sources.
 - GLAZE UI V1.6 / 1.6.0 source mapping with exact accepted release/qualification anchors, Android-native V1.6 mapping, and a Browser-owned Linux desktop Development presentation tranche: branded chrome, compact active-tab surface, primary navigation capsule, bounded secondary tools popover, responsive first-party cards, friendly internal-page titles, and redesigned first-party internal surfaces.

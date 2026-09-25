@@ -5,6 +5,21 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Linux Glaze polish, structured panels, and keyboard-first controls
+
+### Changed
+
+- Replaced the generic Linux “Browser tool” placeholder with structured Browser-owned Development presentations for Bookmarks, Reader Mode, Privacy Shield, Wardveil Security, Clipboard, DNS, Proxy, Search failure, and Advanced Download Manager state.
+- Added a first-party Settings architecture view covering General, Appearance, Search, Privacy, Security, Downloads, Network, Permissions, and Accessibility while keeping unavailable runtime controls truthfully unavailable.
+- Added keyboard-first desktop navigation: location focus with Ctrl+L/Ctrl+K/F6, new tab Ctrl+T, close tab Ctrl+W, next/previous tab Ctrl+Tab/Ctrl+Shift+Tab, reload Ctrl+R, Back/Forward with Alt+Left/Right, Home with Alt+Home, and Escape panel dismissal.
+- Added Browser-owned next/previous tab lifecycle primitives and runtime-smoke coverage.
+- Improved Linux presentation density by top-aligning first-party content, de-emphasizing the Development badge, sizing native symbolic icons consistently, and replacing the unreliable download theme glyph.
+- Preserved provider authority boundaries: Privacy Shield, Wardveil, DNS, Proxy, Search, Bookmarks sync, and renderer-backed capabilities remain explicitly pending where live accepted integration is absent.
+
+### Acceptance boundary
+
+This is Development source and CI evidence only. It does not establish render-capable CEF/Chromium acceptance, completed settings behavior, persistence-backed library/history, Browser-wide Glaze acceptance, representative-device accessibility/performance acceptance, Release Candidate, production approval, or Anchor maturity.
+
 ## 2026-09-25 — Android 15 managed-emulator Browser smoke
 
 ### Changed
