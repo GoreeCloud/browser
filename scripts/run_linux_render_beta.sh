@@ -37,17 +37,10 @@ if [[ -f "$build_dir/chrome-sandbox" ]]; then
 fi
 
 export GOREECLOUD_BROWSER_RUNTIME_ROOT="$build_dir"
-subprocess="$build_dir/goreecloud-browser-subprocess"
-if [[ ! -x "$subprocess" && -x "$build_dir/Release/goreecloud-browser-subprocess" ]]; then
-  subprocess="$build_dir/Release/goreecloud-browser-subprocess"
-fi
-if [[ ! -x "$subprocess" ]]; then
-  echo "CEF subprocess helper missing from build output." >&2
-  echo "Checked: $build_dir/goreecloud-browser-subprocess" >&2
-  echo "Checked: $build_dir/Release/goreecloud-browser-subprocess" >&2
-  exit 1
-fi
-export GOREECLOUD_BROWSER_SUBPROCESS="$subprocess"
+# Current CEF Linux reference builds reuse the main executable for renderer,
+# GPU, utility, and other subprocesses. Leave the override unset so
+# browser_subprocess_path remains empty and CEF selects that supported path.
+unset GOREECLOUD_BROWSER_SUBPROCESS
 export GOREECLOUD_BROWSER_RESOURCES="$build_dir"
 export GOREECLOUD_BROWSER_LOCALES="$build_dir/locales"
 export LD_LIBRARY_PATH="$build_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
