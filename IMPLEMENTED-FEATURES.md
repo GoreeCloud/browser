@@ -32,6 +32,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
 - Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search for non-URL input.
 - Browser-intent handling for HTTP/HTTPS links.
+- Browser copy/share page-address actions are exposed only for a validated HTTP(S) address; explicit authority user-info is removed before clipboard/share disclosure, while Browser-local and non-web state has no page-address disclosure action.
 - TLS errors fail closed; Android Safe Browsing enabled with return-to-safety behavior.
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
 - Website permissions/geolocation denied until Browser-owned policy surfaces and authority adapters are accepted.

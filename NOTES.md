@@ -3,7 +3,7 @@
 ## Current stabilization context
 
 - Repository lifecycle remains Development/Beta and is not Stable or production accepted.
-- Verified current stabilization base: `main` at `9fe772d0ae4875f43b546bb408f809b12b5ead4e`.
+- Verified current stabilization base: authoritative `main` at `ae1ee34e317d79c6bcc8998d00f4263f88f6d32f` (merged PR #73).
 - Android has an installable GoreeCloud-owned browser shell with direct HTTP(S) navigation, Browser-owned chrome, local start/error/search-blocked surfaces, fail-closed free-text Search delegation, adaptive/round/monochrome launcher-icon resources, and exact-source APK CI.
 - Source presence and CI do not replace representative physical-device, accessibility, performance, production-signing, platform-system, recovery, or Stable acceptance evidence.
 
