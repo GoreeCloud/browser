@@ -5,6 +5,7 @@
 
 #include "goreecloud/browser/application.hpp"
 #include "goreecloud/browser/command_line.hpp"
+#include "goreecloud/browser/chrome_shell.hpp"
 #include "goreecloud/browser/configured_search_router.hpp"
 #include "goreecloud/browser/development_engine.hpp"
 #include "goreecloud/browser/in_memory_tab_manager.hpp"
@@ -110,6 +111,12 @@ int main() {
   const auto search_resolution = omnibox.resolve("goreecloud browser beta");
   assert(search_resolution.intent == OmniboxIntent::goreecloud_search);
   assert(search_resolution.value.find("https://search.goreecloud.test/search?q=") == 0);
+
+  assert(browser_tab_title(kNewTabUrl, kNewTabUrl) == "New Tab");
+  assert(browser_tab_title(kHomeUrl, kHomeUrl) == "Home");
+  assert(browser_location_text(kNewTabUrl).empty());
+  assert(browser_location_text(kHomeUrl).empty());
+  assert(browser_location_text("https://example.com/") == "https://example.com/");
 
   {
     EngineMediaHitTest hit;
@@ -272,6 +279,11 @@ int main() {
   tab_manager.register_tab({second.id(), window.window_id(), "workspace-main"});
 
   assert(window.tab_count() == 2);
+  assert(window.tab_views().size() == 2);
+  BrowserChromeShell smoke_chrome(window);
+  const auto initial_chrome = smoke_chrome.snapshot();
+  assert(initial_chrome.tabs.size() == 2);
+  assert(initial_chrome.tabs.back().active);
   const bool selected_first = window.select_tab(first.id(), false);
   const bool selected_second = window.select_tab(second.id(), true);
   const bool pinned = window.pin_selected_tabs(true);

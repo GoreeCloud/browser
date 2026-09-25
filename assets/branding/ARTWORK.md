@@ -1,94 +1,51 @@
 # GoreeCloud Browser Artwork
 
-## Approval status
+## Current authority
 
-**Tabmark with the Glaze aqua treatment is the approved official GoreeCloud Browser artwork.**
+The authoritative GoreeCloud Browser identity is the **blue compass mark** maintained in `GoreeCloud/branding-assets`.
 
-Canonical sources:
+Canonical sources at branding authority revision `a831479976fd3f82dc31cf9b7785145a757e7e28`:
 
-- `goreecloud-browser.svg` — approved full-color master.
-- `goreecloud-browser-monochrome.svg` — approved monochrome identity source.
+- `products/browser/app-icon.svg` — full-color application icon.
+- `products/browser/app-icon-monochrome.svg` — monochrome identity source.
+- `products/browser/README.md` — identity and derivative rules.
 
-The approved identity uses the Tabmark geometry: a compact stack of offset browser tabs with a distinctive central cut. The approved color treatment uses a bright Glaze aqua / white / deep teal system.
+The consumer copies in this repository are synchronized implementation derivatives only.
 
-## Identity lock
+## Identity geometry
 
-The official GoreeCloud Browser identity is defined by:
+The current Browser identity is defined by:
 
-1. the stacked offset browser-tab silhouette;
-2. the front Browser surface with a clear top chrome line;
-3. the central cut integrated into the upper Browser/tab region;
-4. the proportional relationship between rear and front tab surfaces;
-5. the Glaze aqua / white / deep teal color treatment for the full-color master.
+1. a circular navigation ring;
+2. a directional compass needle with a clear optical center;
+3. a compact, centered silhouette that remains legible at launcher and chrome sizes;
+4. blue GoreeCloud application-identity treatment in the full-color source;
+5. a single-color ring/needle construction in the monochrome source.
 
-The geometry, not gradients or shadow, is the primary recognition mechanism. Platform adaptations may simplify material effects while preserving the Tabmark silhouette and central cut.
+Platform derivatives may adapt padding, masking, optical correction, material intensity, and foreground/background treatment while preserving the ring, needle, optical center, and overall recognition silhouette.
 
-## Product meaning
+## Glaze UI relationship
 
-Tabmark is intentionally Browser-specific. It represents tabbed browsing, sessions, and first-party Browser chrome without borrowing a globe, compass, map pin, cloud, upstream Browser mark, or radial Browser-logo construction.
+Glaze UI governs material, hierarchy, accessibility, appearance adaptation, and interaction presentation. The Browser icon may use Glaze-compatible depth and color where appropriate, but identity geometry must remain recognizable without blur, transparency, gradient, or shadow.
 
-## Glaze UI construction
-
-The approved master follows the current Stable Glaze UI application-icon approach:
-
-- **Foundation** — light aqua Glaze application field.
-- **Rear tab surface** — deep teal Browser/session layer.
-- **Front tab surface** — high-legibility white/light aqua primary Browser layer.
-- **Identity detail** — central cut and Browser chrome line.
-- **Depth** — restrained separation shadow only; depth is not required for recognition.
-
-## Color approval
-
-Approved full-color relationship:
-
-- light aqua foundation;
-- deep teal rear surface;
-- white/light aqua front surface;
-- deep teal structural details.
-
-The earlier navy/cyan/purple Tabmark palette was not approved and must not be used as the official Browser identity.
-
-## Monochrome and accessibility
-
-The monochrome source is an approved identity representation for single-color and themed contexts. High-contrast and reduced-transparency variants should preserve the same geometry with solid fills and sufficient separation.
-
-## Platform adaptation
-
-Platform derivatives may adapt masking, optical correction, material intensity, and detail density while preserving the identity lock.
-
-Required targets include:
-
-- web and favicon assets;
-- Linux launcher/application sizes;
-- AppImage and portable Linux assets;
-- Android adaptive foreground;
-- Android round icon;
-- Android monochrome/themed icon;
-- future supported platform derivatives.
-
-## Rejected concepts
-
-The following concepts remain rejected and must not be reused as GoreeCloud Browser identity:
-
-- Glaze Navigation Ribbon;
-- Horizon Portal;
-- Aurora Window;
-- Borealis Lens;
-- Tidefold;
-- Waymark.
-
-The earlier Tabmark geometry is retained, but only the approved Glaze aqua treatment is the official full-color identity.
+High-contrast, themed, monochrome, reduced-transparency, and constrained-rendering adaptations must preserve product recognition.
 
 ## Prohibited substitutions
 
-Do not substitute Chromium, Chrome, Firefox, Mozilla, Opera, Edge, Safari, Brave, Vivaldi, Arc, or other upstream/third-party Browser artwork for Tabmark.
+Do not substitute:
 
-Do not replace Tabmark in normal GoreeCloud Browser surfaces with a generic globe, cloud, compass, map pin, GPS marker, generic Browser window, radial Browser logo, or unrelated GoreeCloud service symbol.
+- stale Tabmark/window artwork;
+- generic framework or browser-window icons;
+- unrelated GoreeCloud application/service marks;
+- Chromium, Chrome, Firefox, Mozilla, Edge, Safari, Brave, Vivaldi, Arc, Opera, or other third-party browser identities;
+- independently invented Browser marks outside the canonical branding repository.
 
-## Provenance and derivatives
+## Consumer provenance
 
-The canonical SVG files are the source of truth. Production derivatives must be generated deterministically, record SHA-256 evidence, and remain traceable to the exact canonical source revision used for generation.
+Current synchronized sources:
 
-## Production acceptance
+- `assets/branding/goreecloud-browser.svg` derives from canonical `products/browser/app-icon.svg`.
+- `assets/branding/goreecloud-browser-monochrome.svg` derives from canonical `products/browser/app-icon-monochrome.svg`.
+- Android launcher resources preserve the same compass identity through platform-native vector/adaptive derivatives.
 
-Artwork approval establishes the official identity but does not by itself establish platform-release acceptance. Production packaging still requires rendered and real-platform validation at relevant sizes, masks, themes, launchers, task switchers, and accessibility modes.
+Rendered platform acceptance remains separate from artwork authority. Icon presence does not establish production readiness or release acceptance.

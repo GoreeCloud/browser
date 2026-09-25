@@ -91,6 +91,35 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
     host.show_panel(AdvancedDownloadPanelBuilder::format_text(model));
   };
 
+  auto present_active_tab = [&] {
+    auto* tab = window->active_tab();
+    if (!tab) return;
+    const auto navigation = tab->engine_view().navigation_state();
+    if (is_goreecloud_internal_url(navigation.url)) {
+      host.show_internal_surface(navigation.url);
+    } else {
+      host.attach_engine_view(tab->engine_view());
+    }
+  };
+
+  host.set_tab_action_handler([&](GtkTabAction action, std::string_view tab_id) {
+    commands.clear_panel();
+    switch (action) {
+      case GtkTabAction::activate:
+        (void)window->activate_tab(tab_id);
+        break;
+      case GtkTabAction::close:
+        if (window->close_tab(tab_id, true) && window->tab_count() == 0) {
+          (void)window->new_tab();
+        }
+        break;
+      case GtkTabAction::create:
+        (void)window->new_tab();
+        break;
+    }
+    present_active_tab();
+  });
+
   host.set_toolbar_handler([&](ToolbarItem item) {
     commands.clear_panel();
     if (!commands.invoke(item)) return;
@@ -183,15 +212,13 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
   host.render_chrome(chrome.snapshot());
 
   host.show();
+  present_active_tab();
 
-  auto current_url = window->active_tab()->engine_view().navigation_state().url;
-  if (is_goreecloud_internal_url(current_url)) {
-    host.show_internal_surface(current_url);
-  } else {
-    host.attach_engine_view(window->active_tab()->engine_view());
-  }
+  auto* initial_tab = window->active_tab();
+  std::string last_tab_id = initial_tab ? initial_tab->id() : std::string{};
+  std::string last_url =
+      initial_tab ? initial_tab->engine_view().navigation_state().url : std::string{};
 
-  std::string last_url = current_url;
   while (host.pump_events()) {
     application.engine().pump_events();
     download_runtime->pump();
@@ -200,13 +227,10 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
     host.render_chrome(chrome.snapshot());
     if (auto* tab = window->active_tab()) {
       const auto navigation = tab->engine_view().navigation_state();
-      if (navigation.url != last_url) {
+      if (tab->id() != last_tab_id || navigation.url != last_url) {
+        last_tab_id = tab->id();
         last_url = navigation.url;
-        if (is_goreecloud_internal_url(navigation.url)) {
-          host.show_internal_surface(navigation.url);
-        } else {
-          host.attach_engine_view(tab->engine_view());
-        }
+        present_active_tab();
       }
     }
 

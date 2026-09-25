@@ -26,7 +26,7 @@ Items here are planned, incomplete, blocked, or acceptance-gated. Their presence
 
 ## Product capability work still required
 
-- Browser-owned tab strip/tab switcher and multi-tab lifecycle.
+- Complete cross-platform tab strip/tab switcher and multi-tab lifecycle beyond the current Linux GTK Development create/activate/close controls, including ordering, pinned/grouped tabs, overflow/search, session persistence, crash/process recovery, accessibility, and representative-device acceptance.
 - Bookmarks, history, library, settings, downloads UI, Reader Mode, and Wayfinder mobile surfaces.
 - Full private-browsing product surfaces and Close & Forget behavior.
 - Complete navigation/address safety for malformed URLs, schemes/deep links, user-info disclosure, IDN/confusable/spoofing, origin/certificate presentation, and bidirectional text.

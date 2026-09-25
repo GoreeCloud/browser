@@ -55,11 +55,16 @@ struct BrowserChromeState {
 };
 
 inline std::string browser_tab_title(std::string_view url, std::string_view engine_title) {
-  if (!engine_title.empty()) return std::string{engine_title};
   if (url == kNewTabUrl) return "New Tab";
   if (url == kHomeUrl) return "Home";
   if (url == kSettingsUrl) return "Settings";
   if (url == kPrivateStartUrl) return "Private Browsing";
+  if (!engine_title.empty()) return std::string{engine_title};
+  return std::string{url};
+}
+
+inline std::string browser_location_text(std::string_view url) {
+  if (is_goreecloud_internal_url(url)) return {};
   return std::string{url};
 }
 
@@ -69,13 +74,18 @@ class BrowserChromeShell {
 
   [[nodiscard]] BrowserChromeState snapshot() const {
     BrowserChromeState state;
-    if (const auto* tab = window_.active_tab()) {
+    const auto* active = window_.active_tab();
+    if (active) {
+      const auto navigation = active->engine_view().navigation_state();
+      state.unified_search.display_text = browser_location_text(navigation.url);
+    }
+
+    for (const auto* tab : window_.tab_views()) {
       const auto navigation = tab->engine_view().navigation_state();
-      state.unified_search.display_text = navigation.url;
       state.tabs.push_back(ChromeTabPresentation{
           .id = tab->id(),
           .title = browser_tab_title(navigation.url, navigation.title),
-          .active = true,
+          .active = active && active->id() == tab->id(),
           .pinned = false,
           .private_context = window_.private_window(),
           .loading = navigation.loading,

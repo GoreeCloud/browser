@@ -1,10 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
-  <title id="title">GoreeCloud Browser — Tabmark Candidate Monochrome</title>
-  <desc id="desc">Monochrome stacked browser-tab identity with a central cut.</desc>
-  <rect x="64" y="64" width="896" height="896" rx="224" fill="#000000"/>
-  <path d="M230 296C230 262 256 236 290 236H642C676 236 702 262 702 296V376H750C784 376 810 402 810 436V690C810 724 784 750 750 750H334C300 750 274 724 274 690V610H230C196 610 170 584 170 550V356C170 322 196 296 230 296Z" fill="#FFFFFF"/>
-  <path d="M306 360C306 326 332 300 366 300H718C752 300 778 326 778 360V646C778 680 752 706 718 706H366C332 706 306 680 306 646V360Z" fill="#000000"/>
-  <path d="M334 388H750V678H334V388Z" fill="#FFFFFF"/>
-  <path d="M334 430H750" stroke="#000000" stroke-width="28"/>
-  <path d="M430 300H596L564 430H396L430 300Z" fill="#FFFFFF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">GoreeCloud Browser monochrome icon</title>
+  <circle cx="32" cy="32" r="15" fill="none" stroke="#000000" stroke-width="3"/>
+  <path d="M39.8 23.2 35.2 35l-11.6 5.8L28.3 29l11.5-5.8Z" fill="#000000"/>
+  <circle cx="32" cy="32" r="2.8" fill="#000000"/>
 </svg>

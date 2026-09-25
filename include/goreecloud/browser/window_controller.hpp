@@ -107,6 +107,13 @@ class WindowController {
     return ids;
   }
 
+  [[nodiscard]] std::vector<const Tab*> tab_views() const {
+    std::vector<const Tab*> views;
+    views.reserve(tabs_.size());
+    for (const auto& tab : tabs_) views.push_back(tab.get());
+    return views;
+  }
+
   bool sleep_selected_tabs() {
     if (!tab_manager_ || selected_tab_ids_.empty()) return false;
     const bool result = tab_manager_->sleep_tabs(selected_tab_ids_);
