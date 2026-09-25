@@ -116,3 +116,82 @@ The GTK/X11 Development shell currently exposes these Browser-owned keyboard pat
 - `Escape` — dismiss an open Browser Development panel and return to the prior content surface.
 
 These controls are Development behavior only. They do not establish accessibility acceptance or production browser completeness.
+
+
+## Pinned Linux CEF render-capable Development build
+
+The repository includes a reproducible Development bootstrap for the selected Linux CEF runtime candidate.
+
+Current pin:
+
+- CEF: `152.0.6+g708dc14+chromium-152.0.7977.83`
+- Chromium: `152.0.7977.83`
+- Platform: `linux64`
+- Distribution: `minimal` (Release-only)
+- Source: official CEF automated-build service
+- Integrity: official CEF `.sha1` sidecar is fetched first and must match the downloaded archive; a local SHA-256 is also recorded in the extracted provenance record.
+
+The pin corresponds to the CEF Stable build selected for the Browser Development render milestone. It is not a claim that the GoreeCloud Browser desktop renderer has passed the render-capable Beta gate.
+
+### Dependencies
+
+On Ubuntu 22.04 / Zorin OS 17-class systems, the existing GTK Development dependencies remain required:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  python3 cmake ninja-build build-essential pkg-config \
+  libgtk-3-dev libx11-dev libcurl4-openssl-dev
+```
+
+Additional CEF runtime libraries may already be present on a desktop installation. If the dynamic loader reports a missing library, install the matching Ubuntu package rather than disabling a CEF feature or sandbox control.
+
+### One-command bootstrap and build
+
+From the repository root:
+
+```bash
+./scripts/build_linux_render_beta.sh
+```
+
+The script:
+
+1. selects only the repository-pinned CEF Linux x86_64 minimal distribution;
+2. fetches the archive checksum from the official CEF build service;
+3. verifies the archive before extraction;
+4. rejects unsafe archive paths and special files;
+5. records local provenance, including the official SHA-1 and locally computed SHA-256;
+6. configures CMake with Chromium, CEF, GTK/X11, tests, and the libcurl download transport enabled;
+7. requires the CEF headers to report the same exact pinned version;
+8. builds and runs repository tests.
+
+The default local cache is `.cache/cef` and the default build directory is `build-cef-render`. Both can be overridden:
+
+```bash
+GOREECLOUD_CEF_CACHE_DIR="$HOME/.cache/goreecloud/cef" \
+GOREECLOUD_BROWSER_CEF_BUILD_DIR="$HOME/.cache/goreecloud/browser-render" \
+./scripts/build_linux_render_beta.sh
+```
+
+### Launch the render candidate
+
+After a successful build:
+
+```bash
+./scripts/run_linux_render_beta.sh https://example.com/
+```
+
+The launcher sets the runtime/resource/subprocess paths to the exact build output and preserves the CEF/Chromium sandbox requirement.
+
+If CEF specifically reports that the Linux SUID sandbox helper is required and not configured, configure the exact generated helper rather than passing `--no-sandbox`:
+
+```bash
+sudo chown root:root build-cef-render/chrome-sandbox
+sudo chmod 4755 build-cef-render/chrome-sandbox
+```
+
+Do this only for the exact Browser build output you intend to test. GoreeCloud Browser deliberately refuses to initialize its CEF runtime with sandboxing disabled.
+
+### Acceptance boundary
+
+A successful CEF download, compile, or launch is not render-capable Beta acceptance. The runtime must still satisfy the governed gates in `docs/BETA_0_1.md`, including real HTTPS rendering/navigation, multi-tab engine ownership, private-context isolation and cleanup, TLS/sandbox/site-isolation preservation, and real-device runtime evidence.
