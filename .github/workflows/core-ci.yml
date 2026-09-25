@@ -138,7 +138,7 @@ jobs:
             python3 cmake ninja-build build-essential pkg-config \
             libgtk-3-dev libx11-dev libcurl4-openssl-dev \
             libnss3-dev libxss-dev libasound2-dev libcups2-dev \
-            libdrm-dev libgbm-dev xvfb xauth procps
+            libdrm-dev libgbm-dev xvfb xauth procps dbus-x11
       - name: Bootstrap pinned CEF and build render candidate
         env:
           GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
@@ -173,6 +173,7 @@ jobs:
           : > "${renderer_file}"
 
           timeout --signal=TERM --kill-after=5s 20s \
+            dbus-run-session -- \
             xvfb-run -a -s "-screen 0 1280x800x24" \
             ./scripts/run_linux_render_beta.sh https://example.com/ \
             >"${log_file}" 2>&1 &
