@@ -77,17 +77,39 @@ for path, requires_monochrome in expected.items():
     background = root.find("background")
     foreground = root.find("foreground")
     monochrome = root.find("monochrome")
-    if background is None or not background.get(ANDROID + "drawable"):
-        fail(f"{path.relative_to(ROOT)} is missing an adaptive background drawable")
-    if foreground is None or not foreground.get(ANDROID + "drawable"):
-        fail(f"{path.relative_to(ROOT)} is missing an adaptive foreground drawable")
-    if requires_monochrome and (monochrome is None or not monochrome.get(ANDROID + "drawable")):
-        fail(f"{path.relative_to(ROOT)} is missing Android 13+ monochrome artwork")
+    if background is None or background.get(ANDROID + "drawable") != "@drawable/ic_launcher_background":
+        fail(f"{path.relative_to(ROOT)} must use @drawable/ic_launcher_background")
+    if foreground is None or foreground.get(ANDROID + "drawable") != "@drawable/ic_launcher_foreground":
+        fail(f"{path.relative_to(ROOT)} must use @drawable/ic_launcher_foreground")
+    if requires_monochrome and (
+        monochrome is None
+        or monochrome.get(ANDROID + "drawable") != "@drawable/ic_launcher_monochrome"
+    ):
+        fail(f"{path.relative_to(ROOT)} must use @drawable/ic_launcher_monochrome")
 
-for drawable in ("ic_launcher_background.xml", "ic_launcher_foreground.xml", "ic_launcher_monochrome.xml"):
+expected_launcher_derivative_blobs = {
+    "ic_launcher_background.xml": "309126e575584a383a9790db0d261146bd25a68c",
+    "ic_launcher_foreground.xml": "7e079b05722053fefb44c18251c0a3d16d95ea0b",
+    "ic_launcher_monochrome.xml": "5334b483977a67904f883a4006eabfd994a421fe",
+}
+
+for drawable, expected_blob in expected_launcher_derivative_blobs.items():
     path = APP / "res" / "drawable" / drawable
     if not path.is_file():
         fail(f"missing launcher drawable: {path.relative_to(ROOT)}")
+        continue
+    try:
+        drawable_bytes = path.read_bytes()
+    except OSError as exc:
+        fail(f"launcher drawable is unreadable: {path.relative_to(ROOT)}: {exc}")
+        continue
+    git_blob_bytes = b"blob " + str(len(drawable_bytes)).encode("ascii") + bytes([0]) + drawable_bytes
+    actual_blob = hashlib.sha1(git_blob_bytes).hexdigest()
+    if actual_blob != expected_blob:
+        fail(
+            f"{path.relative_to(ROOT)} does not match the reviewed canonical Browser "
+            "Android packaging derivative"
+        )
 
 
 # Prevent a stale or separately redrawn Browser mark from passing as approved
