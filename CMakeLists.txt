@@ -185,6 +185,23 @@ if(GOREECLOUD_ENABLE_CEF)
   endif()
 endif()
 
+if(GOREECLOUD_ENABLE_CEF)
+  add_executable(goreecloud_browser_cef_subprocess
+    apps/browser/cef_subprocess_main.cpp
+    src/cef_process.cpp
+  )
+  set_target_properties(goreecloud_browser_cef_subprocess
+    PROPERTIES OUTPUT_NAME "goreecloud-browser-subprocess")
+  target_include_directories(goreecloud_browser_cef_subprocess PRIVATE ${CEF_INCLUDE_PATH})
+  target_link_libraries(goreecloud_browser_cef_subprocess
+    PRIVATE goreecloud_browser_core libcef_dll_wrapper libcef_lib ${CEF_STANDARD_LIBS})
+  target_compile_definitions(goreecloud_browser_cef_subprocess
+    PRIVATE GOREECLOUD_ENABLE_CEF=1 GOREECLOUD_ENABLE_CHROMIUM=1)
+  SET_EXECUTABLE_TARGET_PROPERTIES(goreecloud_browser_cef_subprocess)
+  goreecloud_restore_cpp_runtime_features(goreecloud_browser_cef_subprocess)
+  goreecloud_apply_warnings(goreecloud_browser_cef_subprocess)
+endif()
+
 if(GOREECLOUD_ENABLE_LINUX_GTK_HOST)
   find_package(PkgConfig REQUIRED)
   pkg_check_modules(GTK3 REQUIRED IMPORTED_TARGET gtk+-3.0 gdk-x11-3.0)
