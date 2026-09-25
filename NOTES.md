@@ -2,8 +2,8 @@
 
 ## Current stabilization context
 
-- Repository lifecycle remains Development/Beta and is not Stable or production accepted.
-- Verified current stabilization base for this follow-up: `main` at `295caaa669d7775d2a76d632ba45e9576f52f2df`.
+- Repository lifecycle remains Development and is not Release Candidate, production accepted, Stable, or Anchor-qualified.
+- Verified current stabilization base for this follow-up: `main` at `e6881cef32c9cfe95355e15bdd6aa0149ace467f`.
 - Android has an installable GoreeCloud-owned browser shell with direct HTTP(S) navigation, Browser-owned chrome, local start/error/search-blocked surfaces, fail-closed free-text Search delegation, adaptive/round/monochrome launcher-icon resources, and exact-source APK CI.
 - Source presence and CI do not replace representative physical-device, accessibility, performance, production-signing, platform-system, recovery, or Stable acceptance evidence.
 
@@ -15,7 +15,8 @@
 - Downloads and website permissions intentionally remain fail-closed where required authority has not been accepted.
 - GLAZE UI V1.6 source/qualification guards and Android-native mapping are aligned on current `main`; broader rendered/native, accessibility, large-text, localization/RTL, device/form-factor, performance, rollback, renderer-integrated, and production acceptance remain open.
 - Canonical full-color and monochrome Browser branding and fail-closed Android launcher provenance checks are integrated on current `main`.
-- This follow-up adds exact-head Android 15 managed-emulator runtime smoke coverage for Browser-owned chrome, conservative WebView defaults, and fail-closed free-text Search. Physical-device acceptance remains separate.
+- Android 15 managed-emulator runtime smoke coverage for Browser-owned chrome, conservative WebView defaults, and fail-closed free-text Search is integrated on current `main`; physical-device acceptance remains separate.
+- This follow-up selectively restacks the still-relevant Search-query control/length/capability-limit hardening from historical PR #76 onto current `main` without enabling remote Search or overwriting newer Linux, Glaze, branding, callback, or emulator work.
 
 ## Maintenance notes
 
