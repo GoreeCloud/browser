@@ -17,6 +17,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 ### Browser core and authority boundaries
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
+- Source-pinned Stable CEF Development acquisition path for Linux x86_64 with explicit network opt-in, official-sidecar archive verification, extracted-layout validation, and a dedicated exact-head CEF compile gate.
 - Linux GTK/X11 native beta shell build path.
 - Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, keyboard-first shortcuts for common tab/navigation actions, Ctrl+K/F6 location focus, and Escape dismissal for Browser-owned panels.
 - First-party Linux New Tab/Home search field and wired Bookmarks, Downloads, and Settings quick actions.

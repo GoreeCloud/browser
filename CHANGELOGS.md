@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Pinned Stable CEF acquisition and compile gate
+
+### Changed
+
+- Pinned the Linux Development CEF dependency to reviewed Stable CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`.
+- Added an explicit opt-in CMake acquisition path that downloads only the pinned Linux x86_64 distribution from the official CEF automated-build CDN.
+- Added upstream integrity-sidecar validation, cached-archive verification, extracted-layout validation, and observed SHA-256 reporting.
+- Added an Ubuntu 22.04 exact-head CI lane that compiles GoreeCloud Browser against the pinned Stable CEF distribution and GTK host.
+- Documented dependency provenance and preserved the manual reviewed-local-distribution path.
+
+### Acceptance boundary
+
+This establishes a reproducible Development dependency and compile path only. It does not establish real website rendering, runtime sandbox/site-isolation evidence, private-context isolation, security/privacy provider acceptance, packaging, representative-device acceptance, Release Candidate, production approval, or Stable/Anchor maturity.
+
 ## 2026-09-25 — Linux panel-dismissal and visual-density follow-up
 
 ### Changed

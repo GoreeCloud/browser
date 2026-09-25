@@ -80,3 +80,30 @@ jobs:
         run: cmake --build build-gtk --parallel
       - name: Test Browser and download contracts
         run: ctest --test-dir build-gtk --output-on-failure
+
+
+  linux-cef-stable-compile:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Install CEF and GTK build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y build-essential ninja-build libgtk-3-dev libx11-dev pkg-config
+      - name: Configure exact Stable CEF compile gate
+        run: |
+          cmake -S . -B build-cef -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF \
+            -DGOREECLOUD_ENABLE_CHROMIUM=ON \
+            -DGOREECLOUD_ENABLE_CEF=ON \
+            -DGOREECLOUD_CEF_AUTO_DOWNLOAD=ON \
+            -DGOREECLOUD_ENABLE_LINUX_GTK_HOST=ON \
+            -DGOREECLOUD_ENABLE_CURL_DOWNLOAD_TRANSPORT=OFF
+      - name: Compile Browser against pinned Stable CEF
+        run: cmake --build build-cef --parallel --target goreecloud_browser

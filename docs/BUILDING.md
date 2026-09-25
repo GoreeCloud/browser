@@ -53,17 +53,29 @@ This validates the engine abstraction, contexts, views, navigation state, privat
 
 ## CEF render path
 
-Use a reviewed CEF binary distribution containing `include/cef_app.h` and `cmake/FindCEF.cmake`:
+The Browser source pins the reviewed CEF Stable line used for Development integration. Network acquisition remains **off by default**.
+
+For a reproducible Linux x86_64 Development build, explicitly opt in to the pinned official CEF download:
 
 ```sh
-cmake -S . -B build-cef \
+cmake -S . -B build-cef -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DGOREECLOUD_ENABLE_CHROMIUM=ON \
   -DGOREECLOUD_ENABLE_CEF=ON \
-  -DGOREECLOUD_ENABLE_LINUX_GTK_HOST=ON \
-  -DGOREECLOUD_CEF_ROOT=/absolute/path/to/cef
+  -DGOREECLOUD_CEF_AUTO_DOWNLOAD=ON \
+  -DGOREECLOUD_ENABLE_LINUX_GTK_HOST=ON
 cmake --build build-cef --parallel
 ```
+
+The acquisition helper downloads only the source-controlled Stable CEF version from the official CEF automated-build CDN, verifies the official integrity sidecar, validates the extracted distribution layout, and records the observed SHA-256 in the configure output.
+
+To use an already-reviewed local distribution instead, leave automatic acquisition off and provide:
+
+```sh
+-DGOREECLOUD_CEF_ROOT=/absolute/path/to/cef
+```
+
+Do not set both `GOREECLOUD_CEF_ROOT` and `GOREECLOUD_CEF_AUTO_DOWNLOAD=ON`.
 
 The build integrates CEF's binary-distribution CMake targets, `libcef_dll_wrapper`, CEF runtime libraries/resources, subprocess dispatch, GoreeCloud request-context separation, and the GTK/X11 child-content surface.
 

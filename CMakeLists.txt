@@ -8,6 +8,7 @@ project(goreecloud_browser
 
 include(CTest)
 include(GNUInstallDirs)
+include(cmake/GoreeCloudCEF.cmake)
 
 option(GOREECLOUD_ENABLE_CHROMIUM
   "Build the GoreeCloud Chromium engine adapter integration target"
@@ -15,6 +16,10 @@ option(GOREECLOUD_ENABLE_CHROMIUM
 )
 option(GOREECLOUD_ENABLE_CEF
   "Build the CEF-backed Chromium runtime path"
+  OFF
+)
+option(GOREECLOUD_CEF_AUTO_DOWNLOAD
+  "Explicitly download the GoreeCloud-pinned Stable CEF binary distribution from the official CEF CDN"
   OFF
 )
 option(GOREECLOUD_ENABLE_LINUX_GTK_HOST
@@ -28,6 +33,8 @@ option(GOREECLOUD_ENABLE_CURL_DOWNLOAD_TRANSPORT
 
 set(GOREECLOUD_CEF_ROOT "" CACHE PATH
     "Path to an unpacked CEF binary distribution")
+set(GOREECLOUD_CEF_DOWNLOAD_DIR "${CMAKE_BINARY_DIR}/_cef" CACHE PATH
+    "Download/extraction directory used only when GOREECLOUD_CEF_AUTO_DOWNLOAD=ON")
 set(GOREECLOUD_RELEASE_CHANNEL "beta" CACHE STRING
     "GoreeCloud Browser release channel")
 
@@ -89,7 +96,22 @@ if(GOREECLOUD_ENABLE_CHROMIUM)
 
   if(GOREECLOUD_ENABLE_CEF)
     if(GOREECLOUD_CEF_ROOT STREQUAL "")
-      message(FATAL_ERROR "GOREECLOUD_ENABLE_CEF requires GOREECLOUD_CEF_ROOT")
+      if(GOREECLOUD_CEF_AUTO_DOWNLOAD)
+        goreecloud_prepare_pinned_cef(
+          "${GOREECLOUD_CEF_DOWNLOAD_DIR}"
+          GOREECLOUD_CEF_RESOLVED_ROOT
+        )
+        set(GOREECLOUD_CEF_ROOT "${GOREECLOUD_CEF_RESOLVED_ROOT}" CACHE PATH
+            "Path to the GoreeCloud-pinned Stable CEF binary distribution" FORCE)
+      else()
+        message(FATAL_ERROR
+          "GOREECLOUD_ENABLE_CEF requires GOREECLOUD_CEF_ROOT or the explicit "
+          "GOREECLOUD_CEF_AUTO_DOWNLOAD=ON opt-in. Automatic network acquisition "
+          "is disabled by default.")
+      endif()
+    elseif(GOREECLOUD_CEF_AUTO_DOWNLOAD)
+      message(FATAL_ERROR
+        "Set either GOREECLOUD_CEF_ROOT or GOREECLOUD_CEF_AUTO_DOWNLOAD=ON, not both.")
     endif()
     if(NOT EXISTS "${GOREECLOUD_CEF_ROOT}/include/cef_app.h")
       message(FATAL_ERROR "GOREECLOUD_CEF_ROOT does not contain include/cef_app.h")
@@ -287,5 +309,7 @@ message(STATUS "GoreeCloud Browser ${PROJECT_VERSION} channel=${GOREECLOUD_RELEA
 message(STATUS "Glaze UI Stable ${GOREECLOUD_GLAZE_UI_STABLE_VERSION} @ ${GOREECLOUD_GLAZE_UI_STABLE_REVISION}")
 message(STATUS "Chromium adapter: ${GOREECLOUD_ENABLE_CHROMIUM}")
 message(STATUS "CEF runtime: ${GOREECLOUD_ENABLE_CEF}")
+message(STATUS "Pinned CEF Stable: ${GOREECLOUD_CEF_STABLE_VERSION} / Chromium ${GOREECLOUD_CEF_STABLE_CHROMIUM_VERSION}")
+message(STATUS "CEF automatic acquisition: ${GOREECLOUD_CEF_AUTO_DOWNLOAD}")
 message(STATUS "Linux GTK beta host: ${GOREECLOUD_ENABLE_LINUX_GTK_HOST}")
 message(STATUS "libcurl download transport: ${GOREECLOUD_ENABLE_CURL_DOWNLOAD_TRANSPORT}")
