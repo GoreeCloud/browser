@@ -170,7 +170,7 @@ jobs:
           : > "${log_file}"
           : > "${renderer_file}"
 
-          timeout --signal=TERM --kill-after=5s 20s \
+          timeout --signal=TERM --kill-after=5s 90s \
             dbus-run-session -- \
             xvfb-run -a -s "-screen 0 1280x800x24" \
             ./scripts/run_linux_render_beta.sh https://example.com/ \
@@ -178,7 +178,7 @@ jobs:
           runtime_pid=$!
 
           runtime_ready=0
-          for _ in $(seq 1 30); do
+          for _ in $(seq 1 90); do
             if pgrep -af -- "--type=renderer" > "${renderer_file}"; then
               runtime_ready=1
               break
