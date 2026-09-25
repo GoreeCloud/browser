@@ -19,14 +19,14 @@ import android.widget.ProgressBar
 import android.widget.TextView
 
 /**
- * Effects-free Android-native Glaze UI V1.4 mapping for Browser-owned chrome.
+ * Effects-free Android-native Glaze UI V1.6 mapping for Browser-owned chrome.
  *
- * Native controls retain Android semantics while Browser maps the inherited
- * Glaze material hierarchy, target floors, focus/pressed state, spacing and
- * appearance behavior. This implementation deliberately remains opaque and
- * fully usable without blur/transparency, which is compatible with V1.4's
- * solid-accessible fallback. Browser does not fabricate V1.4 optical context
- * signals here; platform adapters for those signals remain separate acceptance
+ * Native controls retain Android semantics while Browser maps Glaze material
+ * hierarchy, target floors, disabled/focus/pressed states, spacing and
+ * appearance behavior. The mapping remains fully usable without blur or
+ * transparency and preserves semantic distinctions under accessibility
+ * fallbacks. Browser does not fabricate privacy, security, capability, or
+ * performance state here; authoritative adapters remain separate acceptance
  * work.
  */
 class GlazeNativeStyle(private val context: Context) {
@@ -127,7 +127,7 @@ class GlazeNativeStyle(private val context: Context) {
         button.minimumHeight = dp(GlazeContract.GENERAL_TARGET_DP)
         button.setPadding(dp(12), dp(12), dp(12), dp(12))
         button.scaleType = ImageView.ScaleType.CENTER
-        button.imageTintList = ColorStateList.valueOf(palette.textPrimary)
+        button.imageTintList = controlForeground()
         button.background = interactiveBackground(
             levels.first,
             levels.second,
@@ -180,7 +180,7 @@ class GlazeNativeStyle(private val context: Context) {
 
     fun styleMenuAction(view: TextView) {
         view.gravity = Gravity.CENTER_VERTICAL
-        view.setTextColor(palette.textPrimary)
+        view.setTextColor(controlForeground())
         view.textSize = 17f
         view.minimumHeight = dp(GlazeContract.MENU_ACTION_HEIGHT_DP)
         view.setPadding(dp(18), 0, dp(18), 0)
@@ -208,6 +208,10 @@ class GlazeNativeStyle(private val context: Context) {
         cornerDp: Int,
     ): StateListDrawable = StateListDrawable().apply {
         addState(
+            intArrayOf(-android.R.attr.state_enabled),
+            material(GlazeContract.MaterialLevel.Surface, dp(cornerDp), outlined = true),
+        )
+        addState(
             intArrayOf(android.R.attr.state_pressed),
             material(active, dp(cornerDp), focused = true, outlined = false),
         )
@@ -217,6 +221,17 @@ class GlazeNativeStyle(private val context: Context) {
         )
         addState(intArrayOf(), material(resting, dp(cornerDp), outlined = false))
     }
+
+    private fun controlForeground(): ColorStateList = ColorStateList(
+        arrayOf(
+            intArrayOf(-android.R.attr.state_enabled),
+            intArrayOf(),
+        ),
+        intArrayOf(
+            palette.textSecondary,
+            palette.textPrimary,
+        ),
+    )
 
     private fun material(
         level: GlazeContract.MaterialLevel,
