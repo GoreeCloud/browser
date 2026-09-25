@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 project(goreecloud_browser
   VERSION 0.1.0
   DESCRIPTION "GoreeCloud first-party native browser"
-  LANGUAGES CXX
+  LANGUAGES C CXX
 )
 
 include(CTest)
@@ -29,8 +29,9 @@ option(GOREECLOUD_ENABLE_CURL_DOWNLOAD_TRANSPORT
 set(GOREECLOUD_CEF_ROOT "" CACHE PATH
     "Path to an unpacked CEF binary distribution")
 set(GOREECLOUD_CEF_PINNED_VERSION
-    "152.0.6+g708dc14+chromium-152.0.7977.83" CACHE STRING
-    "Exact reviewed CEF Stable binary-distribution version for the Linux render-beta path")
+    "152.0.6+g708dc14+chromium-152.0.7977.83")
+# This is source-owned dependency authority. Do not convert it to a user-overridable
+# cache value; changing the CEF pin requires a reviewed repository change.
 set(GOREECLOUD_RELEASE_CHANNEL "beta" CACHE STRING
     "GoreeCloud Browser release channel")
 

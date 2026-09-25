@@ -1,0 +1,98 @@
+name: GoreeCloud Browser Linux CEF Build
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/linux-cef-build.yml"
+      - "CMakeLists.txt"
+      - "apps/browser/**"
+      - "include/goreecloud/browser/**"
+      - "src/**"
+      - "scripts/bootstrap_cef_linux.py"
+      - "scripts/build_linux_render_beta.sh"
+      - "scripts/run_linux_render_beta.sh"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/linux-cef-build.yml"
+      - "CMakeLists.txt"
+      - "apps/browser/**"
+      - "include/goreecloud/browser/**"
+      - "src/**"
+      - "scripts/bootstrap_cef_linux.py"
+      - "scripts/build_linux_render_beta.sh"
+      - "scripts/run_linux_render_beta.sh"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: goreecloud-browser-linux-cef-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  linux-cef-render-build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact source revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact source revision
+        run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Install Linux Browser and CEF build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3 cmake ninja-build build-essential pkg-config \
+            libgtk-3-dev libx11-dev libcurl4-openssl-dev \
+            libnss3-dev libxss-dev libasound2-dev libxkbcommon-dev \
+            libgbm-dev libdrm-dev libxcomposite-dev libxdamage-dev libxrandr-dev
+
+      - name: Build exact pinned CEF render candidate
+        env:
+          GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ runner.temp }}/goreecloud-browser-cef-build
+        run: ./scripts/build_linux_render_beta.sh
+
+      - name: Verify linked Browser and copied CEF runtime layout
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ runner.temp }}/goreecloud-browser-cef-build
+        run: |
+          build="$GOREECLOUD_BROWSER_CEF_BUILD_DIR"
+          test -x "$build/goreecloud-browser"
+          test -f "$build/libcef.so"
+          test -f "$build/icudtl.dat"
+          test -d "$build/locales"
+          test -f "$build/locales/en-US.pak"
+          if ldd "$build/goreecloud-browser" | grep -q "not found"; then
+            ldd "$build/goreecloud-browser"
+            echo "CEF-enabled GoreeCloud Browser has unresolved shared-library dependencies." >&2
+            exit 1
+          fi
+
+      - name: Verify CEF provenance record
+        env:
+          GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          cache = Path(os.environ["GOREECLOUD_CEF_CACHE_DIR"])
+          records = list(cache.glob("cef_binary_*/.goreecloud-cef-provenance.json"))
+          assert len(records) == 1, records
+          record = json.loads(records[0].read_text())
+          print(json.dumps(record, indent=2, sort_keys=True))
+          assert record["cef_version"] == "152.0.6+g708dc14+chromium-152.0.7977.83"
+          assert record["chromium_version"] == "152.0.7977.83"
+          assert record["platform"] == "linux64"
+          assert record["distribution"] == "minimal"
+          assert len(record["official_sha1"]) == 40
+          assert len(record["archive_sha256"]) == 64
+          PY
