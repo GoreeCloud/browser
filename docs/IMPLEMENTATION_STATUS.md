@@ -36,7 +36,9 @@ It must not be represented as:
 
 `ChromiumEngineAdapter` defines the current integration seam. Chromium/Blink implementation types must remain behind that boundary.
 
-The first adapter milestone requires:
+The Linux Development dependency path now source-pins reviewed CEF Stable `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`. Automatic acquisition is explicit opt-in only, is restricted to the official CEF automated-build CDN, requires the official sidecar to match the source-pinned SHA-1 `8f7596039f1a30fbcfc142a07a5fc7b5dc89fc95`, and verifies the archive against source-pinned SHA-256 `43b3be39bfe8bfe3b9a7c3e666397d00d129f008792265400099af472a6c5305`. This establishes dependency provenance and reproducible Development compilation only; it is not renderer runtime acceptance.
+
+The first render-capable acceptance milestone still requires:
 
 - Chromium runtime initialization and shutdown;
 - process/subprocess integration;
