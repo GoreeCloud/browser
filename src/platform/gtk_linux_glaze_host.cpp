@@ -371,27 +371,44 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     tab_strip = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_style_context_add_class(gtk_widget_get_style_context(tab_strip), "gc-tab-strip");
+    tab_capsule = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_style_context_add_class(gtk_widget_get_style_context(tab_capsule), "gc-tab-capsule");
     tab_label = gtk_label_new("New Tab");
+    gtk_label_set_ellipsize(GTK_LABEL(tab_label), PANGO_ELLIPSIZE_END);
+    gtk_label_set_max_width_chars(GTK_LABEL(tab_label), 48);
     gtk_widget_set_halign(tab_label, GTK_ALIGN_START);
-    gtk_box_pack_start(GTK_BOX(tab_strip), tab_label, FALSE, FALSE, 0);
+    gtk_style_context_add_class(gtk_widget_get_style_context(tab_label), "gc-tab-title");
+    gtk_box_pack_start(GTK_BOX(tab_capsule), tab_label, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(tab_strip), tab_capsule, FALSE, FALSE, 0);
+
+    if (private_window) {
+      private_badge = gtk_label_new("Private");
+      gtk_style_context_add_class(gtk_widget_get_style_context(private_badge), "gc-private-badge");
+      set_accessible_name(private_badge, "Private Browsing window");
+      gtk_box_pack_end(GTK_BOX(tab_strip), private_badge, FALSE, FALSE, 0);
+    }
     gtk_box_pack_start(GTK_BOX(root), tab_strip, FALSE, FALSE, 0);
 
     toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_style_context_add_class(gtk_widget_get_style_context(toolbar), "gc-toolbar");
     gtk_box_pack_start(GTK_BOX(root), toolbar, FALSE, FALSE, 0);
 
-    add_toolbar_button(ToolbarItem::back, "←", "Back");
-    add_toolbar_button(ToolbarItem::forward, "→", "Forward");
-    add_toolbar_button(ToolbarItem::refresh, "↻", "Refresh or Stop");
-    add_toolbar_button(ToolbarItem::home, "⌂", "Home");
+    navigation_cluster = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+    gtk_style_context_add_class(gtk_widget_get_style_context(navigation_cluster), "gc-control-cluster");
+    gtk_box_pack_start(GTK_BOX(toolbar), navigation_cluster, FALSE, FALSE, 0);
+    add_toolbar_button(ToolbarItem::back, "go-previous-symbolic", "←", "Back", navigation_cluster);
+    add_toolbar_button(ToolbarItem::forward, "go-next-symbolic", "→", "Forward", navigation_cluster);
+    add_toolbar_button(ToolbarItem::refresh, "view-refresh-symbolic", "↻", "Refresh or Stop", navigation_cluster);
+    add_toolbar_button(ToolbarItem::home, "go-home-symbolic", "⌂", "Home", navigation_cluster);
+
     build_unified_search();
-    add_toolbar_button(ToolbarItem::advanced_download_manager, "↓", "Advanced Download Manager");
-    add_toolbar_button(ToolbarItem::privacy_shield, "P", "Privacy Shield");
-    add_toolbar_button(ToolbarItem::wardveil_security, "W", "Wardveil Security");
-    add_toolbar_button(ToolbarItem::clipboard, "C", "Clipboard");
-    add_toolbar_button(ToolbarItem::dns_cache, "DNS", "Clear DNS Cache");
-    add_toolbar_button(ToolbarItem::advanced_proxy_manager, "Proxy", "Advanced Proxy Manager");
-    add_toolbar_button(ToolbarItem::settings, "⚙", "Settings");
+
+    status_cluster = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1);
+    gtk_style_context_add_class(gtk_widget_get_style_context(status_cluster), "gc-control-cluster");
+    gtk_box_pack_start(GTK_BOX(toolbar), status_cluster, FALSE, FALSE, 0);
+    add_toolbar_button(ToolbarItem::privacy_shield, "security-medium-symbolic", "P", "Privacy Shield", status_cluster);
+    add_toolbar_button(ToolbarItem::wardveil_security, "security-high-symbolic", "W", "Wardveil Security", status_cluster);
+    build_overflow_menu();
 
     content_stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(content_stack), GTK_STACK_TRANSITION_TYPE_NONE);
@@ -403,19 +420,61 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_stack_add_named(GTK_STACK(content_stack), content_area, "web");
     g_signal_connect(content_area, "size-allocate", G_CALLBACK(on_content_size_allocate), this);
 
-    internal_label = gtk_label_new(nullptr);
-    gtk_label_set_line_wrap(GTK_LABEL(internal_label), TRUE);
-    gtk_label_set_justify(GTK_LABEL(internal_label), GTK_JUSTIFY_CENTER);
-    gtk_widget_set_halign(internal_label, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(internal_label, GTK_ALIGN_CENTER);
-    gtk_style_context_add_class(gtk_widget_get_style_context(internal_label), "gc-content-fallback");
-    gtk_stack_add_named(GTK_STACK(content_stack), internal_label, "internal");
+    internal_surface = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_widget_set_halign(internal_surface, GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(internal_surface, GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_start(internal_surface, 24);
+    gtk_widget_set_margin_end(internal_surface, 24);
+    gtk_style_context_add_class(gtk_widget_get_style_context(internal_surface), "gc-internal-surface");
 
-    panel_label = gtk_label_new(nullptr);
-    gtk_widget_set_halign(panel_label, GTK_ALIGN_CENTER);
-    gtk_widget_set_valign(panel_label, GTK_ALIGN_CENTER);
-    gtk_style_context_add_class(gtk_widget_get_style_context(panel_label), "gc-content-fallback");
-    gtk_stack_add_named(GTK_STACK(content_stack), panel_label, "panel");
+    internal_eyebrow = gtk_label_new(nullptr);
+    gtk_widget_set_halign(internal_eyebrow, GTK_ALIGN_START);
+    gtk_style_context_add_class(gtk_widget_get_style_context(internal_eyebrow), "gc-surface-eyebrow");
+    gtk_box_pack_start(GTK_BOX(internal_surface), internal_eyebrow, FALSE, FALSE, 0);
+
+    internal_title = gtk_label_new(nullptr);
+    gtk_widget_set_halign(internal_title, GTK_ALIGN_START);
+    gtk_label_set_xalign(GTK_LABEL(internal_title), 0.0F);
+    gtk_label_set_line_wrap(GTK_LABEL(internal_title), TRUE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(internal_title), "gc-surface-title");
+    gtk_box_pack_start(GTK_BOX(internal_surface), internal_title, FALSE, FALSE, 0);
+
+    internal_body = gtk_label_new(nullptr);
+    gtk_widget_set_halign(internal_body, GTK_ALIGN_FILL);
+    gtk_label_set_xalign(GTK_LABEL(internal_body), 0.0F);
+    gtk_label_set_line_wrap(GTK_LABEL(internal_body), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(internal_body), 72);
+    gtk_style_context_add_class(gtk_widget_get_style_context(internal_body), "gc-surface-body");
+    gtk_box_pack_start(GTK_BOX(internal_surface), internal_body, FALSE, FALSE, 0);
+    gtk_stack_add_named(GTK_STACK(content_stack), internal_surface, "internal");
+
+    panel_surface = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_widget_set_halign(panel_surface, GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(panel_surface, GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_start(panel_surface, 24);
+    gtk_widget_set_margin_end(panel_surface, 24);
+    gtk_style_context_add_class(gtk_widget_get_style_context(panel_surface), "gc-panel-surface");
+
+    panel_eyebrow = gtk_label_new("BROWSER TOOL");
+    gtk_widget_set_halign(panel_eyebrow, GTK_ALIGN_START);
+    gtk_style_context_add_class(gtk_widget_get_style_context(panel_eyebrow), "gc-surface-eyebrow");
+    gtk_box_pack_start(GTK_BOX(panel_surface), panel_eyebrow, FALSE, FALSE, 0);
+
+    panel_title = gtk_label_new(nullptr);
+    gtk_widget_set_halign(panel_title, GTK_ALIGN_START);
+    gtk_label_set_xalign(GTK_LABEL(panel_title), 0.0F);
+    gtk_label_set_line_wrap(GTK_LABEL(panel_title), TRUE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(panel_title), "gc-surface-title");
+    gtk_box_pack_start(GTK_BOX(panel_surface), panel_title, FALSE, FALSE, 0);
+
+    panel_body = gtk_label_new(nullptr);
+    gtk_widget_set_halign(panel_body, GTK_ALIGN_FILL);
+    gtk_label_set_xalign(GTK_LABEL(panel_body), 0.0F);
+    gtk_label_set_line_wrap(GTK_LABEL(panel_body), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(panel_body), 78);
+    gtk_style_context_add_class(gtk_widget_get_style_context(panel_body), "gc-surface-body");
+    gtk_box_pack_start(GTK_BOX(panel_surface), panel_body, FALSE, FALSE, 0);
+    gtk_stack_add_named(GTK_STACK(content_stack), panel_surface, "panel");
 
     start_media_hover_timer();
     created = true;
