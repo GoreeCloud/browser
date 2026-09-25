@@ -107,6 +107,10 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     CefWindowInfo window_info;
     window_info.SetAsChild(static_cast<CefWindowHandle>(surface.window_handle),
                            CefRect(surface.x, surface.y, surface.width, surface.height));
+    // CEF 128+ uses the Chrome bootstrap. GoreeCloud embeds the browser into
+    // its own GTK/X11 parent, so the child must explicitly use Alloy runtime
+    // style while retaining the current Chrome bootstrap.
+    window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
 
     std::string initial_url;
     {
@@ -211,6 +215,10 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     }
     CefMainArgs main_args(options_.process_argc, options_.process_argv);
     CefSettings settings;
+    // Alloy bootstrap was removed in CEF 128. Use the current Chrome
+    // bootstrap explicitly; individual embedded child windows select Alloy
+    // runtime style where required by the custom GTK/X11 parent.
+    settings.chrome_runtime = 1;
     settings.no_sandbox = options_.enable_sandbox ? 0 : 1;
     settings.external_message_pump = options_.external_message_pump ? 1 : 0;
     settings.windowless_rendering_enabled = options_.windowless_rendering ? 1 : 0;
