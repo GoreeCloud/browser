@@ -259,7 +259,7 @@ target_link_libraries(goreecloud_browser_extension_runtime_authority_smoke
 goreecloud_apply_warnings(goreecloud_browser_extension_runtime_authority_smoke)
 
 if(GOREECLOUD_ENABLE_CHROMIUM)
-  add_executable(goreecloud_browser_chromium_smoke apps/browser/chromium_smoke.cpp)
+  add_executable(goreecloud_browser_chromium_smoke apps/browser/chromium_adapter_smoke.cpp)
   target_link_libraries(goreecloud_browser_chromium_smoke PRIVATE goreecloud_browser_core goreecloud_browser_chromium)
   if(GOREECLOUD_ENABLE_CEF)
     SET_EXECUTABLE_TARGET_PROPERTIES(goreecloud_browser_chromium_smoke)
