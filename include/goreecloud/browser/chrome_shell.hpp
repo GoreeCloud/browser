@@ -6,6 +6,7 @@
 #include <string_view>
 #include <vector>
 
+#include "goreecloud/browser/internal_pages.hpp"
 #include "goreecloud/browser/toolbar.hpp"
 #include "goreecloud/browser/unified_search_bar.hpp"
 #include "goreecloud/browser/window_controller.hpp"
@@ -53,6 +54,15 @@ struct BrowserChromeState {
   bool increased_contrast{false};
 };
 
+inline std::string browser_tab_title(std::string_view url, std::string_view engine_title) {
+  if (!engine_title.empty()) return std::string{engine_title};
+  if (url == kNewTabUrl) return "New Tab";
+  if (url == kHomeUrl) return "Home";
+  if (url == kSettingsUrl) return "Settings";
+  if (url == kPrivateStartUrl) return "Private Browsing";
+  return std::string{url};
+}
+
 class BrowserChromeShell {
  public:
   explicit BrowserChromeShell(WindowController& window) : window_(window) {}
@@ -64,7 +74,7 @@ class BrowserChromeShell {
       state.unified_search.display_text = navigation.url;
       state.tabs.push_back(ChromeTabPresentation{
           .id = tab->id(),
-          .title = navigation.title.empty() ? navigation.url : navigation.title,
+          .title = browser_tab_title(navigation.url, navigation.title),
           .active = true,
           .pinned = false,
           .private_context = window_.private_window(),

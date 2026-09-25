@@ -1,6 +1,6 @@
 # Building GoreeCloud Browser
 
-GoreeCloud Browser is on the **0.1.0-beta.1** development channel. The repository contains a build-tested Browser core, an optional visible Linux GTK/X11 Glaze shell, the Chromium engine adapter, and an optional CEF runtime path. A successful build is not production-readiness evidence.
+GoreeCloud Browser is on the **0.1.0-beta.1** development channel. The repository contains a build-tested Browser core, an optional visible Linux GTK/X11 Glaze shell, the Chromium engine adapter, and an optional CEF runtime path. A successful build is not production-readiness evidence.\n\nThe Linux build supports **CMake 3.22 or newer**, including the system CMake supplied by Ubuntu 22.04 / Zorin OS 17-class environments. The dedicated GTK beta-shell CI lane runs on Ubuntu 22.04 so this compatibility remains continuously checked.
 
 ## Engine-independent beta core
 

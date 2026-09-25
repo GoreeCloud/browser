@@ -182,13 +182,14 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
   host.set_title(window->private_window() ? "GoreeCloud Browser — Private" : "GoreeCloud Browser");
   host.render_chrome(chrome.snapshot());
 
+  host.show();
+
   auto current_url = window->active_tab()->engine_view().navigation_state().url;
   if (is_goreecloud_internal_url(current_url)) {
     host.show_internal_surface(current_url);
   } else {
     host.attach_engine_view(window->active_tab()->engine_view());
   }
-  host.show();
 
   std::string last_url = current_url;
   while (host.pump_events()) {

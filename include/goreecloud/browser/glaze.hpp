@@ -6,9 +6,9 @@
 namespace goreecloud::browser {
 
 inline constexpr std::string_view kGlazeUiPolicy = "latest-approved-stable";
-inline constexpr std::string_view kCurrentGlazeUiStableVersion = "1.5.1";
+inline constexpr std::string_view kCurrentGlazeUiStableVersion = "1.6.0";
 inline constexpr std::string_view kCurrentGlazeUiStableRevision =
-    "98da57064ede0f334627b632bc16801f580331af";
+    "a7180679ea851389e0f3004515f9a25f420e716d";
 inline constexpr std::string_view kCurrentGlazeUiReviewedImplementationAnchor =
     "ee1032a0822ab8e103f8afe48e5c1859fde65cc9";
 inline constexpr std::string_view kCurrentGlazeUiQualificationSourceAnchor =
@@ -18,7 +18,7 @@ inline constexpr std::string_view kCurrentGlazeUiQualificationIntegrationRevisio
 inline constexpr std::string_view kGlazeUiOpticalBaselineVersion = "1.4.1";
 inline constexpr std::string_view kGlazeUiOpticalBaselineRevision =
     "4fab9da0fad2e5c974e0e66ec88632c61745751c";
-inline constexpr std::string_view kGlazeUiImmediateRollbackVersion = "1.5.0";
+inline constexpr std::string_view kGlazeUiImmediateRollbackVersion = "1.5.1";
 
 enum class GlazeSurface {
   canvas,
@@ -70,8 +70,9 @@ struct GlazeCapabilities {
   bool live_surfaces{true};
   bool navigation_capsule{true};
 
-  // V1.5 Stable presentation-resolution capabilities. These describe what the
-  // Browser presentation layer may consume or express; none create authority.
+  // V1.6 source mapping retains the accepted V1.5 presentation-resolution
+  // authority boundaries while Browser-local V1.6 acceptance remains open.
+  // These capabilities describe presentation only; none create authority.
   bool semantic_context_normalization{true};
   bool capability_state_with_provenance{true};
   bool provider_conflict_fail_closed{true};
@@ -81,7 +82,7 @@ struct GlazeCapabilities {
   bool explicit_unavailable_explanations{true};
   bool privacy_safe_diagnostics{true};
 
-  // V1.5 authority invariants.
+  // Inherited authority invariants remain mandatory under the V1.6 mapping.
   bool infer_authorization{false};
   bool infer_provider_precedence{false};
   bool automatic_consequential_execution{false};
