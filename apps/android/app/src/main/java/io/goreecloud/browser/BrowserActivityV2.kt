@@ -310,7 +310,12 @@ class BrowserActivityV2 : Activity() {
             }
 
             override fun onPageFinished(view: WebView, url: String) {
-                if (!isInternalStartUrl(url)) currentUrl = url
+                if (isInternalStartUrl(url)) {
+                    if (currentUrl != INTERNAL_HOME && chromeOverrideTitle == null) return
+                } else {
+                    if (!MainFrameFailureGuard.shouldAccept(currentUrl, url)) return
+                    currentUrl = url
+                }
                 loading = false
                 progressBar.visibility = View.GONE
                 refreshChrome()
@@ -321,13 +326,22 @@ class BrowserActivityV2 : Activity() {
                 request: WebResourceRequest,
                 error: WebResourceError,
             ) {
-                if (!request.isForMainFrame || isInternalStartUrl(request.url.toString())) return
-                showPageUnavailable(request.url.toString())
+                val failedUrl = request.url.toString()
+                if (
+                    !request.isForMainFrame ||
+                    isInternalStartUrl(failedUrl) ||
+                    !MainFrameFailureGuard.shouldAccept(currentUrl, failedUrl)
+                ) {
+                    return
+                }
+                showPageUnavailable(failedUrl)
             }
 
             override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
                 handler.cancel()
-                showPageUnavailable(error.url)
+                if (MainFrameFailureGuard.shouldAccept(currentUrl, error.url)) {
+                    showPageUnavailable(error.url)
+                }
             }
         }
 
