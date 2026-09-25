@@ -118,6 +118,7 @@ class GtkLinuxGlazeWindowHost::Impl {
 
   static void on_toolbar_clicked(GtkButton* button, gpointer data) {
     auto* self = static_cast<Impl*>(data);
+    if (self->overflow_popover) gtk_widget_hide(self->overflow_popover);
     const auto found = self->toolbar_bindings.find(GTK_WIDGET(button));
     if (found != self->toolbar_bindings.end() && self->toolbar_handler) self->toolbar_handler(found->second);
   }
@@ -191,15 +192,161 @@ class GtkLinuxGlazeWindowHost::Impl {
   void install_css() {
     css = gtk_css_provider_new();
     static constexpr const char* kCss = R"CSS(
-      window.gc-browser-window { background-color: @theme_bg_color; color: @theme_fg_color; }
-      .gc-tab-strip { padding: 4px 12px; min-height: 48px; background-color: @theme_bg_color; }
-      .gc-toolbar { padding: 8px 12px; background-color: @theme_bg_color; }
-      .gc-toolbar-button { min-width: 48px; min-height: 48px; border-radius: 16px; padding: 6px 10px; }
-      .gc-search-shell { min-height: 48px; border-radius: 24px; padding: 2px 6px; background-color: @theme_base_color; border: 1px solid alpha(@theme_fg_color, 0.16); }
-      .gc-search-entry { min-height: 48px; border: none; box-shadow: none; background: transparent; }
-      .gc-search-control { min-width: 48px; min-height: 48px; border-radius: 16px; }
-      .gc-content-fallback { padding: 32px; }
-      window.gc-private-window .gc-toolbar, window.gc-private-window .gc-tab-strip { border-bottom: 1px solid alpha(@theme_selected_bg_color, 0.35); }
+      window.gc-browser-window {
+        background-color: @theme_base_color;
+        color: @theme_fg_color;
+      }
+
+      .gc-tab-strip {
+        min-height: 46px;
+        padding: 8px 12px 4px;
+        background-color: alpha(@theme_bg_color, 0.98);
+      }
+
+      .gc-tab-capsule {
+        min-height: 34px;
+        min-width: 180px;
+        padding: 5px 14px;
+        border-radius: 14px 14px 8px 8px;
+        border: 1px solid alpha(@theme_fg_color, 0.12);
+        background-color: @theme_base_color;
+      }
+
+      .gc-tab-capsule.gc-loading {
+        border-bottom-color: @theme_selected_bg_color;
+        border-bottom-width: 2px;
+      }
+
+      .gc-tab-title {
+        font-weight: 600;
+      }
+
+      .gc-private-badge {
+        padding: 5px 10px;
+        border-radius: 14px;
+        border: 1px solid alpha(@theme_selected_bg_color, 0.36);
+        background-color: alpha(@theme_selected_bg_color, 0.10);
+      }
+
+      .gc-toolbar {
+        padding: 4px 12px 10px;
+        background-color: alpha(@theme_bg_color, 0.98);
+      }
+
+      .gc-control-cluster {
+        padding: 2px;
+        border-radius: 18px;
+        border: 1px solid alpha(@theme_fg_color, 0.10);
+        background-color: alpha(@theme_base_color, 0.82);
+      }
+
+      button.gc-toolbar-button,
+      button.gc-search-control,
+      button.gc-overflow-button {
+        min-width: 48px;
+        min-height: 48px;
+        padding: 0;
+        border-radius: 16px;
+        border: 1px solid transparent;
+        background: transparent;
+        box-shadow: none;
+      }
+
+      button.gc-toolbar-button:hover,
+      button.gc-search-control:hover,
+      button.gc-overflow-button:hover {
+        background-color: alpha(@theme_fg_color, 0.07);
+      }
+
+      button.gc-toolbar-button:active,
+      button.gc-search-control:active,
+      button.gc-overflow-button:active {
+        background-color: alpha(@theme_fg_color, 0.12);
+      }
+
+      button.gc-toolbar-button:focus,
+      button.gc-search-control:focus,
+      button.gc-overflow-button:focus,
+      button.gc-overflow-action:focus {
+        border-color: @theme_selected_bg_color;
+        box-shadow: 0 0 0 1px @theme_selected_bg_color;
+      }
+
+      .gc-button-glyph {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .gc-search-shell {
+        min-height: 52px;
+        margin-left: 4px;
+        margin-right: 4px;
+        padding: 2px 5px 2px 12px;
+        border-radius: 26px;
+        border: 1px solid alpha(@theme_fg_color, 0.14);
+        background-color: alpha(@theme_base_color, 0.96);
+      }
+
+      entry.gc-search-entry {
+        min-height: 46px;
+        padding-left: 6px;
+        padding-right: 8px;
+        border: none;
+        border-radius: 20px;
+        box-shadow: none;
+        background: transparent;
+      }
+
+      entry.gc-search-entry:focus {
+        box-shadow: inset 0 -2px @theme_selected_bg_color;
+      }
+
+      .gc-overflow-popover {
+        padding: 6px;
+      }
+
+      button.gc-overflow-action {
+        min-height: 44px;
+        padding: 8px 14px;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        background: transparent;
+      }
+
+      button.gc-overflow-action:hover {
+        background-color: alpha(@theme_fg_color, 0.07);
+      }
+
+      .gc-internal-surface,
+      .gc-panel-surface {
+        min-width: 520px;
+        padding: 32px 36px;
+        border-radius: 24px;
+        border: 1px solid alpha(@theme_fg_color, 0.12);
+        background-color: alpha(@theme_base_color, 0.98);
+      }
+
+      .gc-surface-eyebrow {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.10em;
+        color: alpha(@theme_fg_color, 0.62);
+      }
+
+      .gc-surface-title {
+        font-size: 26px;
+        font-weight: 700;
+      }
+
+      .gc-surface-body {
+        font-size: 15px;
+        color: alpha(@theme_fg_color, 0.78);
+      }
+
+      window.gc-private-window .gc-toolbar,
+      window.gc-private-window .gc-tab-strip {
+        background-color: alpha(@theme_selected_bg_color, 0.055);
+      }
     )CSS";
     gtk_css_provider_load_from_data(css, kCss, -1, nullptr);
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(), GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
