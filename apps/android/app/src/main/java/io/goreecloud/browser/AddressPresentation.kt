@@ -32,11 +32,12 @@ object AddressPresentation {
         val uri = runCatching { URI(cleaned) }.getOrNull()
             ?: return truncate(cleaned)
 
-        val host = uri.host ?: return truncate(cleaned)
-        val port = uri.port.takeIf { it >= 0 }?.let { ":$it" }.orEmpty()
+        val authority = uri.rawAuthority
+            ?.let(InternationalizedHostPolicy::canonicalAuthority)
+            ?: return truncate(cleaned)
         val path = uri.rawPath.orEmpty().takeUnless { it == "/" }.orEmpty()
         val query = uri.rawQuery?.let { "?$it" }.orEmpty()
-        return truncate(host + port + path + query)
+        return truncate(authority.authority + path + query)
     }
 
     private fun sanitizeText(value: String): String =
