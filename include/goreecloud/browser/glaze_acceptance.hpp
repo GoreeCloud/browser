@@ -27,6 +27,10 @@ enum class GlazeAcceptanceArea {
   capability_truth,
   authority_conflicts,
   explainable_adaptation,
+  component_states,
+  large_text,
+  status_provenance,
+  performance_adaptation,
 };
 
 struct GlazeAcceptanceRequirement {
@@ -38,7 +42,7 @@ inline constexpr std::array kGlazeAcceptanceRequirements{
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::semantic_color,
                                "Browser surfaces use Glaze semantic roles rather than ad-hoc color meaning."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::material_hierarchy,
-                               "Canvas, Surface, Soft Glaze, Glaze, Deep Glaze, and Live Glaze are used by purpose."},
+                               "Canvas, solid/raised reading surfaces, and bounded functional glass are used by purpose with safe solid fallbacks."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::connected_transformation,
                                "Connected transformations preserve task identity and remain interruptible."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::live_surfaces,
@@ -48,13 +52,13 @@ inline constexpr std::array kGlazeAcceptanceRequirements{
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::appearance_clarity_expression,
                                "Appearance, clarity, and expression modes do not alter security, privacy, capability, or functional meaning."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::iconography,
-                               "Browser-owned icons follow current Glaze iconography contracts."},
+                               "Browser-owned icons follow current Glaze iconography contracts, remain scalable, and provide labels when meaning is unclear."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::motion,
                                "Motion is purposeful, interruptible, and has reduced-motion substitutions."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::accessibility,
-                               "Focus, contrast, transparency fallbacks, target floors, assistive semantics, and accessibility precedence are validated."},
+                               "Focus, contrast, transparency fallbacks, target floors, assistive semantics, non-color meaning, and accessibility precedence are validated."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::responsive_layout,
-                               "Browser chrome and owned surfaces adapt across supported Glaze layout classes."},
+                               "Browser chrome and owned surfaces adapt across supported Glaze layout classes without shrinking below target floors."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::safe_areas,
                                "System insets, cutouts, gesture regions, hinges, and window chrome constraints are respected."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::density,
@@ -73,19 +77,29 @@ inline constexpr std::array kGlazeAcceptanceRequirements{
                                "Missing or conflicting provider ownership fails closed without inferred provider precedence."},
     GlazeAcceptanceRequirement{GlazeAcceptanceArea::explainable_adaptation,
                                "Unavailable, degraded, recovery, and fallback presentation remains privacy-safe, user-initiated where consequential, and free of sensitive diagnostic payloads."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::component_states,
+                               "Applicable controls expose default, hover, focus, pressed, selected, disabled, loading, and error states without color-only meaning."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::large_text,
+                               "Large-text and text-expansion behavior reflows rather than clipping or reducing supported interaction targets."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::status_provenance,
+                               "Privacy, security, connectivity, source, and capability status presentation remains attributable to authoritative state and leaves unknown state unverified."},
+    GlazeAcceptanceRequirement{GlazeAcceptanceArea::performance_adaptation,
+                               "Presentation may reduce optional effects under runtime pressure while preserving semantics, interaction capability, and task continuity."},
 };
 
 inline constexpr bool kGlazeAcceptanceRequiredForProduction = true;
 
-static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.5.1"});
+static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.6.0"});
 static_assert(kCurrentGlazeUiStableRevision ==
-              std::string_view{"98da57064ede0f334627b632bc16801f580331af"});
+              std::string_view{"a7180679ea851389e0f3004515f9a25f420e716d"});
+static_assert(kCurrentGlazeUiReviewedImplementationAnchor ==
+              std::string_view{"c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"});
 static_assert(kCurrentGlazeUiQualificationSourceAnchor ==
-              std::string_view{"5b59d0e36950d737dba35b58ae58058684e0831b"});
+              std::string_view{"c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"});
 static_assert(kCurrentGlazeUiQualificationIntegrationRevision ==
-              std::string_view{"f7ef915f0aabea6cf92748018f2220a99e3a9c92"});
+              std::string_view{"354f5759385c28596fcfec26a3ad525e89fb1c35"});
 static_assert(kGlazeUiOpticalBaselineVersion == std::string_view{"1.4.1"});
-static_assert(kGlazeUiImmediateRollbackVersion == std::string_view{"1.5.0"});
+static_assert(kGlazeUiImmediateRollbackVersion == std::string_view{"1.5.1"});
 static_assert(kGlazeAcceptanceRequiredForProduction);
 
 }  // namespace goreecloud::browser
