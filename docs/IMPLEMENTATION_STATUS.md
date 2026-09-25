@@ -36,6 +36,8 @@ It must not be represented as:
 
 `ChromiumEngineAdapter` defines the current integration seam. Chromium/Blink implementation types must remain behind that boundary.
 
+The repository includes an exact-head Ubuntu 22.04 CI lane that downloads the repository-pinned, checksum-verified CEF Linux x86_64 minimal distribution and compiles the real Chromium/CEF + GTK/X11 render candidate through `scripts/build_linux_render_beta.sh`. This lane is a compile/integration gate only; it does not replace representative-device HTTPS rendering, sandbox, private-context, sustained-use, accessibility, or visual acceptance.
+
 The first adapter milestone requires:
 
 - Chromium runtime initialization and shutdown;
