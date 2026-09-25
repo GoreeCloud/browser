@@ -1,6 +1,6 @@
 # GoreeCloud Browser — Glaze UI Surface Model
 
-This document maps Glaze UI 2.0 Stable into Browser-owned product surfaces. It is an implementation specification, not a claim that every surface has completed acceptance.
+This document maps current Official Stable GLAZE UI V1.6 / 1.6.0 into Browser-owned product surfaces. It is an implementation specification, not a claim that every surface has completed acceptance.
 
 ## Browser chrome
 
@@ -68,4 +68,13 @@ Safe areas, system bars, window controls, virtual keyboards, display cutouts, fo
 
 ## Production acceptance
 
-Compiling against Glaze UI 2.0 metadata is not production acceptance. Representative Browser task flows must demonstrate current-Stable behavior across supported platforms, layout/input/accessibility modes, and relevant form-factor constraints before Browser can use that evidence for release qualification.
+Mapping Browser source to GLAZE UI V1.6 / 1.6.0 is not production acceptance. Representative Browser task flows must demonstrate current-Stable behavior across supported platforms, layout/input/accessibility modes, and relevant form-factor constraints before Browser can use that evidence for release qualification.
+
+
+## Linux desktop Development tranche
+
+The Linux GTK/X11 Development mapping uses the V1.6 material hierarchy to reorganize Browser chrome around a compact active-tab surface, a primary navigation capsule, bounded toolbar controls, a secondary Browser-tools popover, branded first-party internal surfaces, visible keyboard focus, and explicit Development-state presentation.
+
+The desktop mapping deliberately keeps Privacy Shield, Wardveil Security, Search, Identity, Sync, Vault, Manager, Policy, Observability, Everkeep, and other provider-owned truth fail-closed. Visual treatment does not imply that those runtime integrations are accepted.
+
+This source tranche remains Browser-local Development evidence only. Rendered visual review, accessibility review, localization/RTL, large text, Reduced Motion, Reduced Transparency, Increased Contrast, representative-device performance, CEF/Chromium renderer acceptance, rollback, Release Candidate, and production acceptance remain open.
