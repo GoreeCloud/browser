@@ -319,7 +319,7 @@ class GtkLinuxGlazeWindowHost::Impl {
 
       .gc-internal-surface,
       .gc-panel-surface {
-        min-width: 520px;
+        min-width: 320px;
         padding: 32px 36px;
         border-radius: 24px;
         border: 1px solid alpha(@theme_fg_color, 0.12);
@@ -329,7 +329,6 @@ class GtkLinuxGlazeWindowHost::Impl {
       .gc-surface-eyebrow {
         font-size: 11px;
         font-weight: 700;
-        letter-spacing: 0.10em;
         color: alpha(@theme_fg_color, 0.62);
       }
 
