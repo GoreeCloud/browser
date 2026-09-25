@@ -40,6 +40,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product policy and behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
 - Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search for non-URL input.
+- Free-text Search and omnibox classification reject C0/C1 and narrow Unicode Bidi_Control formatting characters before trimming, enforce a 2,048-character Search-query maximum, and reject Search capability claims above the Browser-supported 100-result maximum before request construction; this does not enable remote Search.
 - Browser-intent handling for HTTP/HTTPS links.
 - TLS errors fail closed; Android Safe Browsing enabled with return-to-safety behavior.
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
