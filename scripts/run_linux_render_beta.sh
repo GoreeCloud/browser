@@ -32,6 +32,10 @@ according to the official CEF Linux sandbox instructions, then retry.
 EOF
 fi
 
+if [[ -f "$build_dir/chrome-sandbox" ]]; then
+  export CHROME_DEVEL_SANDBOX="$build_dir/chrome-sandbox"
+fi
+
 export GOREECLOUD_BROWSER_RUNTIME_ROOT="$build_dir"
 subprocess="$build_dir/goreecloud-browser-subprocess"
 if [[ ! -x "$subprocess" && -x "$build_dir/Release/goreecloud-browser-subprocess" ]]; then
