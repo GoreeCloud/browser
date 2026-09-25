@@ -28,6 +28,11 @@ class InternationalizedHostPolicyTest {
                 "https://[example.com]/path",
             ),
         )
+        assertNull(
+            InternationalizedHostPolicy.canonicalizeHttpUrl(
+                "https://[localhost]/path",
+            ),
+        )
     }
 
     @Test
