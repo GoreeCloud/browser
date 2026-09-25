@@ -13,9 +13,16 @@
 
 namespace goreecloud::browser::platform {
 
+enum class GtkTabAction {
+  activate,
+  close,
+  create,
+};
+
 class GtkLinuxGlazeWindowHost final : public NativeWindowHost {
  public:
   using ToolbarHandler = std::function<void(ToolbarItem)>;
+  using TabActionHandler = std::function<void(GtkTabAction, std::string_view)>;
   using SearchHandler = std::function<void(std::string_view)>;
   using SearchControlHandler = std::function<void(UnifiedSearchBarControl)>;
   using MediaHoverActionHandler = std::function<void(MediaAction, const MediaTarget&)>;
@@ -27,6 +34,7 @@ class GtkLinuxGlazeWindowHost final : public NativeWindowHost {
   GtkLinuxGlazeWindowHost& operator=(const GtkLinuxGlazeWindowHost&) = delete;
 
   void set_toolbar_handler(ToolbarHandler handler);
+  void set_tab_action_handler(TabActionHandler handler);
   void set_search_handler(SearchHandler handler);
   void set_search_control_handler(SearchControlHandler handler);
   void set_media_hover_action_handler(MediaHoverActionHandler handler);

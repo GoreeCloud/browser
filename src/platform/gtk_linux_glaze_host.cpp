@@ -33,9 +33,23 @@ void set_accessible_name(GtkWidget* widget, const char* name) {
   }
 }
 
-GtkWidget* make_toolbar_button(const char* visible_label,
+void set_button_icon(GtkWidget* button, const char* fallback_label,
+                     const char* icon_name) {
+  auto* theme = gtk_icon_theme_get_default();
+  if (theme && icon_name && gtk_icon_theme_has_icon(theme, icon_name)) {
+    auto* image = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_BUTTON);
+    gtk_button_set_image(GTK_BUTTON(button), image);
+    gtk_button_set_always_show_image(GTK_BUTTON(button), TRUE);
+  } else {
+    gtk_button_set_label(GTK_BUTTON(button), fallback_label);
+  }
+}
+
+GtkWidget* make_toolbar_button(const char* fallback_label,
+                               const char* icon_name,
                                const char* accessible_name) {
-  auto* button = gtk_button_new_with_label(visible_label);
+  auto* button = gtk_button_new();
+  set_button_icon(button, fallback_label, icon_name);
   gtk_widget_set_size_request(button, kGlazeInteractiveTargetPx,
                               kGlazeInteractiveTargetPx);
   add_style_class(button, "gc-toolbar-button");
@@ -159,6 +173,31 @@ class GtkLinuxGlazeWindowHost::Impl {
     }
   }
 
+  static void on_tab_activate_clicked(GtkButton* button, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    const auto* id =
+        static_cast<const char*>(g_object_get_data(G_OBJECT(button), "gc-tab-id"));
+    if (self->tab_action_handler && id) {
+      self->tab_action_handler(GtkTabAction::activate, id);
+    }
+  }
+
+  static void on_tab_close_clicked(GtkButton* button, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    const auto* id =
+        static_cast<const char*>(g_object_get_data(G_OBJECT(button), "gc-tab-id"));
+    if (self->tab_action_handler && id) {
+      self->tab_action_handler(GtkTabAction::close, id);
+    }
+  }
+
+  static void on_new_tab_clicked(GtkButton*, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (self->tab_action_handler) {
+      self->tab_action_handler(GtkTabAction::create, {});
+    }
+  }
+
   static void on_search_activate(GtkEntry* entry, gpointer data) {
     auto* self = static_cast<Impl*>(data);
     if (!self->search_handler) return;
@@ -243,16 +282,42 @@ class GtkLinuxGlazeWindowHost::Impl {
         margin-right: 4px;
         font-weight: 800;
       }
-      .gc-active-tab {
+      .gc-tab-list { min-height: 38px; }
+      .gc-browser-tab {
         min-height: 36px;
-        padding: 0 14px;
+        margin-right: 4px;
+        padding: 2px 4px 2px 8px;
         border-radius: 13px;
-        background-color: alpha(@theme_base_color, 0.88);
-        border: 1px solid alpha(@theme_fg_color, 0.10);
+        border: 1px solid transparent;
+        background: transparent;
+      }
+      .gc-browser-tab-active {
+        background-color: alpha(@theme_base_color, 0.90);
+        border-color: alpha(@theme_fg_color, 0.12);
         box-shadow: 0 2px 8px alpha(#000000, 0.06);
       }
-      .gc-tab-title { font-weight: 600; }
-      .gc-tab-status { opacity: 0.66; font-size: 0.88em; }
+      .gc-tab-select {
+        min-height: 34px;
+        min-width: 118px;
+        padding: 0 8px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        font-weight: 600;
+      }
+      .gc-tab-select:hover { background-color: alpha(@theme_fg_color, 0.05); }
+      .gc-tab-close, .gc-new-tab {
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0;
+        border-radius: 10px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+      }
+      .gc-tab-close:hover, .gc-new-tab:hover {
+        background-color: alpha(@theme_fg_color, 0.07);
+      }
       .gc-stage-badge {
         padding: 5px 10px;
         border-radius: 999px;
@@ -356,6 +421,27 @@ class GtkLinuxGlazeWindowHost::Impl {
         opacity: 0.78;
         font-size: 1.05em;
       }
+      .gc-internal-search {
+        min-height: 52px;
+        margin-top: 8px;
+        padding: 0 16px;
+        border-radius: 18px;
+        background-color: alpha(@theme_base_color, 0.92);
+        border: 1px solid alpha(@theme_fg_color, 0.12);
+        box-shadow: 0 3px 12px alpha(#000000, 0.06);
+      }
+      .gc-quick-actions { margin-top: 4px; }
+      .gc-quick-action {
+        min-height: 42px;
+        padding: 5px 12px;
+        border-radius: 13px;
+        background-color: alpha(@theme_fg_color, 0.04);
+        border: 1px solid alpha(@theme_fg_color, 0.08);
+        box-shadow: none;
+      }
+      .gc-quick-action:hover {
+        background-color: alpha(@theme_fg_color, 0.07);
+      }
       .gc-status-row { margin-top: 10px; }
       .gc-status-chip {
         padding: 6px 10px;
@@ -429,20 +515,17 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     gtk_box_pack_start(GTK_BOX(tab_strip), make_brand_mark(), FALSE, FALSE, 0);
 
-    active_tab = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    add_style_class(active_tab, "gc-active-tab");
-    gtk_box_pack_start(GTK_BOX(tab_strip), active_tab, FALSE, FALSE, 0);
+    tab_list = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    add_style_class(tab_list, "gc-tab-list");
+    gtk_box_pack_start(GTK_BOX(tab_strip), tab_list, FALSE, FALSE, 0);
 
-    tab_label = gtk_label_new("New Tab");
-    gtk_label_set_xalign(GTK_LABEL(tab_label), 0.0F);
-    gtk_label_set_ellipsize(GTK_LABEL(tab_label), PANGO_ELLIPSIZE_END);
-    gtk_widget_set_size_request(tab_label, 160, -1);
-    add_style_class(tab_label, "gc-tab-title");
-    gtk_box_pack_start(GTK_BOX(active_tab), tab_label, TRUE, TRUE, 0);
-
-    tab_status = gtk_label_new("");
-    add_style_class(tab_status, "gc-tab-status");
-    gtk_box_pack_start(GTK_BOX(active_tab), tab_status, FALSE, FALSE, 0);
+    new_tab_button = gtk_button_new();
+    set_button_icon(new_tab_button, "+", "list-add-symbolic");
+    gtk_widget_set_size_request(new_tab_button, 34, 34);
+    add_style_class(new_tab_button, "gc-new-tab");
+    set_accessible_name(new_tab_button, "New Tab");
+    g_signal_connect(new_tab_button, "clicked", G_CALLBACK(on_new_tab_clicked), this);
+    gtk_box_pack_start(GTK_BOX(tab_strip), new_tab_button, FALSE, FALSE, 0);
 
     auto* spacer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_widget_set_hexpand(spacer, TRUE);
@@ -454,20 +537,78 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_box_pack_end(GTK_BOX(tab_strip), stage_badge, FALSE, FALSE, 0);
   }
 
+  void render_tabs(const BrowserChromeState& state) {
+    if (!tab_list) return;
+
+    std::string signature;
+    for (const auto& tab : state.tabs) {
+      signature += tab.id;
+      signature.push_back('|');
+      signature += tab.title;
+      signature.push_back('|');
+      signature += tab.active ? "1" : "0";
+      signature += tab.loading ? "1" : "0";
+      signature.push_back(';');
+    }
+    if (signature == tab_signature) return;
+    tab_signature = std::move(signature);
+
+    auto* children = gtk_container_get_children(GTK_CONTAINER(tab_list));
+    for (auto* node = children; node; node = node->next) {
+      gtk_widget_destroy(GTK_WIDGET(node->data));
+    }
+    g_list_free(children);
+
+    for (const auto& tab : state.tabs) {
+      auto* shell = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
+      add_style_class(shell, "gc-browser-tab");
+      if (tab.active) add_style_class(shell, "gc-browser-tab-active");
+
+      auto* select = gtk_button_new_with_label(tab.title.c_str());
+      add_style_class(select, "gc-tab-select");
+      set_accessible_name(select, tab.title.c_str());
+      g_object_set_data_full(G_OBJECT(select), "gc-tab-id",
+                             g_strdup(tab.id.c_str()), g_free);
+      g_signal_connect(select, "clicked", G_CALLBACK(on_tab_activate_clicked), this);
+      if (auto* child = gtk_bin_get_child(GTK_BIN(select));
+          child && GTK_IS_LABEL(child)) {
+        gtk_label_set_ellipsize(GTK_LABEL(child), PANGO_ELLIPSIZE_END);
+        gtk_label_set_max_width_chars(GTK_LABEL(child), 22);
+      }
+      gtk_box_pack_start(GTK_BOX(shell), select, TRUE, TRUE, 0);
+
+      auto* close = gtk_button_new();
+      set_button_icon(close, "×", "window-close-symbolic");
+      gtk_widget_set_size_request(close, 34, 34);
+      add_style_class(close, "gc-tab-close");
+      set_accessible_name(close, "Close Tab");
+      g_object_set_data_full(G_OBJECT(close), "gc-tab-id",
+                             g_strdup(tab.id.c_str()), g_free);
+      g_signal_connect(close, "clicked", G_CALLBACK(on_tab_close_clicked), this);
+      gtk_box_pack_start(GTK_BOX(shell), close, FALSE, FALSE, 0);
+
+      gtk_box_pack_start(GTK_BOX(tab_list), shell, FALSE, FALSE, 0);
+    }
+
+    gtk_widget_show_all(tab_list);
+  }
+
   void build_toolbar() {
     toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     add_style_class(toolbar, "gc-toolbar");
     gtk_box_pack_start(GTK_BOX(chrome_shell), toolbar, FALSE, FALSE, 0);
 
-    add_toolbar_button(ToolbarItem::back, "←", "Back");
-    add_toolbar_button(ToolbarItem::forward, "→", "Forward");
-    add_toolbar_button(ToolbarItem::refresh, "↻", "Refresh or Stop");
-    add_toolbar_button(ToolbarItem::home, "⌂", "Home");
+    add_toolbar_button(ToolbarItem::back, "←", "go-previous-symbolic", "Back");
+    add_toolbar_button(ToolbarItem::forward, "→", "go-next-symbolic", "Forward");
+    add_toolbar_button(ToolbarItem::refresh, "↻", "view-refresh-symbolic",
+                       "Refresh or Stop");
+    add_toolbar_button(ToolbarItem::home, "⌂", "go-home-symbolic", "Home");
     build_unified_search();
     add_toolbar_button(ToolbarItem::advanced_download_manager, "↓",
-                       "Advanced Download Manager");
+                       "folder-download-symbolic", "Advanced Download Manager");
     build_overflow_menu();
-    add_toolbar_button(ToolbarItem::settings, "⚙", "Settings");
+    add_toolbar_button(ToolbarItem::settings, "⚙",
+                       "preferences-system-symbolic", "Settings");
   }
 
   void build_unified_search() {
@@ -498,7 +639,7 @@ class GtkLinuxGlazeWindowHost::Impl {
 
   void build_overflow_menu() {
     overflow_menu = gtk_menu_button_new();
-    gtk_button_set_label(GTK_BUTTON(overflow_menu), "⋯");
+    set_button_icon(overflow_menu, "⋯", "open-menu-symbolic");
     gtk_widget_set_size_request(overflow_menu, kGlazeInteractiveTargetPx,
                                 kGlazeInteractiveTargetPx);
     add_style_class(overflow_menu, "gc-overflow-button");
@@ -522,9 +663,9 @@ class GtkLinuxGlazeWindowHost::Impl {
                                 overflow_popover);
   }
 
-  void add_toolbar_button(ToolbarItem item, const char* visible,
-                          const char* accessible) {
-    auto* button = make_toolbar_button(visible, accessible);
+  void add_toolbar_button(ToolbarItem item, const char* fallback,
+                          const char* icon_name, const char* accessible) {
+    auto* button = make_toolbar_button(fallback, icon_name, accessible);
     toolbar_bindings.emplace(button, item);
     g_signal_connect(button, "clicked", G_CALLBACK(on_toolbar_clicked), this);
     gtk_box_pack_start(GTK_BOX(toolbar), button, FALSE, FALSE, 0);
@@ -589,6 +730,45 @@ class GtkLinuxGlazeWindowHost::Impl {
     add_style_class(internal_subtitle, "gc-internal-subtitle");
     gtk_box_pack_start(GTK_BOX(internal_card), internal_subtitle, FALSE, FALSE, 0);
 
+    internal_search_entry = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(internal_search_entry),
+                                   "Search or enter an address");
+    add_style_class(internal_search_entry, "gc-internal-search");
+    set_accessible_name(internal_search_entry, "Search or enter an address");
+    g_signal_connect(internal_search_entry, "activate",
+                     G_CALLBACK(on_search_activate), this);
+    gtk_box_pack_start(GTK_BOX(internal_card), internal_search_entry,
+                       FALSE, FALSE, 0);
+
+    internal_actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 7);
+    add_style_class(internal_actions, "gc-quick-actions");
+
+    auto* bookmarks = gtk_button_new_with_label("Bookmarks");
+    add_style_class(bookmarks, "gc-quick-action");
+    set_accessible_name(bookmarks, "Unified Bookmarks");
+    search_control_bindings.emplace(bookmarks,
+                                    UnifiedSearchBarControl::unified_bookmarks);
+    g_signal_connect(bookmarks, "clicked",
+                     G_CALLBACK(on_search_control_clicked), this);
+    gtk_box_pack_start(GTK_BOX(internal_actions), bookmarks, FALSE, FALSE, 0);
+
+    auto* downloads = gtk_button_new_with_label("Downloads");
+    add_style_class(downloads, "gc-quick-action");
+    set_accessible_name(downloads, "Advanced Download Manager");
+    toolbar_bindings.emplace(downloads, ToolbarItem::advanced_download_manager);
+    g_signal_connect(downloads, "clicked", G_CALLBACK(on_toolbar_clicked), this);
+    gtk_box_pack_start(GTK_BOX(internal_actions), downloads, FALSE, FALSE, 0);
+
+    auto* settings = gtk_button_new_with_label("Settings");
+    add_style_class(settings, "gc-quick-action");
+    set_accessible_name(settings, "Settings");
+    toolbar_bindings.emplace(settings, ToolbarItem::settings);
+    g_signal_connect(settings, "clicked", G_CALLBACK(on_toolbar_clicked), this);
+    gtk_box_pack_start(GTK_BOX(internal_actions), settings, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(internal_card), internal_actions,
+                       FALSE, FALSE, 0);
+
     auto* status_row = gtk_flow_box_new();
     gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(status_row), GTK_SELECTION_NONE);
     gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(status_row), 7);
@@ -647,6 +827,13 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (internal_status) {
       gtk_label_set_text(GTK_LABEL(internal_status), copy.status);
     }
+
+    const bool launch_surface = url == kNewTabUrl || url == kHomeUrl;
+    if (internal_search_entry) {
+      gtk_widget_set_visible(internal_search_entry, launch_surface);
+      if (launch_surface) gtk_entry_set_text(GTK_ENTRY(internal_search_entry), "");
+    }
+    if (internal_actions) gtk_widget_set_visible(internal_actions, launch_surface);
   }
 
   void show() {
@@ -719,6 +906,7 @@ class GtkLinuxGlazeWindowHost::Impl {
   }
 
   ToolbarHandler toolbar_handler;
+  TabActionHandler tab_action_handler;
   SearchHandler search_handler;
   SearchControlHandler search_control_handler;
   MediaHoverActionHandler media_hover_action_handler;
@@ -731,9 +919,8 @@ class GtkLinuxGlazeWindowHost::Impl {
   GtkWidget* root{nullptr};
   GtkWidget* chrome_shell{nullptr};
   GtkWidget* tab_strip{nullptr};
-  GtkWidget* active_tab{nullptr};
-  GtkWidget* tab_label{nullptr};
-  GtkWidget* tab_status{nullptr};
+  GtkWidget* tab_list{nullptr};
+  GtkWidget* new_tab_button{nullptr};
   GtkWidget* stage_badge{nullptr};
   GtkWidget* toolbar{nullptr};
   GtkWidget* search_shell{nullptr};
@@ -747,6 +934,8 @@ class GtkLinuxGlazeWindowHost::Impl {
   GtkWidget* internal_eyebrow{nullptr};
   GtkWidget* internal_title{nullptr};
   GtkWidget* internal_subtitle{nullptr};
+  GtkWidget* internal_search_entry{nullptr};
+  GtkWidget* internal_actions{nullptr};
   GtkWidget* internal_status{nullptr};
   GtkWidget* panel_canvas{nullptr};
   GtkWidget* panel_card{nullptr};
@@ -757,6 +946,7 @@ class GtkLinuxGlazeWindowHost::Impl {
   EngineView* attached_view{nullptr};
   NativeWindowMetrics metrics{1280, 800, 1.0F};
   guint media_hover_timer_id{0};
+  std::string tab_signature;
   bool private_window{false};
   bool created{false};
   bool close_requested{false};
@@ -778,6 +968,9 @@ GtkLinuxGlazeWindowHost::~GtkLinuxGlazeWindowHost() {
 
 void GtkLinuxGlazeWindowHost::set_toolbar_handler(ToolbarHandler handler) {
   impl_->toolbar_handler = std::move(handler);
+}
+void GtkLinuxGlazeWindowHost::set_tab_action_handler(TabActionHandler handler) {
+  impl_->tab_action_handler = std::move(handler);
 }
 void GtkLinuxGlazeWindowHost::set_search_handler(SearchHandler handler) {
   impl_->search_handler = std::move(handler);
@@ -821,26 +1014,7 @@ void GtkLinuxGlazeWindowHost::render_chrome(const BrowserChromeState& state) {
     gtk_entry_set_text(GTK_ENTRY(impl_->search_entry),
                        state.unified_search.display_text.c_str());
   }
-
-  const ChromeTabPresentation* active = nullptr;
-  for (const auto& tab : state.tabs) {
-    if (tab.active) {
-      active = &tab;
-      break;
-    }
-  }
-  if (!active && !state.tabs.empty()) active = &state.tabs.front();
-
-  if (impl_->tab_label) {
-    gtk_label_set_text(GTK_LABEL(impl_->tab_label),
-                       active ? active->title.c_str() : "New Tab");
-  }
-  if (impl_->tab_status) {
-    const char* status = "";
-    if (active && active->loading) status = "Loading";
-    else if (active && active->private_context) status = "Private";
-    gtk_label_set_text(GTK_LABEL(impl_->tab_status), status);
-  }
+  impl_->render_tabs(state);
 }
 
 void GtkLinuxGlazeWindowHost::attach_engine_view(EngineView& view) {

@@ -5,6 +5,21 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-25 — Linux real-device visual acceptance follow-up
+
+### Changed
+
+- Corrected first-party internal-page presentation so `goreecloud://` implementation URLs no longer leak into the visible tab title or omnibox presentation for Browser-owned internal surfaces.
+- Replaced ambiguous primary Unicode toolbar glyphs with platform-native symbolic icons with text fallbacks.
+- Added an interactive Linux tab strip with visible tab titles and Development create/activate/close behavior.
+- Added a functional first-party start-surface search field plus Bookmarks, Downloads, and Settings quick actions.
+- Synchronized the Linux Browser full-color and monochrome consumer artwork to canonical `GoreeCloud/branding-assets` compass sources.
+- Reconciled stale Browser-local branding documentation that still described the superseded aqua Tabmark or artwork-pending state.
+
+### Authority and acceptance boundary
+
+Canonical Browser branding is now verified at `GoreeCloud/branding-assets` main revision `a831479976fd3f82dc31cf9b7785145a757e7e28`. This tranche remains Development source work pending exact-head CI and fresh owner-device rendered review; it does not establish Browser-wide Glaze acceptance, renderer acceptance, Release Candidate, production approval, or Stable/Anchor product maturity.
+
 ## 2026-09-25 — Glaze V1.6 contract and responsive follow-up
 
 ### Changed
