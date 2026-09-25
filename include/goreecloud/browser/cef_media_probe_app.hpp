@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 
@@ -17,11 +18,22 @@ namespace goreecloud::browser {
 
 #if GOREECLOUD_ENABLE_CEF
 
-class GoreeCloudCefRenderApp final : public CefApp, public CefRenderProcessHandler {
+class GoreeCloudCefRenderApp final : public CefApp,
+                                     public CefRenderProcessHandler,
+                                     public CefBrowserProcessHandler {
  public:
   GoreeCloudCefRenderApp() = default;
 
   CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override { return this; }
+  CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override { return this; }
+
+  void OnContextInitialized() override {
+    browser_context_initialized_.store(true, std::memory_order_release);
+  }
+
+  [[nodiscard]] bool browser_context_initialized() const noexcept {
+    return browser_context_initialized_.load(std::memory_order_acquire);
+  }
 
   bool OnProcessMessageReceived(CefRefPtr<CefBrowser>,
                                 CefRefPtr<CefFrame> frame,
@@ -274,6 +286,8 @@ class GoreeCloudCefRenderApp final : public CefApp, public CefRenderProcessHandl
     out->SetString(2, error);
     frame->SendProcessMessage(PID_BROWSER, response);
   }
+
+  std::atomic_bool browser_context_initialized_{false};
 
   IMPLEMENT_REFCOUNTING(GoreeCloudCefRenderApp);
   DISALLOW_COPY_AND_ASSIGN(GoreeCloudCefRenderApp);
