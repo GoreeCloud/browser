@@ -25,9 +25,8 @@ class GoreeCloudCefProcessApp final : public CefApp {
   DISALLOW_COPY_AND_ASSIGN(GoreeCloudCefProcessApp);
 };
 
-inline CefRefPtr<CefApp> goreecloud_cef_browser_app() {
-  static CefRefPtr<CefApp> app = new GoreeCloudCefProcessApp();
-  return app;
+inline CefRefPtr<CefApp> create_goreecloud_cef_browser_app() {
+  return new GoreeCloudCefProcessApp();
 }
 
 #endif
