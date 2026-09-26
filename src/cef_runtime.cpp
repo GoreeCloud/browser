@@ -10,6 +10,7 @@
 #include <utility>
 
 #if GOREECLOUD_ENABLE_CEF
+#include "goreecloud/browser/cef_browser_app.hpp"
 #include "goreecloud/browser/cef_client.hpp"
 #include "goreecloud/browser/cef_media_probe_app.hpp"
 #include "include/cef_app.h"
@@ -244,7 +245,7 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     CefString(&settings.root_cache_path) = options_.cache_root.string();
     CefString(&settings.locale) = options_.locale;
 
-    CefRefPtr<CefApp> app;
+    CefRefPtr<CefApp> app = goreecloud_cef_browser_app();
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] entering CefInitialize" << std::endl;
     }
