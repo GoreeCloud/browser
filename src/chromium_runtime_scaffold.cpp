@@ -199,7 +199,7 @@ std::unique_ptr<ChromiumRuntimeDelegate> create_chromium_runtime_delegate(
   cef.process_argv = options.process_argv;
   cef.enable_gpu = options.enable_gpu;
   cef.enable_sandbox = options.enable_sandbox;
-  cef.external_message_pump = true;
+  cef.external_message_pump = false;
   return create_cef_runtime_delegate(std::move(cef));
 #else
   return std::make_unique<ScaffoldRuntimeDelegate>(options);

@@ -32,10 +32,27 @@ according to the official CEF Linux sandbox instructions, then retry.
 EOF
 fi
 
+if [[ -f "$build_dir/chrome-sandbox" ]]; then
+  export CHROME_DEVEL_SANDBOX="$build_dir/chrome-sandbox"
+fi
+
 export GOREECLOUD_BROWSER_RUNTIME_ROOT="$build_dir"
-export GOREECLOUD_BROWSER_SUBPROCESS="$browser"
+# Current CEF Linux reference builds reuse the main executable for renderer,
+# GPU, utility, and other subprocesses. Leave the override unset so
+# browser_subprocess_path remains empty and CEF selects that supported path.
+unset GOREECLOUD_BROWSER_SUBPROCESS
 export GOREECLOUD_BROWSER_RESOURCES="$build_dir"
 export GOREECLOUD_BROWSER_LOCALES="$build_dir/locales"
 export LD_LIBRARY_PATH="$build_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
+if [[ "$#" -gt 0 && "$1" != --* ]]; then
+  export GOREECLOUD_BROWSER_INITIAL_URL="$1"
+  shift
+fi
+
+# CEF resolves Linux runtime data relative to the loaded runtime/executable
+# environment. Run from the verified payload directory so libcef.so,
+# icudtl.dat, pak files, snapshots, locales, and the subprocess executable
+# share one canonical runtime location.
+cd "$build_dir"
 exec "$browser" "$@"

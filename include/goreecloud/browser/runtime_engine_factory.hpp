@@ -35,10 +35,9 @@ inline RuntimeEngineSelection create_runtime_engine_from_environment(
   options.process_argc = process_argc;
   options.process_argv = process_argv;
 
-  if (const char* subprocess = std::getenv("GOREECLOUD_BROWSER_SUBPROCESS")) {
+  if (const char* subprocess = std::getenv("GOREECLOUD_BROWSER_SUBPROCESS");
+      subprocess && std::string{subprocess}.size() > 0) {
     options.subprocess_path = std::filesystem::path{subprocess};
-  } else {
-    options.subprocess_path = options.runtime_root / "goreecloud-browser";
   }
   if (const char* resources = std::getenv("GOREECLOUD_BROWSER_RESOURCES")) {
     options.resources_path = std::filesystem::path{resources};

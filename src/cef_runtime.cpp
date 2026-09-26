@@ -1,11 +1,16 @@
 #include "goreecloud/browser/cef_runtime.hpp"
 
+#include <chrono>
+#include <cstdlib>
+#include <iostream>
 #include <mutex>
 #include <optional>
+#include <thread>
 #include <stdexcept>
 #include <utility>
 
 #if GOREECLOUD_ENABLE_CEF
+#include "goreecloud/browser/cef_browser_app.hpp"
 #include "goreecloud/browser/cef_client.hpp"
 #include "goreecloud/browser/cef_media_probe_app.hpp"
 #include "include/cef_app.h"
@@ -18,6 +23,11 @@ namespace goreecloud::browser {
 namespace {
 
 #if GOREECLOUD_ENABLE_CEF
+
+bool cef_runtime_diagnostics_enabled() {
+  const char* value = std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
+  return value && *value && std::string_view{value} != "0";
+}
 
 class CefRuntimeView final : public ChromiumRuntimeView {
  public:
@@ -107,6 +117,10 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     CefWindowInfo window_info;
     window_info.SetAsChild(static_cast<CefWindowHandle>(surface.window_handle),
                            CefRect(surface.x, surface.y, surface.width, surface.height));
+    // CEF 128+ uses the Chrome bootstrap. GoreeCloud embeds the browser into
+    // its own GTK/X11 parent, so the child must explicitly use Alloy runtime
+    // style while retaining the current Chrome bootstrap.
+    window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
 
     std::string initial_url;
     {
@@ -122,6 +136,14 @@ class CefRuntimeView final : public ChromiumRuntimeView {
         browser_settings,
         nullptr,
         request_context_);
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] CreateBrowser accepted="
+                << (created ? "yes" : "no")
+                << " url=" << initial_url
+                << " parent=" << surface.window_handle
+                << " size=" << surface.width << "x" << surface.height
+                << std::endl;
+    }
     attached_ = created;
     return created;
   }
@@ -201,7 +223,6 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
   void initialize() override {
     if (initialized_) return;
     if (options_.root.empty()) throw std::runtime_error("CEF runtime root is not configured");
-    if (options_.subprocess_path.empty()) throw std::runtime_error("CEF subprocess path is not configured");
     if (!options_.enable_sandbox) throw std::runtime_error("GoreeCloud Browser refuses to initialize CEF with sandboxing disabled");
 
 #if GOREECLOUD_ENABLE_CEF
@@ -211,18 +232,28 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     }
     CefMainArgs main_args(options_.process_argc, options_.process_argv);
     CefSettings settings;
+    // Current CEF uses the Chrome bootstrap. Individual embedded child
+    // windows select Alloy runtime style for the custom GTK/X11 parent.
     settings.no_sandbox = options_.enable_sandbox ? 0 : 1;
     settings.external_message_pump = options_.external_message_pump ? 1 : 0;
     settings.windowless_rendering_enabled = options_.windowless_rendering ? 1 : 0;
-    CefString(&settings.browser_subprocess_path) = options_.subprocess_path.string();
+    if (!options_.subprocess_path.empty()) {
+      CefString(&settings.browser_subprocess_path) = options_.subprocess_path.string();
+    }
     CefString(&settings.resources_dir_path) = options_.resources_path.string();
     CefString(&settings.locales_dir_path) = options_.locales_path.string();
     CefString(&settings.root_cache_path) = options_.cache_root.string();
     CefString(&settings.locale) = options_.locale;
 
-    CefRefPtr<GoreeCloudCefRenderApp> app = new GoreeCloudCefRenderApp();
+    CefRefPtr<CefApp> app = create_goreecloud_cef_browser_app();
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] entering CefInitialize" << std::endl;
+    }
     if (!CefInitialize(main_args, settings, app, nullptr)) {
       throw std::runtime_error("CEF initialization failed");
+    }
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] CefInitialize completed" << std::endl;
     }
 #endif
     initialized_ = true;
@@ -260,7 +291,7 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
   void do_message_loop_work() override {
     if (!initialized_) return;
 #if GOREECLOUD_ENABLE_CEF
-    if (options_.external_message_pump) CefDoMessageLoopWork();
+    CefDoMessageLoopWork();
 #endif
   }
 
