@@ -18,6 +18,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
 - Pinned Linux x86_64 CEF render-candidate bootstrap for CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`, with official-checksum verification, safe extraction, local SHA-256 provenance, exact-version CMake enforcement, and one-command Development build/launch scripts.
+- Exact-head Ubuntu 22.04 Core CI compiles the pinned Linux CEF/Chromium render candidate with GTK/X11 and the current GoreeCloud CEF client, media-probe, and render-app integration; representative runtime rendering acceptance remains separate.
 - CEF browser-process initialization now receives the host Linux `argc/argv`, and X11 native child-window embedding uses the CEF integral window-handle type.
 - Linux GTK/X11 native beta shell build path.
 - Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, keyboard-first shortcuts for common tab/navigation actions, Ctrl+K/F6 location focus, and Escape dismissal for Browser-owned panels.
@@ -41,6 +42,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
 - Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search for non-URL input.
 - Free-text Search and omnibox classification reject C0/C1 and narrow Unicode Bidi_Control formatting characters before trimming, enforce a 2,048-character Search-query maximum, and reject Search capability claims above the Browser-supported 100-result maximum before request construction; this does not enable remote Search.
+- Android Browser-owned page-title and unfocused-address presentation strips Unicode bidirectional formatting controls before rendering chrome text while retaining the unchanged full URL as navigation authority.
 - Browser-intent handling for HTTP/HTTPS links.
 - TLS errors fail closed; Android Safe Browsing enabled with return-to-safety behavior.
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
