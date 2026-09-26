@@ -138,7 +138,7 @@ jobs:
             python3 cmake ninja-build build-essential pkg-config \
             libgtk-3-dev libx11-dev libcurl4-openssl-dev \
             libnss3-dev libxss-dev libasound2-dev libcups2-dev \
-            libdrm-dev libgbm-dev xvfb xauth procps dbus-x11
+            libdrm-dev libgbm-dev xvfb xauth procps dbus-x11 gdb
       - name: Bootstrap pinned CEF and build render candidate
         env:
           GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
@@ -178,13 +178,28 @@ jobs:
           runtime_pid=$!
 
           runtime_ready=0
-          for _ in $(seq 1 90); do
+          diagnostic_captured=0
+          for attempt in $(seq 1 90); do
             if pgrep -af -- "--type=renderer" > "${renderer_file}"; then
               runtime_ready=1
               break
             fi
             if ! kill -0 "${runtime_pid}" 2>/dev/null; then
               break
+            fi
+
+            if [[ "${attempt}" -eq 45 && "${diagnostic_captured}" -eq 0 ]]; then
+              browser_pid="$(pgrep -o -f -- "${GOREECLOUD_BROWSER_CEF_BUILD_DIR}/goreecloud-browser" || true)"
+              if [[ -n "${browser_pid}" ]]; then
+                echo "::group::CEF browser-process diagnostic"
+                ps -o pid,ppid,stat,etime,cmd -p "${browser_pid}" || true
+                sudo gdb -q -batch \
+                  -ex "set pagination off" \
+                  -ex "thread apply all bt" \
+                  -p "${browser_pid}" || true
+                echo "::endgroup::"
+                diagnostic_captured=1
+              fi
             fi
             sleep 1
           done
