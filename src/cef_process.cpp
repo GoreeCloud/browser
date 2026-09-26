@@ -5,6 +5,7 @@
 #include <string_view>
 
 #if GOREECLOUD_ENABLE_CEF
+#include "goreecloud/browser/cef_browser_app.hpp"
 #include "goreecloud/browser/cef_media_probe_app.hpp"
 #include "include/cef_app.h"
 #endif
@@ -23,7 +24,7 @@ int execute_cef_subprocess_if_needed(int argc, char** argv) {
 
   CefMainArgs main_args(argc, argv);
 
-  CefRefPtr<CefApp> app;
+  CefRefPtr<CefApp> app = goreecloud_cef_browser_app();
   for (int index = 1; index < argc; ++index) {
     if (!argv[index]) continue;
     if (std::string_view{argv[index]} == "--type=renderer") {
