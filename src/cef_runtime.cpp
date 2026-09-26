@@ -245,7 +245,7 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     CefString(&settings.root_cache_path) = options_.cache_root.string();
     CefString(&settings.locale) = options_.locale;
 
-    CefRefPtr<CefApp> app = goreecloud_cef_browser_app();
+    CefRefPtr<CefApp> app = create_goreecloud_cef_browser_app();
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] entering CefInitialize" << std::endl;
     }
