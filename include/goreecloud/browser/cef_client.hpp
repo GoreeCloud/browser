@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
+#include <iostream>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -52,6 +54,12 @@ class GoreeCloudCefClient final : public CefClient,
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
     CEF_REQUIRE_UI_THREAD();
     browser_ = browser;
+    if (const char* diagnostics =
+            std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
+        diagnostics && *diagnostics && std::string_view{diagnostics} != "0") {
+      std::cerr << "[GoreeCloud CEF] OnAfterCreated browser_id="
+                << browser->GetIdentifier() << std::endl;
+    }
     publish();
   }
 
