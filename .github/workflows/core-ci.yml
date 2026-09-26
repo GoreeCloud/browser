@@ -195,8 +195,12 @@ jobs:
                 ps -o pid,ppid,stat,etime,cmd -p "${browser_pid}" || true
                 sudo gdb -q -batch \
                   -ex "set pagination off" \
-                  -ex "thread apply all bt" \
-                  -p "${browser_pid}" || true
+                  -ex "set solib-search-path ${GOREECLOUD_BROWSER_CEF_BUILD_DIR}" \
+                  -ex "attach ${browser_pid}" \
+                  -ex "sharedlibrary libcef" \
+                  -ex "info sharedlibrary" \
+                  -ex "info proc mappings" \
+                  -ex "thread apply all bt" || true
                 echo "::endgroup::"
                 diagnostic_captured=1
               fi
