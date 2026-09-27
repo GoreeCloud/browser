@@ -36,6 +36,8 @@ It must not be represented as:
 
 `ChromiumEngineAdapter` defines the current integration seam. Chromium/Blink implementation types must remain behind that boundary.
 
+The pinned Linux CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83` candidate now has exact-head Ubuntu 22.04 evidence for **both compilation and sandbox-preserving runtime startup**. Core CI launches the Browser under Xvfb + D-Bus and verifies that a Chromium renderer subprocess appears. This remains Development startup evidence only; representative-owner-device page rendering and the remaining acceptance gates below are still open.
+
 The first adapter milestone requires:
 
 - Chromium runtime initialization and shutdown;
@@ -73,7 +75,7 @@ Signing secrets must remain outside source control for every platform.
 
 ## Next implementation milestones
 
-1. Complete the Linux CEF/Chromium render-capable runtime path and validate real HTTPS rendering on representative desktop hardware without weakening sandboxing or site isolation.
+1. Validate visible HTTPS page rendering/navigation on representative desktop hardware with the now-compiling, sandbox-starting Linux CEF candidate, then complete packaged sandbox/site-isolation, TLS/certificate, crash-recovery, private-context, accessibility, performance, and long-session acceptance without weakening engine protections.
 2. Turn the current Development Bookmarks/Library surface into persisted Local Bookmarks plus an accepted GoreeCloud Bookmarks synchronization adapter with explicit authority separation.
 3. Turn the structured Settings surface into functional Browser-owned controls backed by authoritative provider/runtime state.
 4. Add Local Vault persistence and GoreeCloud Vault synchronization adapter with explicit destination controls.
