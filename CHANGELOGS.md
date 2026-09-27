@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-26 — Linux CEF HTTPS navigation smoke accepted
+
+### Changed
+
+- Added bounded CEF main-frame load start, load-end, and load-error diagnostics behind the existing runtime-diagnostics boundary.
+- Advanced the Ubuntu 22.04 sandboxed CEF smoke from renderer-process detection to successful engine-level HTTPS navigation.
+- Exact-head Core CI now requires both a Chromium renderer subprocess and a main-frame `OnLoadEnd` with HTTP 200 for `https://example.com/`.
+- The smoke fails closed on a CEF main-frame load error.
+
+### Acceptance boundary
+
+This proves engine-level HTTPS navigation completion in the pinned sandboxed CEF runtime under Ubuntu 22.04 CI. It does **not** yet prove visible page pixels inside the GoreeCloud GTK child surface, representative-owner-device interaction, navigation-control behavior against visible content, TLS/certificate UX, renderer crash recovery, private-context isolation, accessibility, performance, packaging acceptance, Release Candidate, production approval, Stable, or Anchor maturity.
+
 ## 2026-09-26 — Linux CEF sandboxed runtime smoke accepted
 
 ### Changed

@@ -19,7 +19,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
 - Pinned Linux x86_64 CEF render-candidate bootstrap for CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`, with official-checksum verification, safe extraction, local SHA-256 provenance, exact-version CMake enforcement, and one-command Development build/launch scripts.
 - Exact-head Ubuntu 22.04 Core CI compiles the pinned Linux CEF/Chromium render candidate with GTK/X11 and the current GoreeCloud CEF client, media-probe, and render-app integration; representative runtime rendering acceptance remains separate.
-- Exact-head Ubuntu 22.04 Core CI also launches the pinned CEF runtime under Xvfb + D-Bus with sandboxing preserved and verifies that a Chromium renderer subprocess starts; visible page rendering and representative-device runtime acceptance remain separate.
+- Exact-head Ubuntu 22.04 Core CI also launches the pinned CEF runtime under Xvfb + D-Bus with sandboxing preserved, verifies that a Chromium renderer subprocess starts, and requires the main frame to complete `https://example.com/` with HTTP 200; visible page pixels and representative-device runtime acceptance remain separate.
 - CEF browser-process initialization now receives the host Linux `argc/argv`, and X11 native child-window embedding uses the CEF integral window-handle type.
 - Linux GTK/X11 native beta shell build path.
 - Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, keyboard-first shortcuts for common tab/navigation actions, Ctrl+K/F6 location focus, and Escape dismissal for Browser-owned panels.

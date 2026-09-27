@@ -4,7 +4,7 @@
 **Channel:** Beta  
 **Production approved:** No
 
-This record separates completed source/native-shell and CI renderer-start evidence from representative-device rendering and production gates that remain open.
+This record separates completed source/native-shell, CI renderer-start, and engine-level HTTPS navigation evidence from representative-device visible rendering and production gates that remain open.
 
 ## Accepted Development evidence for Beta 0.1
 
@@ -23,7 +23,7 @@ This record separates completed source/native-shell and CI renderer-start eviden
 - Normal and private Browser startup paths are represented, including `--private` and `--isolated-private`.
 - Browser Engine Layer, Chromium adapter, CEF runtime delegate, request-context separation, and native-surface contracts are present in source.
 - The Linux render candidate is pinned to CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`, with official-checksum verification and exact-version CMake enforcement.
-- Exact-head Ubuntu 22.04 Core CI compiles the pinned CEF/Chromium + GTK/X11 candidate, verifies the runtime payload, launches it under Xvfb + D-Bus with the Chromium sandbox preserved, and verifies that a Chromium renderer subprocess starts.
+- Exact-head Ubuntu 22.04 Core CI compiles the pinned CEF/Chromium + GTK/X11 candidate, verifies the runtime payload, launches it under Xvfb + D-Bus with the Chromium sandbox preserved, verifies that a Chromium renderer subprocess starts, and requires the main frame to complete `https://example.com/` with HTTP 200.
 - The runtime smoke keeps the initial Browser URL out of inherited CEF subprocess positional arguments and exercises the current browser/renderer process-role integration.
 - The Flatpak manifest remains a Development packaging scaffold and does not yet constitute accepted CEF runtime packaging.
 
@@ -32,7 +32,7 @@ This record separates completed source/native-shell and CI renderer-start eviden
 The following still require direct representative runtime evidence:
 
 - Visible CEF/Chromium web-content pixels inside the GoreeCloud GTK shell on representative desktop hardware.
-- HTTPS page rendering and ordinary web navigation on the owner-device test path.
+- Visible HTTPS page pixels and ordinary web interaction inside the GoreeCloud GTK child surface on the owner-device test path. Engine-level `https://example.com/` load completion is already CI-verified.
 - Real Back, Forward, Refresh/Stop, loading/title/address updates, and renderer navigation callbacks against actual pages.
 - Multi-tab engine-view lifetime and Browser tab behavior against the real renderer, including ordering/reordering and lifecycle stress.
 - TLS/certificate/security-state presentation and fail-closed error behavior.
@@ -50,4 +50,4 @@ Stable remains blocked by the full production validation matrix: required featur
 
 ## Promotion rule
 
-The **Beta 0.1 Development source/native-shell and CI renderer-start evidence** may be used for development and testing. A binary must not be described as a **render-capable GoreeCloud Browser beta** until every applicable renderer gate above has direct representative runtime evidence. Neither beta designation authorizes production claims.
+The **Beta 0.1 Development source/native-shell, CI renderer-start, and engine-level HTTPS navigation evidence** may be used for development and testing. A binary must not be described as a **render-capable GoreeCloud Browser beta** until every applicable renderer gate above has direct representative runtime evidence. Neither beta designation authorizes production claims.
