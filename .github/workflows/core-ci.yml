@@ -170,22 +170,25 @@ jobs:
           log_file="${RUNNER_TEMP}/goreecloud-cef-runtime.log"
           renderer_file="${RUNNER_TEMP}/goreecloud-cef-renderers.txt"
           window_info_file="${RUNNER_TEMP}/goreecloud-cef-window.txt"
+          window_tree_file="${RUNNER_TEMP}/goreecloud-cef-window-tree.txt"
           xwd_file="${RUNNER_TEMP}/goreecloud-cef-window.xwd"
           : > "${log_file}"
           : > "${renderer_file}"
           : > "${window_info_file}"
+          : > "${window_tree_file}"
 
           set +e
           timeout --signal=TERM --kill-after=5s 90s \
             dbus-run-session -- \
             xvfb-run -a -s "-screen 0 1280x800x24" \
-            bash -s -- "${log_file}" "${renderer_file}" "${window_info_file}" "${xwd_file}" <<'BASH'
+            bash -s -- "${log_file}" "${renderer_file}" "${window_info_file}" "${window_tree_file}" "${xwd_file}" <<'BASH'
           set -euo pipefail
 
           log_file="$1"
           renderer_file="$2"
           window_info_file="$3"
-          xwd_file="$4"
+          window_tree_file="$4"
+          xwd_file="$5"
 
           ./scripts/run_linux_render_beta.sh https://example.com/ >"${log_file}" 2>&1 &
           browser_pid=$!
@@ -207,19 +210,33 @@ jobs:
               load_ready=1
             fi
 
-            child_window="$(sed -n 's/.*child_window=\([0-9][0-9]*\).*/\1/p' "${log_file}" | tail -n 1)"
-            if [[ "${renderer_ready}" -eq 1 && "${load_ready}" -eq 1 && -n "${child_window}" ]]; then
-              child_window_hex="$(printf '0x%x' "${child_window}")"
-              if xwininfo -id "${child_window_hex}" > "${window_info_file}" 2>&1 &&
-                 grep -Fq "Map State: IsViewable" "${window_info_file}"; then
-                width="$(awk '/Width:/{print $2; exit}' "${window_info_file}")"
-                height="$(awk '/Height:/{print $2; exit}' "${window_info_file}")"
-                if [[ "${width:-0}" -gt 100 && "${height:-0}" -gt 100 ]]; then
-                  xwd -silent -id "${child_window_hex}" -out "${xwd_file}"
-                  if [[ -s "${xwd_file}" ]]; then
-                    exit 0
+            parent_window="$(sed -n 's/.* parent=\([0-9][0-9]*\) size=.*/\1/p' "${log_file}" | tail -n 1)"
+            if [[ "${renderer_ready}" -eq 1 && "${load_ready}" -eq 1 && -n "${parent_window}" ]]; then
+              parent_window_hex="$(printf '0x%x' "${parent_window}")"
+              if xwininfo -id "${parent_window_hex}" -tree > "${window_tree_file}" 2>&1; then
+                mapfile -t candidate_windows < <(
+                  awk '/^[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]/ {print $1}' "${window_tree_file}" |
+                    awk '!seen[$0]++'
+                )
+                for candidate_window in "${candidate_windows[@]}"; do
+                  candidate_info="${window_info_file}.candidate"
+                  if xwininfo -id "${candidate_window}" > "${candidate_info}" 2>&1 &&
+                     grep -Fq "Map State: IsViewable" "${candidate_info}"; then
+                    width="$(awk '/Width:/{print $2; exit}' "${candidate_info}")"
+                    height="$(awk '/Height:/{print $2; exit}' "${candidate_info}")"
+                    if [[ "${width:-0}" -gt 100 && "${height:-0}" -gt 100 ]]; then
+                      rm -f "${xwd_file}"
+                      if xwd -silent -id "${candidate_window}" -out "${xwd_file}" 2>/dev/null &&
+                         [[ -s "${xwd_file}" ]]; then
+                        {
+                          echo "Selected live CEF descendant: ${candidate_window}"
+                          cat "${candidate_info}"
+                        } > "${window_info_file}"
+                        exit 0
+                      fi
+                    fi
                   fi
-                fi
+                done
               fi
             fi
 
@@ -236,6 +253,7 @@ jobs:
 
           cat "${log_file}"
           cat "${renderer_file}"
+          cat "${window_tree_file}"
           cat "${window_info_file}"
 
           test "${runtime_status}" -eq 0
