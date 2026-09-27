@@ -4,9 +4,16 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_dir="${GOREECLOUD_BROWSER_CEF_BUILD_DIR:-$repo_root/build-cef-render}"
 browser="$build_dir/goreecloud-browser"
+subprocess="$build_dir/goreecloud-browser-subprocess"
 
 if [[ ! -x "$browser" ]]; then
   echo "Render-capable Browser build not found: $browser" >&2
+  echo "Run scripts/build_linux_render_beta.sh first." >&2
+  exit 1
+fi
+
+if [[ ! -x "$subprocess" ]]; then
+  echo "CEF subprocess executable not found: $subprocess" >&2
   echo "Run scripts/build_linux_render_beta.sh first." >&2
   exit 1
 fi
@@ -37,10 +44,12 @@ if [[ -f "$build_dir/chrome-sandbox" ]]; then
 fi
 
 export GOREECLOUD_BROWSER_RUNTIME_ROOT="$build_dir"
-# Current CEF Linux reference builds reuse the main executable for renderer,
-# GPU, utility, and other subprocesses. Leave the override unset so
-# browser_subprocess_path remains empty and CEF selects that supported path.
-unset GOREECLOUD_BROWSER_SUBPROCESS
+# Use the dedicated subprocess executable for renderer, GPU, utility, and
+# other CEF child processes. Re-entering the full Browser executable adds an
+# unnecessary host stack frame around CefExecuteProcess; Chromium child
+# processes may rotate the stack guard after fork, so returning through that
+# pre-fork frame can trip stack-protector checks.
+export GOREECLOUD_BROWSER_SUBPROCESS="$subprocess"
 export GOREECLOUD_BROWSER_RESOURCES="$build_dir"
 export GOREECLOUD_BROWSER_LOCALES="$build_dir/locales"
 export LD_LIBRARY_PATH="$build_dir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
