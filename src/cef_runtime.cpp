@@ -335,6 +335,7 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     CefSettings settings;
     // Current CEF uses the Chrome bootstrap. Individual embedded child
     // windows select Alloy runtime style for the custom GTK/X11 parent.
+    settings.chrome_runtime = 1;
     settings.no_sandbox = options_.enable_sandbox ? 0 : 1;
     settings.external_message_pump = options_.external_message_pump ? 1 : 0;
     settings.windowless_rendering_enabled = options_.windowless_rendering ? 1 : 0;
@@ -378,7 +379,12 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
 #if GOREECLOUD_ENABLE_CEF
     CefRequestContextSettings settings;
     if (!options.private_context && options.persistent_storage) {
-      CefString(&settings.cache_path) = options.storage_path;
+      auto storage_path = std::filesystem::path{options.storage_path};
+      if (storage_path.is_relative()) {
+        storage_path = options_.cache_root / storage_path;
+      }
+      CefString(&settings.cache_path) =
+          storage_path.lexically_normal().string();
     }
     CefString(&settings.accept_language_list) = options.locale;
     auto request_context = CefRequestContext::CreateContext(settings, nullptr);
