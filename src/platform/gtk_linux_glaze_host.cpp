@@ -1036,21 +1036,35 @@ class GtkLinuxGlazeWindowHost::Impl {
 
   NativeEngineSurface current_surface() const {
     NativeEngineSurface surface;
-    if (!content_area || !gtk_widget_get_realized(content_area)) return surface;
-    auto* gdk_window = gtk_widget_get_window(content_area);
-    if (!gdk_window) return surface;
-    if (!gdk_window_ensure_native(gdk_window)) return surface;
-    auto* display = gdk_window_get_display(gdk_window);
+    if (!window || !content_area ||
+        !gtk_widget_get_realized(window) ||
+        !gtk_widget_get_realized(content_area)) {
+      return surface;
+    }
+
+    auto* host_window = gtk_widget_get_window(window);
+    if (!host_window) return surface;
+    if (!gdk_window_ensure_native(host_window)) return surface;
+
+    auto* display = gdk_window_get_display(host_window);
     if (!display || !GDK_IS_X11_DISPLAY(display)) return surface;
 
     GtkAllocation allocation{};
     gtk_widget_get_allocation(content_area, &allocation);
+
+    gint content_x = 0;
+    gint content_y = 0;
+    if (!gtk_widget_translate_coordinates(
+            content_area, window, 0, 0, &content_x, &content_y)) {
+      return surface;
+    }
+
     surface.window_handle =
-        static_cast<std::uintptr_t>(gdk_x11_window_get_xid(gdk_window));
+        static_cast<std::uintptr_t>(gdk_x11_window_get_xid(host_window));
     surface.display_handle = reinterpret_cast<std::uintptr_t>(
         gdk_x11_display_get_xdisplay(display));
-    surface.x = 0;
-    surface.y = 0;
+    surface.x = content_x;
+    surface.y = content_y;
     surface.width = allocation.width;
     surface.height = allocation.height;
     surface.scale_factor =
