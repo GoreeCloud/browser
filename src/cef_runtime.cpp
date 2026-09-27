@@ -165,8 +165,12 @@ class CefRuntimeView final : public ChromiumRuntimeView {
   void resize_surface(const NativeEngineSurface& surface) override {
     surface_ = surface;
 #if defined(OS_LINUX)
-    if (client_ && client_->browser() && surface.display_handle != 0) {
+    if (client_ && client_->browser()) {
+#if defined(CEF_X11)
+      auto* display = cef_get_xdisplay();
+#else
       auto* display = reinterpret_cast<Display*>(surface.display_handle);
+#endif
       const auto xwindow =
           static_cast<::Window>(client_->browser()->GetHost()->GetWindowHandle());
       if (display && xwindow != 0) {
@@ -193,8 +197,12 @@ class CefRuntimeView final : public ChromiumRuntimeView {
  private:
   void show_native_child(CefRefPtr<CefBrowser> browser) {
 #if defined(OS_LINUX)
-    if (!browser || !surface_ || surface_->display_handle == 0) return;
+    if (!browser || !surface_) return;
+#if defined(CEF_X11)
+    auto* display = cef_get_xdisplay();
+#else
     auto* display = reinterpret_cast<Display*>(surface_->display_handle);
+#endif
     const auto xwindow =
         static_cast<::Window>(browser->GetHost()->GetWindowHandle());
     if (!display || xwindow == 0) return;
@@ -248,6 +256,7 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] native-child-shown window="
                 << static_cast<std::uintptr_t>(xwindow)
+                << " display=cef"
                 << " parent="
                 << static_cast<std::uintptr_t>(
                        verified_tree ? verified_parent : 0)
