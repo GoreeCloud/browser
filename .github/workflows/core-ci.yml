@@ -210,33 +210,32 @@ jobs:
               load_ready=1
             fi
 
-            parent_window="$(sed -n 's/.* parent=\([0-9][0-9]*\) size=.*/\1/p' "${log_file}" | tail -n 1)"
-            if [[ "${renderer_ready}" -eq 1 && "${load_ready}" -eq 1 && -n "${parent_window}" ]]; then
+            parent_window="$(sed -n 's/.*CreateBrowser accepted=.* parent=\([0-9][0-9]*\) size=.*/\1/p' "${log_file}" | tail -n 1)"
+            child_window="$(sed -n 's/.*OnAfterCreated browser_id=.* child_window=\([0-9][0-9]*\).*/\1/p' "${log_file}" | tail -n 1)"
+            if [[ "${renderer_ready}" -eq 1 && "${load_ready}" -eq 1 &&
+                  -n "${parent_window}" && -n "${child_window}" ]]; then
               parent_window_hex="$(printf '0x%x' "${parent_window}")"
-              if xwininfo -id "${parent_window_hex}" -tree > "${window_tree_file}" 2>&1; then
-                mapfile -t candidate_windows < <(
-                  awk '/^[[:space:]]+0x[0-9A-Fa-f]+[[:space:]]/ {print $1}' "${window_tree_file}" |
-                    awk '!seen[$0]++'
-                )
-                for candidate_window in "${candidate_windows[@]}"; do
-                  candidate_info="${window_info_file}.candidate"
-                  if xwininfo -id "${candidate_window}" > "${candidate_info}" 2>&1 &&
-                     grep -Fq "Map State: IsViewable" "${candidate_info}"; then
-                    width="$(awk '/Width:/{print $2; exit}' "${candidate_info}")"
-                    height="$(awk '/Height:/{print $2; exit}' "${candidate_info}")"
-                    if [[ "${width:-0}" -gt 100 && "${height:-0}" -gt 100 ]]; then
-                      rm -f "${xwd_file}"
-                      if xwd -silent -id "${candidate_window}" -out "${xwd_file}" 2>/dev/null &&
-                         [[ -s "${xwd_file}" ]]; then
-                        {
-                          echo "Selected live CEF descendant: ${candidate_window}"
-                          cat "${candidate_info}"
-                        } > "${window_info_file}"
-                        exit 0
-                      fi
-                    fi
+              child_window_hex="$(printf '0x%x' "${child_window}")"
+              candidate_info="${window_info_file}.candidate"
+
+              if xwininfo -id "${parent_window_hex}" -tree > "${window_tree_file}" 2>&1 &&
+                 xwininfo -id "${child_window_hex}" > "${candidate_info}" 2>&1 &&
+                 grep -Fq "Map State: IsViewable" "${candidate_info}" &&
+                 grep -Fq "Parent window id: ${parent_window_hex}" "${candidate_info}"; then
+                width="$(awk '/Width:/{print $2; exit}' "${candidate_info}")"
+                height="$(awk '/Height:/{print $2; exit}' "${candidate_info}")"
+                if [[ "${width:-0}" -gt 100 && "${height:-0}" -gt 100 ]]; then
+                  rm -f "${xwd_file}"
+                  if xwd -silent -id "${child_window_hex}" -out "${xwd_file}" 2>/dev/null &&
+                     [[ -s "${xwd_file}" ]]; then
+                    {
+                      echo "Selected live CEF child: ${child_window_hex}"
+                      echo "Expected GTK parent: ${parent_window_hex}"
+                      cat "${candidate_info}"
+                    } > "${window_info_file}"
+                    exit 0
                   fi
-                done
+                fi
               fi
             fi
 
