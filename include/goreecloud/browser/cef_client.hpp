@@ -55,8 +55,12 @@ class GoreeCloudCefClient final : public CefClient,
     CEF_REQUIRE_UI_THREAD();
     browser_ = browser;
     if (runtime_diagnostics_enabled()) {
+      const auto child_window = browser->GetHost()->GetWindowHandle();
       std::cerr << "[GoreeCloud CEF] OnAfterCreated browser_id="
-                << browser->GetIdentifier() << std::endl;
+                << browser->GetIdentifier()
+                << " child_window="
+                << static_cast<std::uintptr_t>(child_window)
+                << std::endl;
     }
     publish();
   }
