@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-26 — Immutable Linux CEF archive identity hardening
+
+### Changed
+
+- Preserved the current CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83` runtime candidate while pinning the reviewed Linux minimal archive to both SHA-1 and SHA-256 identities.
+- Require the upstream checksum sidecar, downloaded archive, cached archive, and extracted provenance record to match the repository-owned digest pair rather than accepting any future bytes published under the same archive name.
+- Made the CMake CEF version pin source-owned rather than a user-overridable cache value.
+- Extended the offline CEF bootstrap contract gate to assert the immutable archive identities and recorded the exact dependency constraint in the Platform Contract manifest.
+
+### Acceptance boundary
+
+This is Development supply-chain hardening only. It does not establish representative-device rendering, long-session stability, Browser-wide GLAZE UI acceptance, Release Candidate, production approval, Stable, or Anchor maturity.
+
 ## 2026-09-26 — Linux CEF sandboxed runtime smoke accepted
 
 ### Changed
