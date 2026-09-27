@@ -113,6 +113,8 @@ jobs:
           assert spec["archive"].endswith("_linux64_minimal.tar.bz2")
           assert "%2B" in spec["archive_url"]
           assert spec["checksum_url"].endswith(".sha1")
+          assert spec["archive_sha1"] == "9711b86c105fb590da576fe5a829802f1a79d520"
+          assert spec["archive_sha256"] == "daf8c2b6e63787d6a91d666205a8a4521419937eabaf47723738c86aea7135bd"
 
           cmake = Path("CMakeLists.txt").read_text()
           assert "GOREECLOUD_CEF_PINNED_VERSION" in cmake
