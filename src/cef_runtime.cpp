@@ -199,6 +199,23 @@ class CefRuntimeView final : public ChromiumRuntimeView {
         static_cast<::Window>(browser->GetHost()->GetWindowHandle());
     if (!display || xwindow == 0) return;
 
+    const auto parent_window =
+        static_cast<::Window>(surface_->window_handle);
+
+    ::Window root_return = 0;
+    ::Window current_parent = 0;
+    ::Window* children = nullptr;
+    unsigned int child_count = 0;
+    if (parent_window != 0 &&
+        XQueryTree(display, xwindow, &root_return, &current_parent,
+                   &children, &child_count)) {
+      if (children) XFree(children);
+      if (current_parent != parent_window) {
+        XReparentWindow(display, xwindow, parent_window,
+                        surface_->x, surface_->y);
+      }
+    }
+
     XMoveResizeWindow(display, xwindow,
                       surface_->x, surface_->y,
                       static_cast<unsigned int>(surface_->width),
@@ -216,12 +233,26 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     }
 
     XMapWindow(display, xwindow);
-    XFlush(display);
+    XSync(display, False);
     browser->GetHost()->WasResized();
+
+    ::Window verified_root = 0;
+    ::Window verified_parent = 0;
+    ::Window* verified_children = nullptr;
+    unsigned int verified_child_count = 0;
+    const bool verified_tree =
+        XQueryTree(display, xwindow, &verified_root, &verified_parent,
+                   &verified_children, &verified_child_count) != 0;
+    if (verified_children) XFree(verified_children);
 
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] native-child-shown window="
                 << static_cast<std::uintptr_t>(xwindow)
+                << " parent="
+                << static_cast<std::uintptr_t>(
+                       verified_tree ? verified_parent : 0)
+                << " expected_parent="
+                << surface_->window_handle
                 << " size=" << surface_->width << "x" << surface_->height
                 << std::endl;
     }
