@@ -1039,6 +1039,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (!content_area || !gtk_widget_get_realized(content_area)) return surface;
     auto* gdk_window = gtk_widget_get_window(content_area);
     if (!gdk_window) return surface;
+    if (!gdk_window_ensure_native(gdk_window)) return surface;
     auto* display = gdk_window_get_display(gdk_window);
     if (!display || !GDK_IS_X11_DISPLAY(display)) return surface;
 
