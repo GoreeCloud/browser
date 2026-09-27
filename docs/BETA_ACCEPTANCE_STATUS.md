@@ -4,45 +4,50 @@
 **Channel:** Beta  
 **Production approved:** No
 
-This record separates completed source/native-shell beta evidence from renderer and production gates that still require real runtime validation.
+This record separates completed source/native-shell and CI renderer-start evidence from representative-device rendering and production gates that remain open.
 
-## Accepted for the Beta 0.1 source/native-shell milestone
+## Accepted Development evidence for Beta 0.1
 
 - Browser version/channel metadata identifies `0.1.0-beta.1` and explicitly denies production approval.
 - GoreeCloud Browser remains the sole normal user-facing product identity.
-- Glaze UI 1.5.0 source revision `2e1618397f6ebcdd254a76bfdd7e98846f2c5aa3` is the enforced Browser baseline.
+- Official Stable GLAZE UI V1.6 / `1.6.0` is the enforced Browser source baseline at exact reviewed source revision `a7180679ea851389e0f3004515f9a25f420e716d`.
 - Engine-independent Browser core builds and CTest smoke tests are gated in GitHub Actions on Linux Release and Debug configurations.
 - The GTK3/X11 GoreeCloud/Glaze native shell has a dedicated GitHub Actions compile/test gate.
 - The executable identity is normalized to `goreecloud-browser`.
 - Linux desktop and AppStream metadata are present.
-- The approved GoreeCloud Browser SVG is installed under the `io.goreecloud.Browser` application identity.
+- The canonical GoreeCloud Browser compass identity is synchronized from `GoreeCloud/branding-assets` under the `io.goreecloud.Browser` application identity.
 - New Tab, Home, Settings, and Private Start use GoreeCloud internal routes.
-- The exact 12-control toolbar and the three integrated unified-search controls are represented by the native shell.
+- Linux Development chrome includes real tab create/activate/close controls, keyboard-first navigation, semantic Browser panels, and the unified search/navigation surface.
 - GoreeCloud Search remains the sole search authority and fails closed when its endpoint is unavailable or unconfigured.
 - Direct URL navigation is independent from Search availability.
 - Normal and private Browser startup paths are represented, including `--private` and `--isolated-private`.
-- Browser Engine Layer, Chromium adapter, CEF runtime delegate, subprocess dispatch, request-context separation, and native-surface contracts are present in source.
-- The Flatpak manifest builds the visible beta shell while explicitly leaving CEF disabled until a reviewed runtime module is available.
+- Browser Engine Layer, Chromium adapter, CEF runtime delegate, request-context separation, and native-surface contracts are present in source.
+- The Linux render candidate is pinned to CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`, with official-checksum verification and exact-version CMake enforcement.
+- Exact-head Ubuntu 22.04 Core CI compiles the pinned CEF/Chromium + GTK/X11 candidate, verifies the runtime payload, launches it under Xvfb + D-Bus with the Chromium sandbox preserved, and verifies that a Chromium renderer subprocess starts.
+- The runtime smoke keeps the initial Browser URL out of inherited CEF subprocess positional arguments and exercises the current browser/renderer process-role integration.
+- The Flatpak manifest remains a Development packaging scaffold and does not yet constitute accepted CEF runtime packaging.
 
 ## Not yet accepted as a render-capable desktop beta
 
-The following still require real CEF runtime evidence:
+The following still require direct representative runtime evidence:
 
-- Successful build against a reviewed concrete CEF binary distribution.
-- Visible CEF/Chromium web-content child surface inside the GoreeCloud GTK shell.
-- HTTPS page rendering and ordinary web navigation.
-- Real Back, Forward, Refresh/Stop, and renderer navigation callbacks.
-- Multi-tab engine-view lifetime under the native shell.
+- Visible CEF/Chromium web-content pixels inside the GoreeCloud GTK shell on representative desktop hardware.
+- HTTPS page rendering and ordinary web navigation on the owner-device test path.
+- Real Back, Forward, Refresh/Stop, loading/title/address updates, and renderer navigation callbacks against actual pages.
+- Multi-tab engine-view lifetime and Browser tab behavior against the real renderer, including ordering/reordering and lifecycle stress.
+- TLS/certificate/security-state presentation and fail-closed error behavior.
 - Private request-context cookie/storage isolation verified against actual websites.
 - Per-origin private-data cleanup and permission cleanup. These remain fail-closed where not yet implemented.
-- CEF sandbox and site-isolation validation in the packaged runtime.
+- Packaged Chromium sandbox and site-isolation acceptance beyond the current CI startup smoke.
 - Renderer crash/unresponsive recovery behavior.
-- X11/XWayland runtime acceptance and later native Wayland support.
+- X11/XWayland representative-device acceptance and later native Wayland support.
+- Browser accessibility, performance, power, sustained-session, and Human Visual Excellence acceptance with the real renderer.
+- Flatpak/installer runtime packaging, signing, update/rollback, and artifact-provenance acceptance.
 
 ## Not accepted for Stable
 
-Stable remains blocked by the full production validation matrix: feature completion where required, Privacy Shield/Wardveil evidence, GoreeCloud service adapters, accessibility, security testing, compatibility, packaging, signing, update/rollback, recovery, artifact provenance, real-device Android acceptance, Windows acceptance, Flatpak runtime acceptance, and sustained daily use.
+Stable remains blocked by the full production validation matrix: required feature completion, Privacy Shield/Wardveil evidence, GoreeCloud service adapters, accessibility, security testing, compatibility, packaging, signing, update/rollback, recovery, artifact provenance, real-device Android acceptance, Windows acceptance, Flatpak runtime acceptance, and sustained daily use.
 
 ## Promotion rule
 
-The **Beta 0.1 source/native-shell milestone** may be used for development and testing. A binary must not be described as a **render-capable GoreeCloud Browser beta** until every applicable renderer gate above has direct runtime evidence. Neither beta designation authorizes production claims.
+The **Beta 0.1 Development source/native-shell and CI renderer-start evidence** may be used for development and testing. A binary must not be described as a **render-capable GoreeCloud Browser beta** until every applicable renderer gate above has direct representative runtime evidence. Neither beta designation authorizes production claims.

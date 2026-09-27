@@ -5,6 +5,21 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-26 — Linux CEF sandboxed runtime smoke accepted
+
+### Changed
+
+- Restacked the Linux CEF runtime milestone onto current `main` and revalidated it at exact head.
+- Verified the repository-pinned CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83` candidate through the Ubuntu 22.04 compile gate.
+- Verified the CEF runtime payload, sandbox-preserving Xvfb + D-Bus startup, Browser-process initialization, subprocess role handling, and creation of a Chromium renderer subprocess in Core CI.
+- Preserved the Linux Chromium sandbox rather than bypassing it to obtain a green runtime result.
+- Kept the initial Browser URL outside inherited CEF subprocess positional arguments.
+- Integrated the current CEF client/media-probe/runtime compatibility fixes required by real compilation and launch validation.
+
+### Acceptance boundary
+
+This is Development runtime-start evidence. It proves that the exact Browser candidate can compile and launch the pinned CEF runtime and reach a Chromium renderer subprocess under Ubuntu 22.04 CI with sandboxing preserved. It does **not** yet establish visible page pixels, representative-owner-device HTTPS rendering/navigation, TLS/certificate UX, renderer crash recovery, private-context isolation/cleanup, accessibility, performance, packaging acceptance, Release Candidate, production approval, Stable, or Anchor maturity.
+
 ## 2026-09-25 — Android browser-chrome bidirectional-text hardening
 
 ### Changed
