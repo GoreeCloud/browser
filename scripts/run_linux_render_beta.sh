@@ -4,7 +4,14 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_dir="${GOREECLOUD_BROWSER_CEF_BUILD_DIR:-$repo_root/build-cef-render}"
 browser="$build_dir/goreecloud-browser"
-subprocess="$build_dir/goreecloud-browser-subprocess"
+
+# CEF's Linux target helpers place the dedicated subprocess executable in the
+# configuration output directory. Keep a root-level fallback for compatible
+# single-config layouts so the launcher remains portable across generators.
+subprocess="$build_dir/Release/goreecloud-browser-subprocess"
+if [[ ! -x "$subprocess" && -x "$build_dir/goreecloud-browser-subprocess" ]]; then
+  subprocess="$build_dir/goreecloud-browser-subprocess"
+fi
 
 if [[ ! -x "$browser" ]]; then
   echo "Render-capable Browser build not found: $browser" >&2
@@ -13,7 +20,9 @@ if [[ ! -x "$browser" ]]; then
 fi
 
 if [[ ! -x "$subprocess" ]]; then
-  echo "CEF subprocess executable not found: $subprocess" >&2
+  echo "CEF subprocess executable not found in the expected build outputs." >&2
+  echo "Checked: $build_dir/Release/goreecloud-browser-subprocess" >&2
+  echo "Checked: $build_dir/goreecloud-browser-subprocess" >&2
   echo "Run scripts/build_linux_render_beta.sh first." >&2
   exit 1
 fi
