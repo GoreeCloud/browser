@@ -43,3 +43,10 @@ Until corresponding evidence exists, this file does not claim current V1.6 Brows
 ## Maintenance rule
 
 Move an item to `IMPLEMENTED-FEATURES.md` only after the authoritative implementation and required verification are integrated. Record material lifecycle changes in `CHANGELOGS.md`. Keep actionable execution work in GoreeCloud Tasks Management without creating duplicate task authority.
+
+## Legacy Drive roadmap identifier traceability
+
+This table preserves the material identifiers and source-state wording from the retired Google Drive roadmap. The current lifecycle classification and authoritative feature truth remain the `IF-*` and `PF-*` records above; this table is migration traceability only and must not be used to revive Drive as a synchronization target.
+
+| Legacy ID | Legacy obligation | Priority | Source state at migration |
+| --- | --- | --- | --- |
