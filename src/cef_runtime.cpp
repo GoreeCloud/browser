@@ -9,10 +9,6 @@
 #include <stdexcept>
 #include <utility>
 
-#if defined(OS_LINUX)
-#include <X11/Xlib.h>
-#endif
-
 #if GOREECLOUD_ENABLE_CEF
 #include "goreecloud/browser/cef_browser_app.hpp"
 #include "goreecloud/browser/cef_client.hpp"
@@ -20,6 +16,10 @@
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
 #include "include/cef_request_context.h"
+#endif
+
+#if defined(OS_LINUX)
+#include <X11/Xlib.h>
 #endif
 
 namespace goreecloud::browser {
