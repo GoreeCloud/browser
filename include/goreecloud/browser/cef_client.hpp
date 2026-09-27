@@ -54,9 +54,7 @@ class GoreeCloudCefClient final : public CefClient,
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
     CEF_REQUIRE_UI_THREAD();
     browser_ = browser;
-    if (const char* diagnostics =
-            std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
-        diagnostics && *diagnostics && std::string_view{diagnostics} != "0") {
+    if (runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] OnAfterCreated browser_id="
                 << browser->GetIdentifier() << std::endl;
     }
@@ -97,17 +95,44 @@ class GoreeCloudCefClient final : public CefClient,
     state_.url = frame->GetURL().ToString();
     state_.loading = true;
     state_.progress = 0.0;
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] main-frame-load-start url="
+                << state_.url << std::endl;
+    }
     publish();
   }
 
   void OnLoadEnd(CefRefPtr<CefBrowser>,
                  CefRefPtr<CefFrame> frame,
-                 int) override {
+                 int http_status_code) override {
     CEF_REQUIRE_UI_THREAD();
     if (!frame || !frame->IsMain()) return;
     state_.url = frame->GetURL().ToString();
     state_.loading = false;
     state_.progress = 1.0;
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] main-frame-load-end status="
+                << http_status_code
+                << " url=" << state_.url << std::endl;
+    }
+    publish();
+  }
+
+  void OnLoadError(CefRefPtr<CefBrowser>,
+                   CefRefPtr<CefFrame> frame,
+                   ErrorCode error_code,
+                   const CefString& error_text,
+                   const CefString& failed_url) override {
+    CEF_REQUIRE_UI_THREAD();
+    if (!frame || !frame->IsMain()) return;
+    state_.url = failed_url.ToString();
+    state_.loading = false;
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] main-frame-load-error code="
+                << static_cast<int>(error_code)
+                << " text=" << error_text.ToString()
+                << " url=" << state_.url << std::endl;
+    }
     publish();
   }
 
@@ -235,6 +260,13 @@ class GoreeCloudCefClient final : public CefClient,
   }
 
  private:
+  static bool runtime_diagnostics_enabled() {
+    const char* diagnostics =
+        std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
+    return diagnostics && *diagnostics &&
+           std::string_view{diagnostics} != "0";
+  }
+
   bool handle_media_probe_response(CefRefPtr<CefProcessMessage> message) {
     auto args = message->GetArgumentList();
     if (!args || args->GetSize() < 2) return true;

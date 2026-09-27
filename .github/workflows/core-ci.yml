@@ -179,10 +179,21 @@ jobs:
 
           runtime_ready=0
           for _ in $(seq 1 90); do
+            renderer_ready=0
+            load_ready=0
+
             if pgrep -af -- "--type=renderer" > "${renderer_file}"; then
+              renderer_ready=1
+            fi
+            if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"; then
+              load_ready=1
+            fi
+
+            if [[ "${renderer_ready}" -eq 1 && "${load_ready}" -eq 1 ]]; then
               runtime_ready=1
               break
             fi
+
             if ! kill -0 "${runtime_pid}" 2>/dev/null; then
               break
             fi
@@ -199,6 +210,11 @@ jobs:
 
           test "${runtime_ready}" -eq 1
           test -s "${renderer_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
+          if grep -Fq "[GoreeCloud CEF] main-frame-load-error" "${log_file}"; then
+            echo "CEF main-frame navigation reported a load error" >&2
+            exit 1
+          fi
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during runtime smoke" >&2
             exit 1
