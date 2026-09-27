@@ -335,7 +335,6 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
     CefSettings settings;
     // Current CEF uses the Chrome bootstrap. Individual embedded child
     // windows select Alloy runtime style for the custom GTK/X11 parent.
-    settings.chrome_runtime = 1;
     settings.no_sandbox = options_.enable_sandbox ? 0 : 1;
     settings.external_message_pump = options_.external_message_pump ? 1 : 0;
     settings.windowless_rendering_enabled = options_.windowless_rendering ? 1 : 0;
