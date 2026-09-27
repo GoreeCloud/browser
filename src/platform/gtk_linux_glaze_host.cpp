@@ -35,6 +35,28 @@ void set_accessible_name(GtkWidget* widget, const char* name) {
   }
 }
 
+void use_default_x11_visual(GtkWidget* widget) {
+  if (!widget) return;
+  auto* screen = gtk_widget_get_screen(widget);
+  if (!screen || !GDK_IS_X11_SCREEN(screen)) return;
+
+  auto* default_xvisual =
+      DefaultVisual(GDK_SCREEN_XDISPLAY(screen), GDK_SCREEN_XNUMBER(screen));
+  if (!default_xvisual) return;
+
+  GList* visuals = gdk_screen_list_visuals(screen);
+  for (GList* cursor = visuals; cursor; cursor = cursor->next) {
+    auto* visual = GDK_VISUAL(cursor->data);
+    if (!visual) continue;
+    auto* xvisual = gdk_x11_visual_get_xvisual(visual);
+    if (xvisual && xvisual->visualid == default_xvisual->visualid) {
+      gtk_widget_set_visual(widget, visual);
+      break;
+    }
+  }
+  g_list_free(visuals);
+}
+
 void set_button_icon(GtkWidget* button, const char* fallback_label,
                      const char* icon_name) {
   auto* theme = gtk_icon_theme_get_default();
@@ -579,6 +601,7 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     install_css();
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    use_default_x11_visual(window);
     gtk_window_set_default_size(GTK_WINDOW(window), 1280, 800);
     gtk_window_set_title(GTK_WINDOW(window), "GoreeCloud Browser");
     add_style_class(window, "gc-browser-window");
