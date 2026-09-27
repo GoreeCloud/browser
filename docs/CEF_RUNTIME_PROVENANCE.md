@@ -14,6 +14,8 @@ GoreeCloud Browser currently pins:
 - Distribution: `minimal`
 - Release family: CEF Stable / preferred build at the time of selection
 - Upstream binary service: `https://cef-builds.spotifycdn.com/`
+- Minimal archive SHA-1: `9711b86c105fb590da576fe5a829802f1a79d520`
+- Minimal archive SHA-256: `daf8c2b6e63787d6a91d666205a8a4521419937eabaf47723738c86aea7135bd`
 
 The minimal distribution is intentional for this Release-mode Development milestone. It contains the CEF headers, CMake configuration, C++ wrapper source, and Release runtime files required by the existing Browser CEF integration without adding Debug binaries or sample-application source.
 
@@ -22,16 +24,16 @@ The minimal distribution is intentional for this Release-mode Development milest
 `scripts/bootstrap_cef_linux.py` constructs the exact pinned archive name and source URL. It then:
 
 1. fetches the matching `.sha1` sidecar from the same official CEF build service;
-2. requires that response to be a valid 40-hex SHA-1;
+2. requires that response to equal the repository-pinned SHA-1;
 3. downloads the exact archive;
-4. computes SHA-1 while streaming and rejects the archive unless it matches the official sidecar;
-5. computes SHA-256 locally for stronger local artifact identity and audit/readback;
+4. computes SHA-1 and SHA-256 while streaming and rejects the archive unless both equal the repository pins;
+5. requires cached archives and extracted provenance records to carry those same immutable identities;
 6. validates archive member paths before extraction;
 7. rejects device/FIFO archive entries and traversal-capable link targets;
 8. validates required CEF headers, CMake files, `Release/libcef.so`, and resource files;
 9. writes `.goreecloud-cef-provenance.json` inside the extracted root.
 
-CEF's official project download helper uses the same upstream service and official SHA-1 sidecar model for binary-distribution verification. The Browser bootstrap adds path validation and local SHA-256 provenance around that model.
+CEF's official project download helper uses the same upstream service and official SHA-1 sidecar model for binary-distribution verification. GoreeCloud additionally pins the observed SHA-1 and SHA-256 from the verified minimal archive so an upstream sidecar or archive change cannot silently change Browser renderer bytes.
 
 ## Build guard
 
