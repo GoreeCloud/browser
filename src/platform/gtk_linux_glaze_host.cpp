@@ -35,6 +35,28 @@ void set_accessible_name(GtkWidget* widget, const char* name) {
   }
 }
 
+void use_default_x11_visual(GtkWidget* widget) {
+  if (!widget) return;
+  auto* screen = gtk_widget_get_screen(widget);
+  if (!screen || !GDK_IS_X11_SCREEN(screen)) return;
+
+  auto* default_xvisual =
+      DefaultVisual(GDK_SCREEN_XDISPLAY(screen), GDK_SCREEN_XNUMBER(screen));
+  if (!default_xvisual) return;
+
+  GList* visuals = gdk_screen_list_visuals(screen);
+  for (GList* cursor = visuals; cursor; cursor = cursor->next) {
+    auto* visual = GDK_VISUAL(cursor->data);
+    if (!visual) continue;
+    auto* xvisual = gdk_x11_visual_get_xvisual(visual);
+    if (xvisual && xvisual->visualid == default_xvisual->visualid) {
+      gtk_widget_set_visual(widget, visual);
+      break;
+    }
+  }
+  g_list_free(visuals);
+}
+
 void set_button_icon(GtkWidget* button, const char* fallback_label,
                      const char* icon_name) {
   auto* theme = gtk_icon_theme_get_default();
@@ -579,6 +601,7 @@ class GtkLinuxGlazeWindowHost::Impl {
 
     install_css();
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    use_default_x11_visual(window);
     gtk_window_set_default_size(GTK_WINDOW(window), 1280, 800);
     gtk_window_set_title(GTK_WINDOW(window), "GoreeCloud Browser");
     add_style_class(window, "gc-browser-window");
@@ -1036,20 +1059,35 @@ class GtkLinuxGlazeWindowHost::Impl {
 
   NativeEngineSurface current_surface() const {
     NativeEngineSurface surface;
-    if (!content_area || !gtk_widget_get_realized(content_area)) return surface;
-    auto* gdk_window = gtk_widget_get_window(content_area);
-    if (!gdk_window) return surface;
-    auto* display = gdk_window_get_display(gdk_window);
+    if (!window || !content_area ||
+        !gtk_widget_get_realized(window) ||
+        !gtk_widget_get_realized(content_area)) {
+      return surface;
+    }
+
+    auto* host_window = gtk_widget_get_window(window);
+    if (!host_window) return surface;
+    if (!gdk_window_ensure_native(host_window)) return surface;
+
+    auto* display = gdk_window_get_display(host_window);
     if (!display || !GDK_IS_X11_DISPLAY(display)) return surface;
 
     GtkAllocation allocation{};
     gtk_widget_get_allocation(content_area, &allocation);
+
+    gint content_x = 0;
+    gint content_y = 0;
+    if (!gtk_widget_translate_coordinates(
+            content_area, window, 0, 0, &content_x, &content_y)) {
+      return surface;
+    }
+
     surface.window_handle =
-        static_cast<std::uintptr_t>(gdk_x11_window_get_xid(gdk_window));
+        static_cast<std::uintptr_t>(gdk_x11_window_get_xid(host_window));
     surface.display_handle = reinterpret_cast<std::uintptr_t>(
         gdk_x11_display_get_xdisplay(display));
-    surface.x = 0;
-    surface.y = 0;
+    surface.x = content_x;
+    surface.y = content_y;
     surface.width = allocation.width;
     surface.height = allocation.height;
     surface.scale_factor =

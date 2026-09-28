@@ -18,6 +18,10 @@
 #include "include/cef_request_context.h"
 #endif
 
+#if defined(OS_LINUX)
+#include <X11/Xlib.h>
+#endif
+
 namespace goreecloud::browser {
 
 namespace {
@@ -111,7 +115,11 @@ class CefRuntimeView final : public ChromiumRuntimeView {
             std::scoped_lock lock(state_mutex_);
             state_ = state;
           },
-          [this]() { closed_ = true; });
+          [this]() { closed_ = true; },
+          {},
+          [this](CefRefPtr<CefBrowser> browser) {
+            show_native_child(browser);
+          });
     }
 
     CefWindowInfo window_info;
@@ -156,6 +164,23 @@ class CefRuntimeView final : public ChromiumRuntimeView {
 
   void resize_surface(const NativeEngineSurface& surface) override {
     surface_ = surface;
+#if defined(OS_LINUX)
+    if (client_ && client_->browser() && surface.display_handle != 0) {
+      auto* display = reinterpret_cast<Display*>(surface.display_handle);
+      const auto xwindow =
+          static_cast<::Window>(client_->browser()->GetHost()->GetWindowHandle());
+      if (display && xwindow != 0) {
+        XWindowChanges changes{};
+        changes.x = surface.x;
+        changes.y = surface.y;
+        changes.width = surface.width;
+        changes.height = surface.height;
+        XConfigureWindow(display, xwindow,
+                         CWX | CWY | CWWidth | CWHeight, &changes);
+        XFlush(display);
+      }
+    }
+#endif
     if (client_ && client_->browser()) client_->browser()->GetHost()->WasResized();
   }
 
@@ -169,6 +194,61 @@ class CefRuntimeView final : public ChromiumRuntimeView {
   }
 
  private:
+  void show_native_child(CefRefPtr<CefBrowser> browser) {
+#if defined(OS_LINUX)
+    if (!browser || !surface_ || surface_->display_handle == 0) return;
+    auto* display = reinterpret_cast<Display*>(surface_->display_handle);
+    const auto xwindow =
+        static_cast<::Window>(browser->GetHost()->GetWindowHandle());
+    if (!display || xwindow == 0) return;
+
+    XWindowChanges changes{};
+    changes.x = surface_->x;
+    changes.y = surface_->y;
+    changes.width = surface_->width;
+    changes.height = surface_->height;
+    XConfigureWindow(display, xwindow,
+                     CWX | CWY | CWWidth | CWHeight, &changes);
+
+    const char* atom_names[] = {
+        "_NET_WM_STATE", "ATOM", "_NET_WM_STATE_HIDDEN"};
+    Atom atoms[3]{};
+    if (XInternAtoms(display,
+                     const_cast<char**>(atom_names),
+                     3, False, atoms)) {
+      XChangeProperty(display, xwindow,
+                      atoms[0], atoms[1], 32,
+                      PropModeReplace, nullptr, 0);
+    }
+
+    XSync(display, False);
+    browser->GetHost()->WasResized();
+
+    ::Window verified_root = 0;
+    ::Window verified_parent = 0;
+    ::Window* verified_children = nullptr;
+    unsigned int verified_child_count = 0;
+    const bool verified_tree =
+        XQueryTree(display, xwindow, &verified_root, &verified_parent,
+                   &verified_children, &verified_child_count) != 0;
+    if (verified_children) XFree(verified_children);
+
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] native-child-shown window="
+                << static_cast<std::uintptr_t>(xwindow)
+                << " parent="
+                << static_cast<std::uintptr_t>(
+                       verified_tree ? verified_parent : 0)
+                << " expected_parent="
+                << surface_->window_handle
+                << " size=" << surface_->width << "x" << surface_->height
+                << std::endl;
+    }
+#else
+    (void)browser;
+#endif
+  }
+
   CefRefPtr<CefRequestContext> request_context_;
   EngineViewOptions options_;
   CefRefPtr<GoreeCloudCefClient> client_;
@@ -277,7 +357,12 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
 #if GOREECLOUD_ENABLE_CEF
     CefRequestContextSettings settings;
     if (!options.private_context && options.persistent_storage) {
-      CefString(&settings.cache_path) = options.storage_path;
+      auto storage_path = std::filesystem::path{options.storage_path};
+      if (storage_path.is_relative()) {
+        storage_path = options_.cache_root / storage_path;
+      }
+      CefString(&settings.cache_path) =
+          storage_path.lexically_normal().string();
     }
     CefString(&settings.accept_language_list) = options.locale;
     auto request_context = CefRequestContext::CreateContext(settings, nullptr);

@@ -140,7 +140,7 @@ jobs:
             python3 cmake ninja-build build-essential pkg-config \
             libgtk-3-dev libx11-dev libcurl4-openssl-dev \
             libnss3-dev libxss-dev libasound2-dev libcups2-dev \
-            libdrm-dev libgbm-dev xvfb xauth procps dbus-x11
+            libdrm-dev libgbm-dev xvfb xauth procps dbus-x11 x11-utils x11-apps
       - name: Bootstrap pinned CEF and build render candidate
         env:
           GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
@@ -155,7 +155,7 @@ jobs:
           test -f build-cef-render/resources.pak
           test -f build-cef-render/chrome_100_percent.pak
           test -f build-cef-render/v8_context_snapshot.bin
-      - name: Launch sandboxed CEF runtime under Xvfb
+      - name: Launch sandboxed CEF runtime and verify mapped page surface
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
           GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
@@ -169,17 +169,36 @@ jobs:
 
           log_file="${RUNNER_TEMP}/goreecloud-cef-runtime.log"
           renderer_file="${RUNNER_TEMP}/goreecloud-cef-renderers.txt"
+          window_info_file="${RUNNER_TEMP}/goreecloud-cef-window.txt"
+          window_tree_file="${RUNNER_TEMP}/goreecloud-cef-window-tree.txt"
+          xwd_file="${RUNNER_TEMP}/goreecloud-cef-window.xwd"
           : > "${log_file}"
           : > "${renderer_file}"
+          : > "${window_info_file}"
+          : > "${window_tree_file}"
 
+          set +e
           timeout --signal=TERM --kill-after=5s 90s \
             dbus-run-session -- \
             xvfb-run -a -s "-screen 0 1280x800x24" \
-            ./scripts/run_linux_render_beta.sh https://example.com/ \
-            >"${log_file}" 2>&1 &
-          runtime_pid=$!
+            bash -s -- "${log_file}" "${renderer_file}" "${window_info_file}" "${window_tree_file}" "${xwd_file}" <<'BASH'
+          set -euo pipefail
 
-          runtime_ready=0
+          log_file="$1"
+          renderer_file="$2"
+          window_info_file="$3"
+          window_tree_file="$4"
+          xwd_file="$5"
+
+          ./scripts/run_linux_render_beta.sh https://example.com/ >"${log_file}" 2>&1 &
+          browser_pid=$!
+
+          cleanup() {
+            kill -TERM "${browser_pid}" 2>/dev/null || true
+            wait "${browser_pid}" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
           for _ in $(seq 1 90); do
             renderer_ready=0
             load_ready=0
@@ -191,28 +210,62 @@ jobs:
               load_ready=1
             fi
 
-            if [[ "${renderer_ready}" -eq 1 && "${load_ready}" -eq 1 ]]; then
-              runtime_ready=1
-              break
+            parent_window="$(sed -n 's/.*CreateBrowser accepted=.* parent=\([0-9][0-9]*\) size=.*/\1/p' "${log_file}" | tail -n 1)"
+            child_window="$(sed -n 's/.*OnAfterCreated browser_id=.* child_window=\([0-9][0-9]*\).*/\1/p' "${log_file}" | tail -n 1)"
+            if [[ "${renderer_ready}" -eq 1 && "${load_ready}" -eq 1 &&
+                  -n "${parent_window}" && -n "${child_window}" ]]; then
+              parent_window_hex="$(printf '0x%x' "${parent_window}")"
+              child_window_hex="$(printf '0x%x' "${child_window}")"
+              candidate_info="${window_info_file}.candidate"
+
+              if xwininfo -id "${parent_window_hex}" -tree > "${window_tree_file}" 2>&1 &&
+                 xwininfo -id "${child_window_hex}" > "${candidate_info}" 2>&1 &&
+                 grep -Fq "Map State: IsViewable" "${candidate_info}" &&
+                 grep -Fq "Parent window id: ${parent_window_hex}" "${candidate_info}"; then
+                width="$(awk '/Width:/{print $2; exit}' "${candidate_info}")"
+                height="$(awk '/Height:/{print $2; exit}' "${candidate_info}")"
+                if [[ "${width:-0}" -gt 100 && "${height:-0}" -gt 100 ]]; then
+                  rm -f "${xwd_file}"
+                  if xwd -silent -id "${child_window_hex}" -out "${xwd_file}" 2>/dev/null &&
+                     [[ -s "${xwd_file}" ]]; then
+                    {
+                      echo "Selected live CEF child: ${child_window_hex}"
+                      echo "Expected GTK parent: ${parent_window_hex}"
+                      cat "${candidate_info}"
+                    } > "${window_info_file}"
+                    exit 0
+                  fi
+                fi
+              fi
             fi
 
-            if ! kill -0 "${runtime_pid}" 2>/dev/null; then
+            if ! kill -0 "${browser_pid}" 2>/dev/null; then
               break
             fi
             sleep 1
           done
 
-          set +e
-          wait "${runtime_pid}"
+          exit 1
+          BASH
           runtime_status=$?
           set -e
 
           cat "${log_file}"
           cat "${renderer_file}"
+          cat "${window_tree_file}"
+          cat "${window_info_file}"
 
-          test "${runtime_ready}" -eq 1
+          test "${runtime_status}" -eq 0
           test -s "${renderer_file}"
+          test -s "${xwd_file}"
+          grep -Fq "Map State: IsViewable" "${window_info_file}"
           grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
+
+          snapshot_bytes="$(wc -c < "${xwd_file}")"
+          if [[ "${snapshot_bytes}" -le 100000 ]]; then
+            echo "CEF child-window X11 pixel capture was unexpectedly small: ${snapshot_bytes} bytes" >&2
+            exit 1
+          fi
           if grep -Fq "[GoreeCloud CEF] main-frame-load-error" "${log_file}"; then
             echo "CEF main-frame navigation reported a load error" >&2
             exit 1
@@ -220,9 +273,4 @@ jobs:
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during runtime smoke" >&2
             exit 1
-          fi
-
-          if [[ "${runtime_status}" -ne 0 && "${runtime_status}" -ne 124 ]]; then
-            echo "CEF runtime exited unexpectedly with status ${runtime_status}" >&2
-            exit "${runtime_status}"
           fi

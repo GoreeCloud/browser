@@ -33,6 +33,7 @@ class GoreeCloudCefClient final : public CefClient,
                                   public CefContextMenuHandler {
  public:
   using NavigationCallback = std::function<void(const NavigationState&)>;
+  using CreatedCallback = std::function<void(CefRefPtr<CefBrowser>)>;
   using ClosedCallback = std::function<void()>;
   using MediaContextCallback = std::function<void(const RawMediaHitTest&)>;
   using MediaProbeCallback =
@@ -41,8 +42,10 @@ class GoreeCloudCefClient final : public CefClient,
 
   GoreeCloudCefClient(NavigationCallback navigation_callback,
                       ClosedCallback closed_callback,
-                      MediaContextCallback media_context_callback = {})
+                      MediaContextCallback media_context_callback = {},
+                      CreatedCallback created_callback = {})
       : navigation_callback_(std::move(navigation_callback)),
+        created_callback_(std::move(created_callback)),
         closed_callback_(std::move(closed_callback)),
         media_context_callback_(std::move(media_context_callback)) {}
 
@@ -55,9 +58,14 @@ class GoreeCloudCefClient final : public CefClient,
     CEF_REQUIRE_UI_THREAD();
     browser_ = browser;
     if (runtime_diagnostics_enabled()) {
+      const auto child_window = browser->GetHost()->GetWindowHandle();
       std::cerr << "[GoreeCloud CEF] OnAfterCreated browser_id="
-                << browser->GetIdentifier() << std::endl;
+                << browser->GetIdentifier()
+                << " child_window="
+                << static_cast<std::uintptr_t>(child_window)
+                << std::endl;
     }
+    if (created_callback_) created_callback_(browser);
     publish();
   }
 
@@ -440,6 +448,7 @@ class GoreeCloudCefClient final : public CefClient,
   CefRefPtr<CefBrowser> browser_;
   NavigationState state_;
   NavigationCallback navigation_callback_;
+  CreatedCallback created_callback_;
   ClosedCallback closed_callback_;
   MediaContextCallback media_context_callback_;
   mutable std::mutex media_mutex_;
