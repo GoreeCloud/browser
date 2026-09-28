@@ -100,12 +100,13 @@ class CefRuntimeView final : public ChromiumRuntimeView {
   }
 
   bool attach_surface(const NativeEngineSurface& surface) override {
+    if (surface.width <= 0 || surface.height <= 0) return false;
+
+    const bool windowless =
+        surface.window_handle == 0 && surface.frame_sink != nullptr;
+    if (surface.window_handle == 0 && !windowless) return false;
+
     surface_ = surface;
-    if (client_ && client_->browser()) {
-      attached_ = true;
-      client_->browser()->GetHost()->WasResized();
-      return true;
-    }
     if (!client_) {
       client_ = new GoreeCloudCefClient(
           [this](const NavigationState& state) {
@@ -115,13 +116,34 @@ class CefRuntimeView final : public ChromiumRuntimeView {
           [this]() { closed_ = true; });
     }
 
+    if (windowless) {
+      client_->configure_windowless_surface(
+          surface.frame_sink, surface.width, surface.height, surface.scale_factor);
+    } else {
+      client_->clear_windowless_surface();
+    }
+
+    if (client_->browser()) {
+      attached_ = true;
+      client_->browser()->GetHost()->WasResized();
+      return true;
+    }
+
     CefWindowInfo window_info;
-    window_info.SetAsChild(static_cast<CefWindowHandle>(surface.window_handle),
-                           CefRect(surface.x, surface.y, surface.width, surface.height));
-    // CEF 128+ uses the Chrome bootstrap. GoreeCloud embeds the browser into
-    // its own GTK/X11 parent, so the child must explicitly use Alloy runtime
-    // style while retaining the current Chrome bootstrap.
-    window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
+    if (windowless) {
+      window_info.SetAsWindowless(static_cast<CefWindowHandle>(0));
+      // Keep the current embedded Alloy runtime contract while using CEF's
+      // software/off-screen rendering path for non-child-window hosts.
+      window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
+    } else {
+      window_info.SetAsChild(static_cast<CefWindowHandle>(surface.window_handle),
+                             CefRect(surface.x, surface.y, surface.width,
+                                     surface.height));
+      // CEF 128+ uses the Chrome bootstrap. GoreeCloud embeds the browser into
+      // its own GTK/X11 parent, so the child must explicitly use Alloy runtime
+      // style while retaining the current Chrome bootstrap.
+      window_info.runtime_style = CEF_RUNTIME_STYLE_ALLOY;
+    }
 
     std::string initial_url;
     {
@@ -130,6 +152,8 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     }
 
     CefBrowserSettings browser_settings;
+    if (windowless) browser_settings.windowless_frame_rate = 60;
+
     const bool created = CefBrowserHost::CreateBrowser(
         window_info,
         client_,
@@ -140,6 +164,7 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] CreateBrowser accepted="
                 << (created ? "yes" : "no")
+                << " mode=" << (windowless ? "windowless" : "child")
                 << " url=" << initial_url
                 << " parent=" << surface.window_handle
                 << " size=" << surface.width << "x" << surface.height
@@ -150,6 +175,7 @@ class CefRuntimeView final : public ChromiumRuntimeView {
   }
 
   void detach_surface() override {
+    if (client_) client_->clear_windowless_surface();
     if (client_ && client_->browser()) client_->browser()->GetHost()->CloseBrowser(true);
     attached_ = false;
     surface_.reset();
@@ -157,6 +183,10 @@ class CefRuntimeView final : public ChromiumRuntimeView {
 
   void resize_surface(const NativeEngineSurface& surface) override {
     surface_ = surface;
+    if (client_ && surface.window_handle == 0 && surface.frame_sink) {
+      client_->configure_windowless_surface(
+          surface.frame_sink, surface.width, surface.height, surface.scale_factor);
+    }
     if (client_ && client_->browser()) client_->browser()->GetHost()->WasResized();
   }
 
