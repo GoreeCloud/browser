@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
@@ -14,6 +15,7 @@
 #include "goreecloud/browser/engine.hpp"
 #include "goreecloud/browser/media_preview_provider.hpp"
 #include "goreecloud/browser/media_target_detector.hpp"
+#include "goreecloud/browser/native_engine_surface.hpp"
 
 #if GOREECLOUD_ENABLE_CEF
 #include "include/cef_client.h"
@@ -30,7 +32,8 @@ class GoreeCloudCefClient final : public CefClient,
                                   public CefDisplayHandler,
                                   public CefLifeSpanHandler,
                                   public CefLoadHandler,
-                                  public CefContextMenuHandler {
+                                  public CefContextMenuHandler,
+                                  public CefRenderHandler {
  public:
   using NavigationCallback = std::function<void(const NavigationState&)>;
   using ClosedCallback = std::function<void()>;
@@ -50,6 +53,66 @@ class GoreeCloudCefClient final : public CefClient,
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
   CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
+  CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
+
+  void configure_windowless_surface(NativeSurfaceFrameSink* sink,
+                                    int width,
+                                    int height,
+                                    float scale_factor) {
+    std::scoped_lock lock(render_mutex_);
+    frame_sink_ = sink;
+    view_width_ = std::max(1, width);
+    view_height_ = std::max(1, height);
+    scale_factor_ = std::max(0.25F, scale_factor);
+  }
+
+  void clear_windowless_surface() {
+    std::scoped_lock lock(render_mutex_);
+    frame_sink_ = nullptr;
+  }
+
+  void GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect) override {
+    CEF_REQUIRE_UI_THREAD();
+    std::scoped_lock lock(render_mutex_);
+    rect = CefRect(0, 0, std::max(1, view_width_), std::max(1, view_height_));
+  }
+
+  bool GetScreenInfo(CefRefPtr<CefBrowser>,
+                     CefScreenInfo& screen_info) override {
+    CEF_REQUIRE_UI_THREAD();
+    std::scoped_lock lock(render_mutex_);
+    screen_info.device_scale_factor = scale_factor_;
+    screen_info.rect =
+        CefRect(0, 0, std::max(1, view_width_), std::max(1, view_height_));
+    screen_info.available_rect = screen_info.rect;
+    return true;
+  }
+
+  void OnPaint(CefRefPtr<CefBrowser>,
+               PaintElementType type,
+               const RectList&,
+               const void* buffer,
+               int width,
+               int height) override {
+    CEF_REQUIRE_UI_THREAD();
+    if (type != PET_VIEW || !buffer || width <= 0 || height <= 0) return;
+
+    NativeSurfaceFrameSink* sink = nullptr;
+    float scale_factor = 1.0F;
+    {
+      std::scoped_lock lock(render_mutex_);
+      sink = frame_sink_;
+      scale_factor = scale_factor_;
+    }
+    if (!sink) return;
+
+    sink->present_software_frame(
+        NativeSurfaceFrame{.bgra = static_cast<const std::uint8_t*>(buffer),
+                           .width = width,
+                           .height = height,
+                           .stride = width * 4,
+                           .scale_factor = scale_factor});
+  }
 
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
     CEF_REQUIRE_UI_THREAD();
@@ -439,6 +502,11 @@ class GoreeCloudCefClient final : public CefClient,
 
   CefRefPtr<CefBrowser> browser_;
   NavigationState state_;
+  mutable std::mutex render_mutex_;
+  NativeSurfaceFrameSink* frame_sink_{nullptr};
+  int view_width_{1};
+  int view_height_{1};
+  float scale_factor_{1.0F};
   NavigationCallback navigation_callback_;
   ClosedCallback closed_callback_;
   MediaContextCallback media_context_callback_;
