@@ -16,6 +16,10 @@ Current Android beta identity for this source revision:
 
 GoreeCloud owns the Browser product layer, navigation/search behavior, mobile browser chrome, privacy defaults, security gates, and GoreeCloud integrations. Android System WebView/Chromium provides the web rendering/runtime foundation and is not the product identity.
 
+### Linux desktop development candidate
+
+The Linux GTK3 development host can present the GoreeCloud Browser shell on an available GTK desktop display. The current CEF embedded **page** surface still uses an X11/XWayland child-window contract. On a native Wayland GTK backend, Browser stays open and presents an explicit renderer-compatibility surface instead of terminating the application; native Wayland page rendering remains Development work and is not accepted as complete.
+
 ## Installing the Android beta
 
 The CI-generated APK is debug-signed for testing. Use an APK supplied from the GoreeCloud Browser Android Beta workflow or another explicitly supplied GoreeCloud beta artifact tied to an exact source revision.
@@ -92,7 +96,7 @@ When the omnibox is being edited, Android Back first leaves omnibox editing and 
 
 ## Glaze UI on Android
 
-The Android beta maps Browser-owned chrome to the current **Glaze UI V1.5 / 1.5.1 Stable** presentation contract using native Android controls. V1.6 remains Development-only and is not Browser consumer authority.
+The Android beta maps Browser-owned chrome to the current **Glaze UI V1.6 / 1.6.0 Stable** presentation contract using native Android controls. Browser acceptance still depends on Browser-specific implementation and evidence; the Glaze Stable baseline does not by itself promote Browser lifecycle status.
 
 Browser remains migration-required/not accepted until repository-local rendered/native visual, accessibility, representative-device/posture, large-text, RTL/localization, reduced-effects, performance, rollback, workflow, and production evidence is accepted. Glaze presentation never creates Browser authorization, privacy/security truth, provider precedence, or execution authority.
 
