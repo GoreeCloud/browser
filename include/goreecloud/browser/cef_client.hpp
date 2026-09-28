@@ -122,7 +122,9 @@ class GoreeCloudCefClient final : public CefClient,
       std::cerr << "[GoreeCloud CEF] OnAfterCreated browser_id="
                 << browser->GetIdentifier() << std::endl;
     }
-    publish();
+    // Browser creation itself does not represent a navigation-state change.
+    // Publishing the client's default state here can transiently erase the
+    // initial URL and cause the native host to detach/re-attach the same view.
   }
 
   void OnBeforeClose(CefRefPtr<CefBrowser> browser) override {
