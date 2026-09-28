@@ -34,7 +34,7 @@ cmake --build build-gtk --parallel
 ctest --test-dir build-gtk --output-on-failure
 ```
 
-The executable is `goreecloud-browser`. The GTK3 host can create the GoreeCloud Browser chrome on an available GTK desktop display. CEF page embedding still uses an X11/XWayland child-surface contract. On a native Wayland GTK backend the Browser remains open and shows a renderer-compatibility surface instead of failing startup; native Wayland page rendering remains pending.
+The executable is `goreecloud-browser`. The GTK3 host can create the GoreeCloud Browser chrome on an available GTK desktop display. X11/XWayland uses the native CEF child-surface contract. When the GTK host cannot provide an X11 child handle, the CEF build can instead use windowless/off-screen rendering and paint CEF BGRA frames into the GTK web drawing area. Set `GOREECLOUD_BROWSER_FORCE_WINDOWLESS=1` only for Development/CI validation when you need to exercise this fallback on an X11 test display; normal runtime selection is automatic.
 
 This configuration produces a visible GoreeCloud/Glaze shell but still uses the non-rendering development engine.
 
