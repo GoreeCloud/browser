@@ -48,12 +48,15 @@ import android.widget.Toast
 class BrowserActivityV2 : Activity() {
     private lateinit var glaze: GlazeNativeStyle
     private lateinit var webView: WebView
+    private lateinit var topChrome: LinearLayout
     private lateinit var addressField: EditText
     private lateinit var pageTitle: TextView
     private lateinit var backButton: ImageButton
     private lateinit var forwardButton: ImageButton
     private lateinit var reloadButton: ImageButton
     private lateinit var progressBar: ProgressBar
+    private lateinit var firstUsePreferences: BrowserFirstUsePreferences
+    private var contextualHintRow: LinearLayout? = null
 
     private var currentUrl: String = INTERNAL_HOME
     private var loading = false
@@ -64,6 +67,7 @@ class BrowserActivityV2 : Activity() {
         super.onCreate(savedInstanceState)
         glaze = GlazeNativeStyle(this)
         glaze.applyWindow(this)
+        firstUsePreferences = BrowserFirstUsePreferences(this)
         buildBrowserSurface()
         configureWebView()
 
@@ -73,6 +77,11 @@ class BrowserActivityV2 : Activity() {
         } else {
             val external = intent?.data?.toString().orEmpty()
             if (NavigationResolver.isAllowedWebUrl(external)) navigate(external) else showStartPage()
+        }
+
+        renderContextualHint()
+        if (!firstUsePreferences.state().completed) {
+            showFirstUseDialog(replay = false)
         }
     }
 
@@ -117,7 +126,7 @@ class BrowserActivityV2 : Activity() {
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         glaze.styleCanvas(root)
 
-        val topChrome = LinearLayout(this).apply {
+        topChrome = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(10), dp(8), dp(10), dp(8))
         }
@@ -566,6 +575,22 @@ class BrowserActivityV2 : Activity() {
                 putExtra(Intent.EXTRA_TEXT, currentUrl)
             }, "Share page"))
         }
+
+        val firstUseState = firstUsePreferences.state()
+        addAction("Contextual hints: " + if (firstUseState.hintsEnabled) "On" else "Off") {
+            firstUsePreferences.setHintsEnabled(!firstUseState.hintsEnabled)
+            renderContextualHint()
+        }
+        if (firstUseState.hintsEnabled && firstUseState.chromeHintDismissed) {
+            addAction("Reset dismissed hints") {
+                firstUsePreferences.resetDismissedHints()
+                renderContextualHint()
+            }
+        }
+        addAction("Replay setup") {
+            firstUsePreferences.replay()
+            showFirstUseDialog(replay = true)
+        }
         addAction("About this development build") {
             Toast.makeText(
                 this,
@@ -579,6 +604,167 @@ class BrowserActivityV2 : Activity() {
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
+    private fun renderContextualHint() {
+        contextualHintRow?.let(topChrome::removeView)
+        contextualHintRow = null
+
+        val state = firstUsePreferences.state()
+        if (!state.completed || !state.hintsEnabled || state.chromeHintDismissed) return
+
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            contentDescription = "Browser tip"
+            setPadding(dp(8), dp(2), 0, 0)
+        }
+        val message = TextView(this).apply {
+            text = "Tip: tap the address bar to enter a website. Free-text Search stays local until a governed Search provider is available."
+        }
+        glaze.styleMenuSubtitle(message)
+        row.addView(
+            message,
+            LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        val dismiss = TextView(this).apply {
+            text = "Dismiss"
+            contentDescription = "Dismiss Browser tip"
+            glaze.styleMenuAction(this)
+            setOnClickListener {
+                firstUsePreferences.dismissChromeHint()
+                renderContextualHint()
+            }
+        }
+        row.addView(
+            dismiss,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(GlazeContract.MENU_ACTION_HEIGHT_DP),
+            ),
+        )
+        contextualHintRow = row
+        topChrome.addView(
+            row,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+    }
+
+    private fun showFirstUseDialog(replay: Boolean) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setCancelable(replay)
+        dialog.setCanceledOnTouchOutside(replay)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = if (replay) "Browser setup review" else "Browser first-use setup"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val progress = TextView(this)
+        glaze.styleMenuSubtitle(progress)
+        sheet.addView(progress)
+
+        val title = TextView(this)
+        glaze.styleMenuTitle(title)
+        sheet.addView(title)
+
+        val body = TextView(this)
+        glaze.styleMenuSubtitle(body)
+        sheet.addView(body)
+
+        val hintToggle = TextView(this)
+        glaze.styleMenuAction(hintToggle)
+        sheet.addView(
+            hintToggle,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(GlazeContract.MENU_ACTION_HEIGHT_DP),
+            ),
+        )
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+        }
+        val returnButton = TextView(this).apply {
+            text = "Return to Browser"
+            contentDescription = "Return to Browser"
+            glaze.styleMenuAction(this)
+            visibility = if (replay) View.VISIBLE else View.GONE
+            setOnClickListener { dialog.dismiss() }
+        }
+        val back = TextView(this).apply {
+            text = "Back"
+            glaze.styleMenuAction(this)
+        }
+        val next = TextView(this).apply {
+            glaze.styleMenuAction(this)
+        }
+        actions.addView(returnButton, LinearLayout.LayoutParams(0, dp(GlazeContract.MENU_ACTION_HEIGHT_DP), 1f))
+        actions.addView(back, LinearLayout.LayoutParams(0, dp(GlazeContract.MENU_ACTION_HEIGHT_DP), 1f))
+        actions.addView(next, LinearLayout.LayoutParams(0, dp(GlazeContract.MENU_ACTION_HEIGHT_DP), 1f))
+        sheet.addView(actions)
+
+        val steps = listOf(
+            "Welcome to GoreeCloud Browser" to
+                "Browser chrome is GoreeCloud-owned. Android System WebView supplies the engine while GoreeCloud controls navigation, privacy defaults, and the visible experience.",
+            "Private by default" to
+                "File and content access are disabled, mixed content is blocked, third-party cookies are disabled, site permission requests fail closed, and certificate errors are never bypassed.",
+            "Navigate with clear boundaries" to
+                "Enter website addresses directly. Free-text Search stays local until accepted Privacy Shield authorization and a compatible Search provider are available. Optional hints never hide security or failure messages.",
+        )
+        var step = BrowserFirstUsePolicy.normalizeStep(firstUsePreferences.state().step)
+
+        fun renderStep() {
+            val state = firstUsePreferences.state()
+            progress.text = "Step " + (step + 1) + " of " + BrowserFirstUsePolicy.STEP_COUNT
+            title.text = steps[step].first
+            body.text = steps[step].second
+            back.visibility = if (step == 0) View.INVISIBLE else View.VISIBLE
+            next.text = if (step == BrowserFirstUsePolicy.STEP_COUNT - 1) "Start browsing" else "Continue"
+            next.contentDescription = next.text
+            hintToggle.visibility =
+                if (step == BrowserFirstUsePolicy.STEP_COUNT - 1) View.VISIBLE else View.GONE
+            hintToggle.text = "Contextual hints: " + if (state.hintsEnabled) "On" else "Off"
+            hintToggle.contentDescription = hintToggle.text
+        }
+
+        back.setOnClickListener {
+            step = BrowserFirstUsePolicy.previousStep(step)
+            firstUsePreferences.setStep(step)
+            renderStep()
+        }
+        next.setOnClickListener {
+            if (step == BrowserFirstUsePolicy.STEP_COUNT - 1) {
+                firstUsePreferences.complete()
+                dialog.dismiss()
+                renderContextualHint()
+            } else {
+                step = BrowserFirstUsePolicy.nextStep(step)
+                firstUsePreferences.setStep(step)
+                renderStep()
+            }
+        }
+        hintToggle.setOnClickListener {
+            val state = firstUsePreferences.state()
+            firstUsePreferences.setHintsEnabled(!state.hintsEnabled)
+            renderStep()
+        }
+
+        renderStep()
+        dialog.setContentView(sheet)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            setGravity(Gravity.CENTER)
+        }
     }
 
     private fun chromeButton(icon: Int, description: String, action: (View) -> Unit): ImageButton =
