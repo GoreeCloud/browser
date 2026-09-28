@@ -1,5 +1,14 @@
 # GoreeCloud Browser — Implemented Features
 
+## September 28, 2026 — Android first-use guidance and local browsing-data reset
+
+The Android launcher activity now presents a resumable three-step first-use flow before ordinary first-run browsing. Setup explains the GoreeCloud-owned chrome/WebView engine boundary, conservative permission/privacy defaults, direct-address versus fail-closed free-text Search behavior, and the optional contextual-hint model. Voluntary replay is dismissible; first-run setup is not. Setup progress, hint enablement, and dismissed-hint state stay in application-local preferences.
+
+The Browser menu exposes replay, a global contextual-hints toggle, dismissed-hint reset, and an explicit confirmation path for clearing local WebView cookies, site storage, cache, form data, and history. These controls do not enable Search delegation, site permissions, downloads, telemetry, account authority, or new network paths. Security, privacy, and failure messaging remain independent of optional hint state.
+
+Focused unit coverage locks setup-step bounds/progression. Exact-head Android/security CI and representative-device clean-install, interruption/resume, replay, data-reset, large-text, TalkBack/Switch Access, RTL/localization, form-factor, signing/distribution, and production acceptance remain open.
+
+
 **Record type:** Repository implemented-feature inventory  
 **Repository:** `GoreeCloud/browser`  
 **Lifecycle:** Development / non-Stable  
