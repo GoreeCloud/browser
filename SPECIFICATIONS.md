@@ -1,17 +1,17 @@
 ---
 title: "GoreeCloud Browser — Project Specification"
 document_owner: "LaDamian Goree"
-version: "v0.14"
+version: "v0.15"
 document_status: "Under Review"
 project_status: "Active Development / nonconformant"
 classification: "Internal"
 document_type: "Native Web Browser Project Specification and Implementation Blueprint"
 project_name: "GoreeCloud Browser"
-repository: "GoreeCloud/goreecloud-browser"
+repository: "GoreeCloud/browser"
 authoritative_record: true
 canonical_path: "SPECIFICATIONS.md"
 created: "2026-08-29"
-last_updated: "2026-09-18"
+last_updated: "2026-09-28"
 supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown migration"
 ---
 
@@ -22,26 +22,26 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.14
+- **Version:** v0.15
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
 - **Document Type:** Native Web Browser Project Specification and Implementation Blueprint
-- **Repository:** `GoreeCloud/goreecloud-browser`
+- **Repository:** `GoreeCloud/browser`
 - **Authoritative Record:** Yes
 - **Primary Android Beta Package:** `io.goreecloud.browser.beta`
-- **Android Beta Version:** `0.1.0-beta.1+android.6`
-- **Android versionCode:** `10006`
+- **Android Beta Version:** `0.1.0-beta.1+android.7`
+- **Android versionCode:** `10007`
 - **Android Support Floor:** API 26
 - **Android Target API:** 35
-- **Current GLAZE UI Stable Authority:** V1.5 / `1.5.1`
-- **Current Development Line:** PR #49, `chatgpt/search-index-browser-2026-09-13`
-- **Latest independently validated implementation checkpoint:** `f62e650a0fdb7a85fb5c7cd997bed7750a3ba82f`
-- **Validated checks for that exact implementation checkpoint:** Platform Contract #34, GoreeCloud Browser Core CI #451, Android Beta APK #212
+- **Current GLAZE UI Stable Authority:** V1.6 / `1.6.0`
+- **Current Development Line:** Draft PR #108, `feature/android-onboarding-guidance-20260928`
+- **Latest independently validated implementation checkpoint:** `81ea98048bd53468dac5a427ce297516f1ae9741`
+- **Validated checks for that exact implementation checkpoint:** Browser Core CI run `36484853428`, Security Source Audit `36484853198`, Security Evidence `36484853186`, Extension Signature `36484853180`, and Android Beta APK + Android 15 connected instrumentation `36484853352`
 
 The current documentation head may be newer than the validated implementation checkpoint. Documentation-only commits must not inherit implementation validation by implication.
 
-Version v0.12 reconciled the current nine-system Platform Contract 0.4 model, current Stable Glaze UI 1.5.1 target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 adds the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. These are Development control/implementation updates and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
+Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Stable Glaze UI 1.5.1 target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciles the canonical specification with the current V1.6 / 1.6.0 consumer baseline, Android +android.7 identity, current repository/PR line, and the latest exact implementation checkpoint that passed all configured Browser workflow families. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, or Anchor gates.
 
 ## 1. Project Definition
 
