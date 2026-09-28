@@ -1,5 +1,13 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-09-28 — canonical Glaze V1.6 specification reconciliation
+
+- Reconciled the canonical Browser specification with the repository's existing GLAZE UI V1.6 / 1.6.0 platform contract.
+- Corrected the canonical repository identity, Android +android.7/versionCode 10007 Development identity, current Draft PR #108 line, and latest exact implementation checkpoint that passed all configured Browser workflow families.
+- Updated legacy feature trace FR-013 so V1.4.1/V1.5 remain historical migration checkpoints rather than being presented as current authority.
+- This is documentation/governance reconciliation only; Browser-specific rendered/native-device V1.6 acceptance, production, Stable, and Anchor gates remain open.
+
+
 ## 2026-09-28 — Android onboarding and local browsing-data reset candidate
 
 - Added resumable first-use setup plus optional contextual guidance, replay, and dismissed-hint reset controls.
