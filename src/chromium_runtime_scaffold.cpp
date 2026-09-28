@@ -200,6 +200,9 @@ std::unique_ptr<ChromiumRuntimeDelegate> create_chromium_runtime_delegate(
   cef.enable_gpu = options.enable_gpu;
   cef.enable_sandbox = options.enable_sandbox;
   cef.external_message_pump = false;
+  // Required for the GTK Wayland software-surface fallback. X11 child-window
+  // embedding remains available and is selected per attached surface.
+  cef.windowless_rendering = true;
   return create_cef_runtime_delegate(std::move(cef));
 #else
   return std::make_unique<ScaffoldRuntimeDelegate>(options);
