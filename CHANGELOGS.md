@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-28 — Linux Wayland-session startup resilience
+
+### Changed
+
+- Allow the GTK3 GoreeCloud Browser shell to start on an available non-X11 GTK display backend instead of terminating the entire application at the host boundary.
+- Preserve the current CEF X11/XWayland child-surface contract and present an explicit renderer-compatibility surface when that native page surface is unavailable.
+- Resolve persistent CEF profile cache paths against the Browser cache root so the default relative `profile` path no longer falls back to in-memory storage solely because it is relative.
+- Correct the stale Android Glaze documentation baseline from V1.5/1.5.1 to the current V1.6/1.6.0 Stable source baseline.
+
+### Acceptance boundary
+
+This is a Development resilience and documentation correction. It does **not** implement native Wayland CEF page rendering, establish visible web-page pixels on Wayland, close representative-device visual acceptance, or promote Browser to Release Candidate, production-approved, Stable, or Anchor maturity.
+
 ## 2026-09-26 — Immutable Linux CEF archive identity hardening
 
 ### Changed
