@@ -575,7 +575,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (created) return true;
     if (!gtk_init_check(nullptr, nullptr)) return false;
     auto* display = gdk_display_get_default();
-    if (!display || !GDK_IS_X11_DISPLAY(display)) return false;
+    if (!display) return false;
 
     install_css();
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -995,6 +995,33 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (settings_grid) gtk_widget_set_visible(settings_grid, settings_surface);
   }
 
+  void show_renderer_compatibility_surface() {
+    if (!content_stack || !internal_canvas) return;
+    if (internal_eyebrow) {
+      gtk_label_set_text(GTK_LABEL(internal_eyebrow), "LINUX RENDERER");
+    }
+    if (internal_title) {
+      gtk_label_set_text(GTK_LABEL(internal_title),
+                         "Browser chrome is ready on this desktop.");
+    }
+    if (internal_subtitle) {
+      gtk_label_set_text(
+          GTK_LABEL(internal_subtitle),
+          "The current CEF embedded page surface still requires X11/XWayland. "
+          "GoreeCloud Browser now stays open on other GTK display backends "
+          "instead of failing at startup while native Wayland rendering is "
+          "completed.");
+    }
+    if (internal_status) {
+      gtk_label_set_text(GTK_LABEL(internal_status),
+                         "Native Wayland page rendering pending");
+    }
+    if (internal_search_entry) gtk_widget_set_visible(internal_search_entry, FALSE);
+    if (internal_actions) gtk_widget_set_visible(internal_actions, FALSE);
+    if (settings_grid) gtk_widget_set_visible(settings_grid, FALSE);
+    gtk_stack_set_visible_child_name(GTK_STACK(content_stack), "internal");
+  }
+
   void set_panel_surface_copy(std::string_view payload) {
     const auto presentation = browser_panel_presentation(payload);
     if (panel_eyebrow) {
@@ -1066,11 +1093,15 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (!attachable) return;
     const auto surface = current_surface();
     if (surface.window_handle == 0 || surface.width <= 0 || surface.height <= 0) {
+      engine_surface_attached = false;
+      show_renderer_compatibility_surface();
       return;
     }
     engine_surface_attached = attachable->attach_native_surface(surface);
     if (engine_surface_attached) {
       gtk_stack_set_visible_child_name(GTK_STACK(content_stack), "web");
+    } else {
+      show_renderer_compatibility_surface();
     }
   }
 

@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <mutex>
 #include <optional>
@@ -277,7 +278,11 @@ class CefRuntimeDelegateScaffold final : public ChromiumRuntimeDelegate {
 #if GOREECLOUD_ENABLE_CEF
     CefRequestContextSettings settings;
     if (!options.private_context && options.persistent_storage) {
-      CefString(&settings.cache_path) = options.storage_path;
+      auto storage_path = std::filesystem::path{options.storage_path};
+      if (storage_path.is_relative()) {
+        storage_path = options_.cache_root / storage_path;
+      }
+      CefString(&settings.cache_path) = storage_path.lexically_normal().string();
     }
     CefString(&settings.accept_language_list) = options.locale;
     auto request_context = CefRequestContext::CreateContext(settings, nullptr);
