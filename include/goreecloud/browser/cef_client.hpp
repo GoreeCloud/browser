@@ -21,6 +21,7 @@
 #include "include/cef_client.h"
 #include "include/cef_context_menu_handler.h"
 #include "include/cef_process_message.h"
+#include "include/cef_render_handler.h"
 #include "include/wrapper/cef_helpers.h"
 #endif
 
