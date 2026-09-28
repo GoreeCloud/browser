@@ -1,5 +1,9 @@
 # GoreeCloud Browser — Planned Features and Open Obligations
 
+## 2026-09-28 Android first-use and local-reset candidate
+
+Draft PR #108 carries resumable first-use guidance, optional contextual hints with replay/reset controls, and an explicit confirmed Clear browsing data action. The reset clears this Android WebView's cookies, local site storage, cache, form data, and history while leaving downloads and GoreeCloud account data outside its authority. Exact-head Android/security CI and representative-device acceptance remain required.
+
 **Record type:** Repository planned/incomplete-feature inventory  
 **Repository:** `GoreeCloud/browser`  
 **Lifecycle:** Development / non-Stable  
