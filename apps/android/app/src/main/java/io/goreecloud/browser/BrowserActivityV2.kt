@@ -23,6 +23,7 @@ import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebStorage
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
@@ -591,6 +592,9 @@ class BrowserActivityV2 : Activity() {
             firstUsePreferences.replay()
             showFirstUseDialog(replay = true)
         }
+        addAction("Clear browsing data") {
+            showClearBrowsingDataDialog()
+        }
         addAction("About this development build") {
             Toast.makeText(
                 this,
@@ -604,6 +608,81 @@ class BrowserActivityV2 : Activity() {
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
+    private fun showClearBrowsingDataDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "Clear browsing data confirmation"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = "Clear browsing data?" }
+        glaze.styleMenuTitle(title)
+        sheet.addView(title)
+
+        val body = TextView(this).apply {
+            text = "This clears Browser cookies, local site storage, cached web content, form data, and this WebView history on this device. It does not delete downloaded files or GoreeCloud account data."
+        }
+        glaze.styleMenuSubtitle(body)
+        sheet.addView(body)
+
+        val cancel = TextView(this).apply {
+            text = "Cancel"
+            contentDescription = "Cancel clearing browsing data"
+            glaze.styleMenuAction(this)
+            setOnClickListener { dialog.dismiss() }
+        }
+        sheet.addView(
+            cancel,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(GlazeContract.MENU_ACTION_HEIGHT_DP),
+            ),
+        )
+
+        val clear = TextView(this).apply {
+            text = "Clear browsing data"
+            contentDescription = "Confirm clearing browsing data"
+            glaze.styleMenuAction(this)
+            setOnClickListener {
+                dialog.dismiss()
+                WebStorage.getInstance().deleteAllData()
+                webView.clearCache(true)
+                webView.clearFormData()
+                webView.clearHistory()
+                CookieManager.getInstance().removeAllCookies {
+                    CookieManager.getInstance().flush()
+                    runOnUiThread {
+                        showStartPage()
+                        Toast.makeText(
+                            this@BrowserActivityV2,
+                            "Browsing data cleared",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    }
+                }
+            }
+        }
+        sheet.addView(
+            clear,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(GlazeContract.MENU_ACTION_HEIGHT_DP),
+            ),
+        )
+
+        dialog.setContentView(sheet)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            setGravity(Gravity.CENTER)
+        }
     }
 
     private fun renderContextualHint() {
