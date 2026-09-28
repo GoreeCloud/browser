@@ -2,9 +2,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
+#include <iostream>
 #include <mutex>
 #include <string>
 #include <string_view>
@@ -317,7 +318,6 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
       software_frame_width = frame.width;
       software_frame_height = frame.height;
       software_frame_stride = frame.stride;
-      software_frame_scale = std::max(0.25F, frame.scale_factor);
     }
 
     if (!software_frame_diagnostic_emitted &&
@@ -1265,7 +1265,6 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
   int software_frame_width{0};
   int software_frame_height{0};
   int software_frame_stride{0};
-  float software_frame_scale{1.0F};
   bool software_frame_diagnostic_emitted{false};
   guint media_hover_timer_id{0};
   std::string tab_signature;
