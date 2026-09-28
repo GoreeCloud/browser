@@ -1,5 +1,12 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-09-28 — Android onboarding and local browsing-data reset candidate
+
+- Added resumable first-use setup plus optional contextual guidance, replay, and dismissed-hint reset controls.
+- Added an explicit confirmation flow for clearing local WebView cookies, site storage, cache, form data, and history.
+- Kept free-text Search fail-closed and preserved existing permission/certificate/navigation safety boundaries.
+- Work remains Draft/Development pending exact-head CI and representative-device acceptance.
+
 **Record type:** Repository change history  
 **Repository:** `GoreeCloud/browser`  
 **Lifecycle:** Development / non-Stable  
