@@ -1363,6 +1363,15 @@ void GtkLinuxGlazeWindowHost::render_chrome(const BrowserChromeState& state) {
 }
 
 void GtkLinuxGlazeWindowHost::attach_engine_view(EngineView& view) {
+  if (impl_->attached_view == &view) {
+    if (!impl_->engine_surface_attached) {
+      impl_->attach_engine_surface();
+    } else if (impl_->content_stack) {
+      gtk_stack_set_visible_child_name(GTK_STACK(impl_->content_stack), "web");
+    }
+    return;
+  }
+
   detach_engine_view();
   impl_->attached_view = &view;
   impl_->media_hover.invalidate();
