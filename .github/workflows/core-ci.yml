@@ -97,6 +97,19 @@ jobs:
           python3 -m py_compile scripts/bootstrap_cef_linux.py
           bash -n scripts/build_linux_render_beta.sh
           bash -n scripts/run_linux_render_beta.sh
+      - name: Verify Linux GTK backend fallback contract
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          host = Path("src/platform/gtk_linux_glaze_host.cpp").read_text()
+          runner = Path("include/goreecloud/browser/platform/gtk_linux_runner.hpp").read_text()
+
+          assert "if (!display || !GDK_IS_X11_DISPLAY(display)) return false;" not in host
+          assert "if (!display) return false;" in host
+          assert "show_renderer_compatibility_surface" in host
+          assert "native Wayland embedding is not yet enabled" not in runner
+          PY
       - name: Verify pinned CEF source contract without downloading CEF
         run: |
           python3 scripts/bootstrap_cef_linux.py --print-spec > /tmp/goreecloud-cef-spec.json
@@ -215,6 +228,10 @@ jobs:
           grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
           if grep -Fq "[GoreeCloud CEF] main-frame-load-error" "${log_file}"; then
             echo "CEF main-frame navigation reported a load error" >&2
+            exit 1
+          fi
+          if grep -Fq "cache_path directory (profile) is not an absolute path" "${log_file}"; then
+            echo "CEF profile cache path regressed to a relative path" >&2
             exit 1
           fi
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
