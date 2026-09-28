@@ -321,14 +321,36 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
     }
 
     if (!software_frame_diagnostic_emitted &&
-        environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+        environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS") &&
+        frame_has_visual_content(frame)) {
       software_frame_diagnostic_emitted = true;
-      std::cerr << "[GoreeCloud GTK] windowless-frame-presented size="
+      std::cerr << "[GoreeCloud GTK] windowless-frame-presented nonuniform=yes size="
                 << frame.width << "x" << frame.height
                 << " scale=" << frame.scale_factor << std::endl;
     }
 
     if (content_area) gtk_widget_queue_draw(content_area);
+  }
+
+  static bool frame_has_visual_content(const NativeSurfaceFrame& frame) {
+    if (!frame.bgra || frame.width <= 0 || frame.height <= 0 ||
+        frame.stride < frame.width * 4) {
+      return false;
+    }
+
+    const auto* first = frame.bgra;
+    for (int y = 0; y < frame.height; ++y) {
+      const auto* row =
+          frame.bgra + static_cast<std::size_t>(y) * frame.stride;
+      for (int x = 0; x < frame.width; ++x) {
+        const auto* pixel = row + static_cast<std::size_t>(x) * 4;
+        if (pixel[0] != first[0] || pixel[1] != first[1] ||
+            pixel[2] != first[2]) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   gboolean draw_software_frame(GtkWidget* widget, cairo_t* cr) {
