@@ -211,7 +211,7 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
 
   if (!host.create()) {
     throw std::runtime_error(
-        "Linux beta host requires GTK3 on an X11/XWayland display; native Wayland embedding is not yet enabled");
+        "Linux beta host requires GTK3 with an available desktop display");
   }
 
   host.set_title(window->private_window() ? "GoreeCloud Browser — Private" : "GoreeCloud Browser");
