@@ -1,11 +1,16 @@
 #include "goreecloud/browser/platform/gtk_linux_glaze_host.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <mutex>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include <gdk/gdkx.h>
 #include <gtk/gtk.h>
@@ -23,6 +28,11 @@ namespace {
 
 inline constexpr int kGlazeInteractiveTargetPx =
     static_cast<int>(kBrowserGlazeCapabilities.minimum_target_px);
+
+bool environment_flag_enabled(const char* name) {
+  const char* value = std::getenv(name);
+  return value && *value && std::string_view{value} != "0";
+}
 
 void add_style_class(GtkWidget* widget, const char* class_name) {
   gtk_style_context_add_class(gtk_widget_get_style_context(widget), class_name);
@@ -120,7 +130,7 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
 
 }  // namespace
 
-class GtkLinuxGlazeWindowHost::Impl {
+class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
  public:
   Impl() {
     media_hover.set_present_callback(
@@ -285,6 +295,74 @@ class GtkLinuxGlazeWindowHost::Impl {
     self->resize_attached_engine();
     self->media_hover.invalidate();
     if (self->content_area) hide_gtk_media_hover_popover(self->content_area);
+  }
+
+  static gboolean on_content_draw(GtkWidget* widget, cairo_t* cr,
+                                  gpointer data) {
+    return static_cast<Impl*>(data)->draw_software_frame(widget, cr);
+  }
+
+  void present_software_frame(const NativeSurfaceFrame& frame) override {
+    if (!frame.bgra || frame.width <= 0 || frame.height <= 0 ||
+        frame.stride < frame.width * 4) {
+      return;
+    }
+
+    {
+      std::scoped_lock lock(software_frame_mutex);
+      software_frame.assign(
+          frame.bgra,
+          frame.bgra + static_cast<std::size_t>(frame.stride) *
+                           static_cast<std::size_t>(frame.height));
+      software_frame_width = frame.width;
+      software_frame_height = frame.height;
+      software_frame_stride = frame.stride;
+      software_frame_scale = std::max(0.25F, frame.scale_factor);
+    }
+
+    if (!software_frame_diagnostic_emitted &&
+        environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      software_frame_diagnostic_emitted = true;
+      std::cerr << "[GoreeCloud GTK] windowless-frame-presented size="
+                << frame.width << "x" << frame.height
+                << " scale=" << frame.scale_factor << std::endl;
+    }
+
+    if (content_area) gtk_widget_queue_draw(content_area);
+  }
+
+  gboolean draw_software_frame(GtkWidget* widget, cairo_t* cr) {
+    std::scoped_lock lock(software_frame_mutex);
+    if (software_frame.empty() || software_frame_width <= 0 ||
+        software_frame_height <= 0 || software_frame_stride <= 0) {
+      return FALSE;
+    }
+
+    auto* image = cairo_image_surface_create_for_data(
+        software_frame.data(), CAIRO_FORMAT_ARGB32, software_frame_width,
+        software_frame_height, software_frame_stride);
+    if (cairo_surface_status(image) != CAIRO_STATUS_SUCCESS) {
+      cairo_surface_destroy(image);
+      return FALSE;
+    }
+
+    GtkAllocation allocation{};
+    gtk_widget_get_allocation(widget, &allocation);
+    const double scale_x =
+        static_cast<double>(allocation.width) /
+        static_cast<double>(software_frame_width);
+    const double scale_y =
+        static_cast<double>(allocation.height) /
+        static_cast<double>(software_frame_height);
+
+    cairo_save(cr);
+    cairo_scale(cr, scale_x, scale_y);
+    cairo_set_source_surface(cr, image, 0.0, 0.0);
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_paint(cr);
+    cairo_restore(cr);
+    cairo_surface_destroy(image);
+    return TRUE;
   }
 
   void sample_media_hover() {
@@ -609,6 +687,8 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_stack_add_named(GTK_STACK(content_stack), content_area, "web");
     g_signal_connect(content_area, "size-allocate",
                      G_CALLBACK(on_content_size_allocate), this);
+    g_signal_connect(content_area, "draw",
+                     G_CALLBACK(on_content_draw), this);
 
     build_internal_surface();
     build_panel_surface();
@@ -1061,26 +1141,34 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (attached_view) attach_engine_surface();
   }
 
-  NativeEngineSurface current_surface() const {
+  NativeEngineSurface current_surface() {
     NativeEngineSurface surface;
     if (!content_area || !gtk_widget_get_realized(content_area)) return surface;
-    auto* gdk_window = gtk_widget_get_window(content_area);
-    if (!gdk_window) return surface;
-    auto* display = gdk_window_get_display(gdk_window);
-    if (!display || !GDK_IS_X11_DISPLAY(display)) return surface;
 
     GtkAllocation allocation{};
     gtk_widget_get_allocation(content_area, &allocation);
-    surface.window_handle =
-        static_cast<std::uintptr_t>(gdk_x11_window_get_xid(gdk_window));
-    surface.display_handle = reinterpret_cast<std::uintptr_t>(
-        gdk_x11_display_get_xdisplay(display));
     surface.x = 0;
     surface.y = 0;
     surface.width = allocation.width;
     surface.height = allocation.height;
     surface.scale_factor =
         static_cast<float>(gtk_widget_get_scale_factor(content_area));
+
+    auto* gdk_window = gtk_widget_get_window(content_area);
+    if (!gdk_window) return surface;
+    auto* display = gdk_window_get_display(gdk_window);
+    if (!display) return surface;
+
+    const bool force_windowless =
+        environment_flag_enabled("GOREECLOUD_BROWSER_FORCE_WINDOWLESS");
+    if (GDK_IS_X11_DISPLAY(display) && !force_windowless) {
+      surface.window_handle =
+          static_cast<std::uintptr_t>(gdk_x11_window_get_xid(gdk_window));
+      surface.display_handle = reinterpret_cast<std::uintptr_t>(
+          gdk_x11_display_get_xdisplay(display));
+    } else {
+      surface.frame_sink = this;
+    }
     return surface;
   }
 
@@ -1092,7 +1180,8 @@ class GtkLinuxGlazeWindowHost::Impl {
     auto* attachable = dynamic_cast<NativeSurfaceAttachable*>(attached_view);
     if (!attachable) return;
     const auto surface = current_surface();
-    if (surface.window_handle == 0 || surface.width <= 0 || surface.height <= 0) {
+    if ((surface.window_handle == 0 && surface.frame_sink == nullptr) ||
+        surface.width <= 0 || surface.height <= 0) {
       engine_surface_attached = false;
       show_renderer_compatibility_surface();
       return;
@@ -1110,7 +1199,8 @@ class GtkLinuxGlazeWindowHost::Impl {
     auto* attachable = dynamic_cast<NativeSurfaceAttachable*>(attached_view);
     if (!attachable) return;
     const auto surface = current_surface();
-    if (surface.window_handle != 0 && surface.width > 0 && surface.height > 0) {
+    if ((surface.window_handle != 0 || surface.frame_sink != nullptr) &&
+        surface.width > 0 && surface.height > 0) {
       attachable->resize_native_surface(surface);
     }
   }
@@ -1170,6 +1260,13 @@ class GtkLinuxGlazeWindowHost::Impl {
 
   EngineView* attached_view{nullptr};
   NativeWindowMetrics metrics{1280, 800, 1.0F};
+  std::mutex software_frame_mutex;
+  std::vector<std::uint8_t> software_frame;
+  int software_frame_width{0};
+  int software_frame_height{0};
+  int software_frame_stride{0};
+  float software_frame_scale{1.0F};
+  bool software_frame_diagnostic_emitted{false};
   guint media_hover_timer_id{0};
   std::string tab_signature;
   std::string active_tab_id;
