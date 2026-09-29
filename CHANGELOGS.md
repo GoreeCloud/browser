@@ -1,5 +1,14 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-09-29 — Android local Find in page candidate
+
+- Added **Find in page** to the Android Browser menu.
+- Searches only the currently loaded WebView document and exposes Find / Previous / Next / Close controls.
+- Bounded the local query to 256 characters and clears match state when the dialog closes.
+- Kept remote GoreeCloud Search authorization, downloads, history persistence, and site-permission authority unchanged.
+
+**Acceptance boundary:** Development candidate on PR #108. Fresh exact-head Android validation, representative-device/accessibility review, integration, release, production, Stable, and Anchor gates remain open.
+
 ## 2026-09-28 — canonical Glaze V1.6 specification reconciliation
 
 - Reconciled the canonical Browser specification with the repository's existing GLAZE UI V1.6 / 1.6.0 platform contract.
