@@ -1,17 +1,17 @@
 ---
 title: "GoreeCloud Browser — Project Specification"
 document_owner: "LaDamian Goree"
-version: "v0.14"
+version: "v0.15"
 document_status: "Under Review"
 project_status: "Active Development / nonconformant"
 classification: "Internal"
 document_type: "Native Web Browser Project Specification and Implementation Blueprint"
 project_name: "GoreeCloud Browser"
-repository: "GoreeCloud/goreecloud-browser"
+repository: "GoreeCloud/browser"
 authoritative_record: true
 canonical_path: "SPECIFICATIONS.md"
 created: "2026-08-29"
-last_updated: "2026-09-18"
+last_updated: "2026-09-29"
 supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown migration"
 ---
 
@@ -22,26 +22,26 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.14
+- **Version:** v0.15
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
 - **Document Type:** Native Web Browser Project Specification and Implementation Blueprint
-- **Repository:** `GoreeCloud/goreecloud-browser`
+- **Repository:** `GoreeCloud/browser`
 - **Authoritative Record:** Yes
 - **Primary Android Beta Package:** `io.goreecloud.browser.beta`
 - **Android Beta Version:** `0.1.0-beta.1+android.6`
 - **Android versionCode:** `10006`
 - **Android Support Floor:** API 26
 - **Android Target API:** 35
-- **Current GLAZE UI Stable Authority:** V1.5 / `1.5.1`
-- **Current Development Line:** PR #49, `chatgpt/search-index-browser-2026-09-13`
-- **Latest independently validated implementation checkpoint:** `f62e650a0fdb7a85fb5c7cd997bed7750a3ba82f`
-- **Validated checks for that exact implementation checkpoint:** Platform Contract #34, GoreeCloud Browser Core CI #451, Android Beta APK #212
+- **Current GLAZE UI Official/Anchor Authority:** V1.6 / `1.6.0`
+- **Current Development Line:** PR #110, `feature/linux-wayland-cef-osr-20260928`
+- **Latest independently validated implementation checkpoint:** `e22d126ffa9f0fc7b6f72a611b923f7ee67cb2fc`
+- **Validated checks for that exact implementation checkpoint:** GoreeCloud Browser Core CI #736, Browser Security Source Audit #176, Browser Security Evidence #181, and Browser Extension Signature #235
 
 The current documentation head may be newer than the validated implementation checkpoint. Documentation-only commits must not inherit implementation validation by implication.
 
-Version v0.12 reconciled the current nine-system Platform Contract 0.4 model, current Stable Glaze UI 1.5.1 target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 adds the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. These are Development control/implementation updates and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
+Version v0.12 reconciled the current nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciles the live repository identity, current PR #110 Development line, exact validated candidate checkpoint, and current GLAZE UI V1.6 / 1.6.0 Official/Anchor authority. These are Development control/implementation updates and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
 
 ## 1. Project Definition
 
@@ -95,7 +95,7 @@ Current verified source behavior includes:
 - WebView file/content access disabled;
 - website permission and geolocation callbacks denied by default;
 - downloads blocked until the Wardveil release gate is integrated;
-- current GLAZE UI V1.5.1 source mapping with `applicable-migration-required` status.
+- current GLAZE UI V1.6 / 1.6.0 source mapping with Browser-local adoption still required.
 
 Current source-level defenses and contracts are Development evidence only. They do not establish rendered/native-device GLAZE acceptance, complete Privacy Shield or Wardveil integration, production signing, Release Candidate status, production approval, or Stable qualification.
 
@@ -124,7 +124,7 @@ Privacy and security state must be truthful. Browser UI must not display an allo
 The current Browser Development line does not establish:
 
 - production or Stable readiness;
-- rendered/native-device GLAZE UI V1.5.1 acceptance;
+- rendered/native-device GLAZE UI V1.6 / 1.6.0 acceptance;
 - production GoreeCloud Identity, Vault, Sync, Everkeep, DNS, Network, or Mesh integration;
 - complete private-browsing runtime isolation and Close & Forget acceptance;
 - production Wardveil download verification, quarantine, or release;
@@ -139,7 +139,7 @@ The current Browser Development line does not establish:
 Before Android Browser may be represented as production-approved or Stable, it must complete and verify at least:
 
 1. Controlled production signing and key-recovery operations.
-2. Exact-revision GLAZE UI V1.5.1 rendered/native visual, accessibility, localization/RTL, large-text, reduced-effects, adaptive/form-factor, performance, rollback, and Human Visual Excellence acceptance.
+2. Exact-revision GLAZE UI V1.6 / 1.6.0 rendered/native visual, accessibility, localization/RTL, large-text, reduced-effects, adaptive/form-factor, performance, rollback, and Human Visual Excellence acceptance.
 3. Authenticated Browser-to-Wardveil download scanning, disposition, quarantine, and release evidence.
 4. Privacy Shield runtime authorization, consent, minimization, filtering, retention, and evidence integration where applicable.
 5. Private and Isolated Private request-context/storage isolation with Close & Forget evidence.
@@ -151,7 +151,7 @@ Before Android Browser may be represented as production-approved or Stable, it m
 
 ## 10. Current Development Status and Evidence Boundary
 
-PR #49 remains open Development/beta work on `chatgpt/search-index-browser-2026-09-13`. The latest independently validated implementation checkpoint remains exact source `f62e650a0fdb7a85fb5c7cd997bed7750a3ba82f`, which passed Platform Contract #34, GoreeCloud Browser Core CI #451, and Android Beta APK #212.
+PR #110 is the current open Development line on `feature/linux-wayland-cef-osr-20260928`. Its pre-documentation exact implementation checkpoint `e22d126ffa9f0fc7b6f72a611b923f7ee67cb2fc` passed GoreeCloud Browser Core CI #736, Browser Security Source Audit #176, Browser Security Evidence #181, and Browser Extension Signature #235. The current documentation head is newer and must not inherit those implementation checks by implication.
 
 The current Android package/version remains `io.goreecloud.browser.beta`, versionName `0.1.0-beta.1+android.6`, versionCode `10006`. Documentation changes do not promote that application version.
 

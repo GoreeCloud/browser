@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-28 — Linux Wayland CEF software-rendering candidate
+
+### Changed
+
+- Added a Browser-owned software-frame surface contract for engine renderers that cannot attach a native child window.
+- Added CEF windowless/off-screen rendering support with `CefRenderHandler` view metrics and BGRA frame delivery while preserving the existing X11/XWayland child-window path.
+- Added GTK drawing-area presentation of the software CEF frame and automatic fallback selection on non-X11 GTK backends.
+- Added a Development-only `GOREECLOUD_BROWSER_FORCE_WINDOWLESS=1` validation switch and a Core CI runtime gate that requires both HTTPS main-frame completion and an observed software-frame presentation.
+
+### Acceptance boundary
+
+This source change is a Development render candidate until the changed exact head passes applicable CI and the owner-device Wayland test shows real page pixels. It does **not** yet establish page input/IME/popup/drag-and-drop/accessibility correctness, accelerated rendering, sustained performance, Browser-wide visual acceptance, production approval, Stable, or Anchor maturity.
+
 ## 2026-09-28 — Linux Wayland-session startup resilience
 
 ### Changed

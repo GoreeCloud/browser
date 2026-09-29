@@ -55,13 +55,13 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Unit tests for Browser-owned navigation resolution.
 - CI unit test, Android lint, APK build, signature/package verification, SHA-256, and artifact upload.
 
-## Android beta — current Glaze UI V1.5.1 source mapping
+## Android beta — current GLAZE UI V1.6 source mapping
 
-- Current Official Stable Glaze UI target `1.5.1`.
-- Stable promotion revision `98da57064ede0f334627b632bc16801f580331af`.
-- Reviewed V1.5 implementation anchor `ee1032a0822ab8e103f8afe48e5c1859fde65cc9`.
-- V1.5.1 qualification source anchor `5b59d0e36950d737dba35b58ae58058684e0831b`.
-- Immediate Stable rollback baseline `1.5.0`; inherited optical baseline `1.4.1`.
+- Current Official/Anchor Glaze UI target `1.6.0`.
+- Exact accepted release source `a7180679ea851389e0f3004515f9a25f420e716d`.
+- V1.6 qualification source anchor `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`.
+- Qualification evidence integration `354f5759385c28596fcfec26a3ad525e89fb1c35`.
+- Immediate known-good rollback baseline `1.5.1`; inherited optical/runtime foundations remain versioned historical provenance.
 - Browser-owned Canvas/Surface/Soft Glaze material mapping retained.
 - Browser chrome remains Application scope and does not claim system-shell authority.
 - Capability absence/conflicting ownership fails closed.

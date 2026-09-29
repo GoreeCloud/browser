@@ -103,11 +103,18 @@ jobs:
           from pathlib import Path
 
           host = Path("src/platform/gtk_linux_glaze_host.cpp").read_text()
+          runtime = Path("src/cef_runtime.cpp").read_text()
+          scaffold = Path("src/chromium_runtime_scaffold.cpp").read_text()
+          surface = Path("include/goreecloud/browser/native_engine_surface.hpp").read_text()
           runner = Path("include/goreecloud/browser/platform/gtk_linux_runner.hpp").read_text()
 
           assert "if (!display || !GDK_IS_X11_DISPLAY(display)) return false;" not in host
           assert "if (!display) return false;" in host
-          assert "show_renderer_compatibility_surface" in host
+          assert "GOREECLOUD_BROWSER_FORCE_WINDOWLESS" in host
+          assert "windowless-frame-presented" in host
+          assert "NativeSurfaceFrameSink" in surface
+          assert "SetAsWindowless" in runtime
+          assert "cef.windowless_rendering = true" in scaffold
           assert "native Wayland embedding is not yet enabled" not in runner
           PY
       - name: Verify pinned CEF source contract without downloading CEF
@@ -241,5 +248,79 @@ jobs:
 
           if [[ "${runtime_status}" -ne 0 && "${runtime_status}" -ne 124 ]]; then
             echo "CEF runtime exited unexpectedly with status ${runtime_status}" >&2
+            exit "${runtime_status}"
+          fi
+
+      - name: Launch CEF windowless software surface under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless.log"
+          : > "${log_file}"
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            ./scripts/run_linux_render_beta.sh https://example.com/ \
+            >"${log_file}" 2>&1 &
+          runtime_pid=$!
+
+          windowless_ready=0
+          for _ in $(seq 1 90); do
+            load_ready=0
+            paint_ready=0
+
+            if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"; then
+              load_ready=1
+            fi
+            if grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "${log_file}"; then
+              paint_ready=1
+            fi
+
+            if [[ "${load_ready}" -eq 1 && "${paint_ready}" -eq 1 ]]; then
+              windowless_ready=1
+              break
+            fi
+
+            if ! kill -0 "${runtime_pid}" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          if kill -0 "${runtime_pid}" 2>/dev/null; then
+            kill "${runtime_pid}" || true
+          fi
+          set +e
+          wait "${runtime_pid}"
+          runtime_status=$?
+          set -e
+
+          cat "${log_file}"
+
+          test "${windowless_ready}" -eq 1
+          grep -Fq "mode=windowless" "${log_file}"
+          grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
+          if grep -Fq "[GoreeCloud CEF] main-frame-load-error" "${log_file}"; then
+            echo "CEF windowless main-frame navigation reported a load error" >&2
+            exit 1
+          fi
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during windowless runtime smoke" >&2
+            exit 1
+          fi
+
+          if [[ "${runtime_status}" -ne 0 && "${runtime_status}" -ne 124 && "${runtime_status}" -ne 143 ]]; then
+            echo "CEF windowless runtime exited unexpectedly with status ${runtime_status}" >&2
             exit "${runtime_status}"
           fi

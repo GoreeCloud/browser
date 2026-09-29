@@ -18,10 +18,11 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 
 - GoreeCloud-owned engine-independent browser core and replaceable Browser Engine Layer.
 - Pinned Linux x86_64 CEF render-candidate bootstrap for CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`, with repository-owned SHA-1/SHA-256 archive identity enforcement, official-sidecar verification, safe extraction, immutable-cache/provenance validation, exact-version CMake enforcement, and one-command Development build/launch scripts.
-- Exact-head Ubuntu 22.04 Core CI compiles the pinned Linux CEF/Chromium render candidate with GTK/X11 and the current GoreeCloud CEF client, media-probe, and render-app integration; representative runtime rendering acceptance remains separate.
-- Exact-head Ubuntu 22.04 Core CI also launches the pinned CEF runtime under Xvfb + D-Bus with sandboxing preserved, verifies that a Chromium renderer subprocess starts, and requires the main frame to complete `https://example.com/` with HTTP 200; visible page pixels and representative-device runtime acceptance remain separate.
-- CEF browser-process initialization now receives the host Linux `argc/argv`, and X11 native child-window embedding uses the CEF integral window-handle type.
-- Linux GTK/X11 native beta shell build path.
+- Ubuntu 22.04 Core CI compiles the pinned Linux CEF/Chromium render candidate with GTK/X11 and the current GoreeCloud CEF client, media-probe, render-app, and software-frame integration; representative runtime rendering acceptance remains separate.
+- The Linux CEF runtime supports both the existing X11/XWayland native child-window path and a Development windowless/off-screen path. The windowless path implements `CefRenderHandler` view sizing and BGRA `OnPaint` delivery into a Browser-owned native software frame sink, which the GTK host paints into its web drawing area when no X11 child handle is available.
+- The Core CI source includes a forced-windowless Xvfb runtime gate that requires successful HTTPS main-frame completion plus an actual software frame presentation diagnostic; that gate still requires exact-head execution before its result can be claimed for a changed candidate.
+- CEF browser-process initialization receives the host Linux `argc/argv`; X11 native child-window embedding uses the CEF integral window-handle type; persistent profile paths resolve under the Browser cache root.
+- Linux GTK3 native beta shell build path with automatic X11 child-surface selection or software windowless fallback.
 - Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, keyboard-first shortcuts for common tab/navigation actions, Ctrl+K/F6 location focus, and Escape dismissal for Browser-owned panels.
 - First-party Linux New Tab/Home search field and wired Bookmarks, Downloads, and Settings quick actions.
 - Semantic Linux Browser panels for Bookmarks, Reader Mode, Privacy Shield, Wardveil Security, Clipboard, DNS, Proxy, Search-unavailable, and Development Downloads state without manufacturing provider-owned authority.
