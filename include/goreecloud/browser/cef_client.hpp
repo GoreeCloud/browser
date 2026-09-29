@@ -56,12 +56,15 @@ class GoreeCloudCefClient final : public CefClient,
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
   CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
 
-  void configure_windowless_surface(NativeSurfaceFrameSink* sink,
-                                    int width,
-                                    int height,
-                                    float scale_factor) {
+  void configure_windowless_surface(
+      NativeSurfaceFrameSink* sink,
+      NativeSurfaceContextMenuSink* context_menu_sink,
+      int width,
+      int height,
+      float scale_factor) {
     std::scoped_lock lock(render_mutex_);
     frame_sink_ = sink;
+    context_menu_sink_ = context_menu_sink;
     view_width_ = std::max(1, width);
     view_height_ = std::max(1, height);
     scale_factor_ = std::max(0.25F, scale_factor);
@@ -70,6 +73,7 @@ class GoreeCloudCefClient final : public CefClient,
   void clear_windowless_surface() {
     std::scoped_lock lock(render_mutex_);
     frame_sink_ = nullptr;
+    context_menu_sink_ = nullptr;
   }
 
   void GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect) override {
@@ -269,6 +273,46 @@ class GoreeCloudCefClient final : public CefClient,
     return false;
   }
 
+  bool RunContextMenu(CefRefPtr<CefBrowser>,
+                      CefRefPtr<CefFrame>,
+                      CefRefPtr<CefContextMenuParams> params,
+                      CefRefPtr<CefMenuModel> model,
+                      CefRefPtr<CefRunContextMenuCallback> callback) override {
+    CEF_REQUIRE_UI_THREAD();
+    if (!params || !model || !callback) return false;
+
+    NativeSurfaceContextMenuSink* sink = nullptr;
+    {
+      std::scoped_lock lock(render_mutex_);
+      sink = context_menu_sink_;
+    }
+    if (!sink) return false;
+
+    NativeContextMenuRequest request;
+    request.x = params->GetXCoord();
+    request.y = params->GetYCoord();
+    append_context_menu_items(model, request.items);
+
+    if (request.items.empty()) {
+      callback->Cancel();
+      return true;
+    }
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-context-menu-request items="
+                << request.items.size()
+                << " x=" << request.x << " y=" << request.y << std::endl;
+    }
+
+    sink->show_native_context_menu(
+        std::move(request),
+        [callback](std::optional<int> command_id) {
+          if (command_id) callback->Continue(*command_id, EVENTFLAG_NONE);
+          else callback->Cancel();
+        });
+    return true;
+  }
+
   void OnBeforeContextMenu(CefRefPtr<CefBrowser>,
                            CefRefPtr<CefFrame> frame,
                            CefRefPtr<CefContextMenuParams> params,
@@ -326,6 +370,47 @@ class GoreeCloudCefClient final : public CefClient,
   }
 
  private:
+  static void append_context_menu_items(
+      CefRefPtr<CefMenuModel> model,
+      std::vector<NativeContextMenuItem>& items) {
+    if (!model) return;
+    const auto count = model->GetCount();
+    for (std::size_t index = 0; index < count; ++index) {
+      NativeContextMenuItem item;
+      const auto type = model->GetTypeAt(index);
+      switch (type) {
+        case MENUITEMTYPE_SEPARATOR:
+          item.type = NativeContextMenuItemType::separator;
+          break;
+        case MENUITEMTYPE_CHECK:
+          item.type = NativeContextMenuItemType::check;
+          break;
+        case MENUITEMTYPE_RADIO:
+          item.type = NativeContextMenuItemType::radio;
+          break;
+        case MENUITEMTYPE_SUBMENU:
+          item.type = NativeContextMenuItemType::submenu;
+          break;
+        case MENUITEMTYPE_COMMAND:
+          item.type = NativeContextMenuItemType::command;
+          break;
+        default:
+          continue;
+      }
+
+      if (item.type != NativeContextMenuItemType::separator) {
+        item.command_id = model->GetCommandIdAt(index);
+        item.label = model->GetLabelAt(index).ToString();
+        item.enabled = model->IsEnabledAt(index);
+        item.checked = model->IsCheckedAt(index);
+      }
+      if (item.type == NativeContextMenuItemType::submenu) {
+        append_context_menu_items(model->GetSubMenuAt(index), item.children);
+      }
+      items.push_back(std::move(item));
+    }
+  }
+
   static bool runtime_diagnostics_enabled() {
     const char* diagnostics =
         std::getenv("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS");
@@ -507,6 +592,7 @@ class GoreeCloudCefClient final : public CefClient,
   NavigationState state_;
   mutable std::mutex render_mutex_;
   NativeSurfaceFrameSink* frame_sink_{nullptr};
+  NativeSurfaceContextMenuSink* context_menu_sink_{nullptr};
   int view_width_{1};
   int view_height_{1};
   float scale_factor_{1.0F};
