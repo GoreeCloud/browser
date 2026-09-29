@@ -107,7 +107,7 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
   if (url == kNewTabUrl) {
     return {"GOREECLOUD BROWSER", "A focused place to start.",
             "Search with GoreeCloud Search or enter an address in the navigation capsule above.",
-            "Desktop renderer integration pending"};
+            "Development browser surface"};
   }
   if (url == kHomeUrl) {
     return {"GOREECLOUD HOME", "Your browser, your workspace.",
@@ -1252,19 +1252,18 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
     }
     if (internal_title) {
       gtk_label_set_text(GTK_LABEL(internal_title),
-                         "Browser chrome is ready on this desktop.");
+                         "The web renderer is unavailable in this session.");
     }
     if (internal_subtitle) {
       gtk_label_set_text(
           GTK_LABEL(internal_subtitle),
-          "The current CEF embedded page surface still requires X11/XWayland. "
-          "GoreeCloud Browser now stays open on other GTK display backends "
-          "instead of failing at startup while native Wayland rendering is "
-          "completed.");
+          "GoreeCloud Browser could not attach either its native child surface "
+          "or its software-rendered page surface. The Browser shell remains "
+          "available so the failure stays visible and recoverable.");
     }
     if (internal_status) {
       gtk_label_set_text(GTK_LABEL(internal_status),
-                         "Native Wayland page rendering pending");
+                         "Renderer attachment unavailable");
     }
     if (internal_search_entry) gtk_widget_set_visible(internal_search_entry, FALSE);
     if (internal_actions) gtk_widget_set_visible(internal_actions, FALSE);
