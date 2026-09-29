@@ -54,6 +54,7 @@ EngineMediaHitTest to_engine_hit_test(const RawMediaHitTest& raw) {
 
 class ChromiumEngineView final : public EngineView,
                                  public NativeSurfaceAttachable,
+                                 public NativeSurfaceInputForwarder,
                                  public AsyncMediaHitTestProvider,
                                  public AsyncMediaPreviewProvider {
  public:
@@ -100,6 +101,29 @@ class ChromiumEngineView final : public EngineView,
 
   [[nodiscard]] bool native_surface_attached() const noexcept override {
     return attached_;
+  }
+
+  bool send_pointer_move(const NativePointerEvent& event, bool leave) override {
+    return attached_ && runtime_view_->send_pointer_move(event, leave);
+  }
+
+  bool send_pointer_button(const NativePointerEvent& event,
+                           NativePointerButton button,
+                           bool pressed,
+                           int click_count) override {
+    return attached_ &&
+           runtime_view_->send_pointer_button(event, button, pressed, click_count);
+  }
+
+  bool send_pointer_wheel(const NativePointerEvent& event,
+                          int delta_x,
+                          int delta_y) override {
+    return attached_ &&
+           runtime_view_->send_pointer_wheel(event, delta_x, delta_y);
+  }
+
+  void set_surface_focus(bool focused) override {
+    if (attached_) runtime_view_->set_surface_focus(focused);
   }
 
   bool request_media_hit_test(MediaHitTestPoint point,
