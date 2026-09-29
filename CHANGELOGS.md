@@ -1,5 +1,12 @@
 # GoreeCloud Browser — Changelogs
 
+## September 29, 2026 — Android logical tab-session foundation candidate
+
+- Added Browser-owned logical tab and session-state contracts independent from WebView identity.
+- Added bounded open/select/close/location/title transitions with a 32-tab ceiling, duplicate/unknown-ID rejection, and last-tab protection.
+- Added JVM coverage for stable identities, active-tab fallback, tab ceiling, exact-tab updates, and fail-closed invalid operations.
+- Preserved the runtime boundary: no Android tab switcher, multiple-WebView lifecycle, persistence/recovery, Private-session behavior, or new service authority is claimed by this candidate.
+
 **Record type:** Repository change history  
 **Repository:** `GoreeCloud/browser`  
 **Lifecycle:** Development / non-Stable  
