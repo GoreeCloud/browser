@@ -575,7 +575,7 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (created) return true;
     if (!gtk_init_check(nullptr, nullptr)) return false;
     auto* display = gdk_display_get_default();
-    if (!display || !GDK_IS_X11_DISPLAY(display)) return false;
+    if (!display) return false;
 
     install_css();
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -1026,6 +1026,30 @@ class GtkLinuxGlazeWindowHost::Impl {
     gtk_stack_set_visible_child_name(GTK_STACK(content_stack), target.c_str());
   }
 
+  void show_renderer_compatibility_surface() {
+    if (!content_stack || !internal_canvas) return;
+    if (internal_eyebrow) {
+      gtk_label_set_text(GTK_LABEL(internal_eyebrow), "WEB RENDERER");
+    }
+    if (internal_title) {
+      gtk_label_set_text(GTK_LABEL(internal_title), "Page rendering is unavailable on this display.");
+    }
+    if (internal_subtitle) {
+      gtk_label_set_text(
+          GTK_LABEL(internal_subtitle),
+          "The Browser shell remains available, but this Development build can embed the native page renderer only on an X11/XWayland surface. No fallback remote renderer is used.");
+    }
+    if (internal_status) {
+      gtk_label_set_text(
+          GTK_LABEL(internal_status),
+          "Open this build under X11/XWayland to render web content.");
+    }
+    if (internal_search_entry) gtk_widget_set_visible(internal_search_entry, FALSE);
+    if (internal_actions) gtk_widget_set_visible(internal_actions, FALSE);
+    if (settings_grid) gtk_widget_set_visible(settings_grid, FALSE);
+    gtk_stack_set_visible_child_name(GTK_STACK(content_stack), "internal");
+  }
+
   void show() {
     if (!created || !window) return;
     gtk_widget_show_all(window);
@@ -1040,7 +1064,8 @@ class GtkLinuxGlazeWindowHost::Impl {
     auto* gdk_window = gtk_widget_get_window(content_area);
     if (!gdk_window) return surface;
     auto* display = gdk_window_get_display(gdk_window);
-    if (!display || !GDK_IS_X11_DISPLAY(display)) return surface;
+    if (!display) return surface;
+    if (!GDK_IS_X11_DISPLAY(display)) return surface;
 
     GtkAllocation allocation{};
     gtk_widget_get_allocation(content_area, &allocation);
@@ -1066,11 +1091,14 @@ class GtkLinuxGlazeWindowHost::Impl {
     if (!attachable) return;
     const auto surface = current_surface();
     if (surface.window_handle == 0 || surface.width <= 0 || surface.height <= 0) {
+      show_renderer_compatibility_surface();
       return;
     }
     engine_surface_attached = attachable->attach_native_surface(surface);
     if (engine_surface_attached) {
       gtk_stack_set_visible_child_name(GTK_STACK(content_stack), "web");
+    } else {
+      show_renderer_compatibility_surface();
     }
   }
 
