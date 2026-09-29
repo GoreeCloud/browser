@@ -303,6 +303,131 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
     return static_cast<Impl*>(data)->draw_software_frame(widget, cr);
   }
 
+  static std::uint32_t input_modifiers(guint state) {
+    std::uint32_t modifiers = native_modifier_none;
+    if (state & GDK_SHIFT_MASK) modifiers |= native_modifier_shift;
+    if (state & GDK_CONTROL_MASK) modifiers |= native_modifier_control;
+    if (state & GDK_MOD1_MASK) modifiers |= native_modifier_alt;
+    if (state & GDK_BUTTON1_MASK) modifiers |= native_modifier_left_button;
+    if (state & GDK_BUTTON2_MASK) modifiers |= native_modifier_middle_button;
+    if (state & GDK_BUTTON3_MASK) modifiers |= native_modifier_right_button;
+    return modifiers;
+  }
+
+  NativeSurfaceInputForwarder* software_input_forwarder() {
+    if (!software_surface_attached || !attached_view) return nullptr;
+    return dynamic_cast<NativeSurfaceInputForwarder*>(attached_view);
+  }
+
+  static NativePointerEvent pointer_event(double x, double y, guint state) {
+    return NativePointerEvent{.x = static_cast<int>(x),
+                              .y = static_cast<int>(y),
+                              .modifiers = input_modifiers(state)};
+  }
+
+  static gboolean on_content_motion(GtkWidget*, GdkEventMotion* event,
+                                    gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    auto* forwarder = self->software_input_forwarder();
+    if (!forwarder || !event) return FALSE;
+    return forwarder->send_pointer_move(
+               pointer_event(event->x, event->y, event->state), false)
+               ? TRUE
+               : FALSE;
+  }
+
+  static gboolean on_content_enter(GtkWidget*, GdkEventCrossing* event,
+                                   gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    auto* forwarder = self->software_input_forwarder();
+    if (!forwarder || !event) return FALSE;
+    return forwarder->send_pointer_move(
+               pointer_event(event->x, event->y, event->state), false)
+               ? TRUE
+               : FALSE;
+  }
+
+  static gboolean on_content_leave(GtkWidget*, GdkEventCrossing* event,
+                                   gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    auto* forwarder = self->software_input_forwarder();
+    if (!forwarder || !event) return FALSE;
+    return forwarder->send_pointer_move(
+               pointer_event(event->x, event->y, event->state), true)
+               ? TRUE
+               : FALSE;
+  }
+
+  static gboolean on_content_button(GtkWidget* widget, GdkEventButton* event,
+                                    gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    auto* forwarder = self->software_input_forwarder();
+    if (!forwarder || !event) return FALSE;
+
+    NativePointerButton button;
+    if (event->button == 1) button = NativePointerButton::left;
+    else if (event->button == 2) button = NativePointerButton::middle;
+    else if (event->button == 3) button = NativePointerButton::right;
+    else return FALSE;
+
+    int click_count = 1;
+    if (event->type == GDK_2BUTTON_PRESS) click_count = 2;
+    else if (event->type == GDK_3BUTTON_PRESS) click_count = 3;
+
+    const bool pressed = event->type != GDK_BUTTON_RELEASE;
+    if (pressed) gtk_widget_grab_focus(widget);
+    return forwarder->send_pointer_button(
+               pointer_event(event->x, event->y, event->state),
+               button, pressed, click_count)
+               ? TRUE
+               : FALSE;
+  }
+
+  static gboolean on_content_scroll(GtkWidget*, GdkEventScroll* event,
+                                    gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    auto* forwarder = self->software_input_forwarder();
+    if (!forwarder || !event) return FALSE;
+
+    int delta_x = 0;
+    int delta_y = 0;
+    switch (event->direction) {
+      case GDK_SCROLL_UP:
+        delta_y = 120;
+        break;
+      case GDK_SCROLL_DOWN:
+        delta_y = -120;
+        break;
+      case GDK_SCROLL_LEFT:
+        delta_x = -120;
+        break;
+      case GDK_SCROLL_RIGHT:
+        delta_x = 120;
+        break;
+      case GDK_SCROLL_SMOOTH:
+        delta_x = static_cast<int>(-event->delta_x * 120.0);
+        delta_y = static_cast<int>(-event->delta_y * 120.0);
+        break;
+      default:
+        break;
+    }
+    if (delta_x == 0 && delta_y == 0) return FALSE;
+    return forwarder->send_pointer_wheel(
+               pointer_event(event->x, event->y, event->state),
+               delta_x, delta_y)
+               ? TRUE
+               : FALSE;
+  }
+
+  static gboolean on_content_focus(GtkWidget*, GdkEventFocus* event,
+                                   gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (auto* forwarder = self->software_input_forwarder()) {
+      forwarder->set_surface_focus(event && event->in);
+    }
+    return FALSE;
+  }
+
   void present_software_frame(const NativeSurfaceFrame& frame) override {
     if (!frame.bgra || frame.width <= 0 || frame.height <= 0 ||
         frame.stride < frame.width * 4) {
@@ -711,6 +836,29 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
                      G_CALLBACK(on_content_size_allocate), this);
     g_signal_connect(content_area, "draw",
                      G_CALLBACK(on_content_draw), this);
+    gtk_widget_set_can_focus(content_area, TRUE);
+    gtk_widget_add_events(
+        content_area,
+        GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK |
+            GDK_BUTTON_RELEASE_MASK | GDK_SCROLL_MASK |
+            GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
+            GDK_FOCUS_CHANGE_MASK);
+    g_signal_connect(content_area, "motion-notify-event",
+                     G_CALLBACK(on_content_motion), this);
+    g_signal_connect(content_area, "enter-notify-event",
+                     G_CALLBACK(on_content_enter), this);
+    g_signal_connect(content_area, "leave-notify-event",
+                     G_CALLBACK(on_content_leave), this);
+    g_signal_connect(content_area, "button-press-event",
+                     G_CALLBACK(on_content_button), this);
+    g_signal_connect(content_area, "button-release-event",
+                     G_CALLBACK(on_content_button), this);
+    g_signal_connect(content_area, "scroll-event",
+                     G_CALLBACK(on_content_scroll), this);
+    g_signal_connect(content_area, "focus-in-event",
+                     G_CALLBACK(on_content_focus), this);
+    g_signal_connect(content_area, "focus-out-event",
+                     G_CALLBACK(on_content_focus), this);
 
     build_internal_surface();
     build_panel_surface();
@@ -1209,6 +1357,8 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
       return;
     }
     engine_surface_attached = attachable->attach_native_surface(surface);
+    software_surface_attached =
+        engine_surface_attached && surface.frame_sink != nullptr;
     if (engine_surface_attached) {
       gtk_stack_set_visible_child_name(GTK_STACK(content_stack), "web");
     } else {
@@ -1296,6 +1446,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
   bool created{false};
   bool close_requested{false};
   bool engine_surface_attached{false};
+  bool software_surface_attached{false};
 };
 
 GtkLinuxGlazeWindowHost::GtkLinuxGlazeWindowHost()
@@ -1392,6 +1543,7 @@ void GtkLinuxGlazeWindowHost::detach_engine_view() {
   }
   impl_->attached_view = nullptr;
   impl_->engine_surface_attached = false;
+  impl_->software_surface_attached = false;
 }
 
 void GtkLinuxGlazeWindowHost::show_internal_surface(
