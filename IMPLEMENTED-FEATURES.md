@@ -1,5 +1,11 @@
 # GoreeCloud Browser — Implemented Features
 
+## September 29, 2026 — Android local Find in page candidate
+
+The current Android onboarding branch now includes a bounded **Find in page** workflow backed only by the already-loaded WebView document. Queries are capped at 256 characters, embedded NUL is neutralized, match counting/navigation stays inside WebView, and dismissing the dialog clears match highlighting/listener state. This capability does not call GoreeCloud Search, persist search history, broaden site permissions, enable downloads, or add provider/network authority beyond the page that is already loaded.
+
+This remains unmerged Development candidate evidence pending fresh exact-head Android validation and normal repository review/integration gates.
+
 ## September 28, 2026 — Android first-use guidance and local browsing-data reset
 
 The Android launcher activity now presents a resumable three-step first-use flow before ordinary first-run browsing. Setup explains the GoreeCloud-owned chrome/WebView engine boundary, conservative permission/privacy defaults, direct-address versus fail-closed free-text Search behavior, and the optional contextual-hint model. Voluntary replay is dismissible; first-run setup is not. Setup progress, hint enablement, and dismissed-hint state stay in application-local preferences.
