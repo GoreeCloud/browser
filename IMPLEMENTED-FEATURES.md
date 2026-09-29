@@ -1,5 +1,11 @@
 # GoreeCloud Browser — Implemented Features
 
+## September 29, 2026 — Android logical tab-session foundation candidate
+
+The current Android candidate adds a Browser-owned, engine-independent logical tab/session state machine. It keeps stable bounded tab identities separate from transient WebView objects, caps a session at 32 tabs, requires one active tab, rejects duplicate/unknown identities, protects the last logical tab from accidental removal, chooses a deterministic neighboring active tab after close, and binds URL/title updates to an exact logical tab. URLs, IDs, and titles are individually bounded.
+
+This is a **model foundation only**. It is not wired to the Android Browser chrome yet, does not create multiple WebViews, does not persist/recover tabs, and does not establish multi-tab user acceptance. It adds no network, Search, permission, download, Identity, Sync, Vault, or privacy authority.
+
 **Record type:** Repository implemented-feature inventory  
 **Repository:** `GoreeCloud/browser`  
 **Lifecycle:** Development / non-Stable  
