@@ -290,10 +290,13 @@ jobs:
               done
 
               test -n "$window_id"
-              xdotool mousemove --window "$window_id" 640 420 click 1
+              xdotool mousemove --window "$window_id" 640 420 click 5
+              sleep 0.25
+              xdotool click 1
 
               for _ in $(seq 1 120); do
-                if grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "$2" &&
+                if grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "$2" &&
                    grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$2"; then
                   kill "$browser_pid" 2>/dev/null || true
                   wait "$browser_pid" 2>/dev/null || true
@@ -314,6 +317,7 @@ jobs:
 
           grep -Fq "mode=windowless" "${log_file}"
           grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "${log_file}"
           grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "${log_file}"
           grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
