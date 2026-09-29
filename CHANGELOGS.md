@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-09-29 — Linux Wayland page rendering integrated; pointer interaction candidate
+
+### Changed
+
+- Integrated the CEF windowless/software-rendering path after exact-head CI verified HTTPS completion and materially non-uniform page frames, and representative Zorin OS 17.3 Wayland evidence showed the real `https://example.com/` page inside the Browser content surface.
+- Preserved the native X11/XWayland child-window rendering path.
+- Advanced a separate Development candidate that forwards GTK pointer motion, mouse buttons, wheel input, and focus into the windowless CEF browser without duplicating native-child input.
+- Stage the canonical Browser SVG with GTK development binaries so the desktop chrome can render product artwork when launched from the build directory.
+- Correct stale Browser fallback copy that still described native Wayland page rendering as unavailable.
+
+### Acceptance boundary
+
+Integrated Wayland page pixels are Development evidence, not production acceptance. The pointer/branding continuation remains candidate work until exact-head automated and representative-device interaction evidence exists. Keyboard/IME, cursor propagation, popup/context-menu behavior, drag-and-drop, clipboard, accessibility, accelerated rendering, sustained performance, Browser-wide Glaze acceptance, production approval, Stable, and Anchor remain open.
+
 ## 2026-09-28 — Linux Wayland CEF software-rendering candidate
 
 ### Changed
