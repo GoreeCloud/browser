@@ -1,5 +1,11 @@
 # GoreeCloud Browser — Implemented Features
 
+## September 29, 2026 — GTK renderer compatibility surface candidate
+
+The Linux GTK shell now distinguishes “GTK display available” from “native page surface embeddable.” On X11/XWayland it preserves the existing native renderer path. On other initialized GTK display backends, or when native-surface attachment fails, the browser shell stays open and presents a fail-closed compatibility surface explaining that page rendering is unavailable. It does not silently claim renderer support and does not introduce a remote-render fallback.
+
+This remains Development candidate evidence pending fresh exact-head Core/CEF validation and representative Linux runtime acceptance.
+
 ## September 29, 2026 — Android local Find in page candidate
 
 The current Android onboarding branch now includes a bounded **Find in page** workflow backed only by the already-loaded WebView document. Queries are capped at 256 characters, embedded NUL is neutralized, match counting/navigation stays inside WebView, and dismissing the dialog clears match highlighting/listener state. This capability does not call GoreeCloud Search, persist search history, broaden site permissions, enable downloads, or add provider/network authority beyond the page that is already loaded.
