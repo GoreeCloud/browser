@@ -7,6 +7,7 @@ This file records Browser functionality and implementation state. A listed featu
 - GoreeCloud-owned engine-independent browser core.
 - Browser Engine Layer abstraction for replaceable rendering/runtime foundations.
 - Linux GTK/X11 native beta shell build path.
+- Linux GTK shell remains available on initialized non-X11 displays with a fail-closed renderer-compatibility surface; native page embedding remains X11/XWayland-only in the current Development implementation.
 - GoreeCloud Search integration as the sole integrated query authority.
 - Transport-neutral first-party service capability evidence that keeps producer authority outside Browser and fails closed unless an exact capability is current, authoritative, explicitly production-accepted, and—when requested—on the exact expected contract version.
 - Browser-owned Sync submission/retrieval contracts with privacy-safe tombstones, capability/schema validation, pagination, record-ID bounds, and signer-shape validation.
