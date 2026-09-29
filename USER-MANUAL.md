@@ -18,7 +18,7 @@ GoreeCloud owns the Browser product layer, navigation/search behavior, mobile br
 
 ### Linux desktop development candidate
 
-The Linux GTK3 development host can present the GoreeCloud Browser shell on an available GTK desktop display. X11/XWayland keeps the native CEF child-window path. This source line also contains a CEF windowless/software-rendering path for GTK backends that cannot provide an X11 child handle: CEF supplies BGRA page frames and the Browser paints those frames into its GTK web surface. The windowless path remains Development work until exact-head CI and representative-device rendered/interaction evidence are accepted; pointer/keyboard/IME, popup, drag-and-drop, accessibility, performance, and accelerated-buffer acceptance remain separate gates.
+The Linux GTK3 development host can present the GoreeCloud Browser shell on an available GTK desktop display. X11/XWayland keeps the native CEF child-window path. Native Wayland can use the CEF windowless/software-rendering path: CEF supplies BGRA page frames and the Browser paints those frames into its GTK web surface. Exact-head validation plus representative Zorin OS 17.3 Wayland evidence have established real Development page pixels. Pointer/wheel/focus interaction is still under Development validation, while keyboard/IME, popup, drag-and-drop, accessibility, performance, and accelerated-buffer acceptance remain separate gates.
 
 ## Installing the Android beta
 

@@ -20,6 +20,45 @@ class NativeSurfaceFrameSink {
   virtual void present_software_frame(const NativeSurfaceFrame& frame) = 0;
 };
 
+enum class NativePointerButton {
+  left,
+  middle,
+  right,
+};
+
+enum NativeInputModifier : std::uint32_t {
+  native_modifier_none = 0,
+  native_modifier_shift = 1U << 0,
+  native_modifier_control = 1U << 1,
+  native_modifier_alt = 1U << 2,
+  native_modifier_left_button = 1U << 3,
+  native_modifier_middle_button = 1U << 4,
+  native_modifier_right_button = 1U << 5,
+};
+
+struct NativePointerEvent {
+  int x{0};
+  int y{0};
+  std::uint32_t modifiers{native_modifier_none};
+};
+
+// Optional input bridge used by software/windowless engine surfaces. Native
+// child-window surfaces continue receiving platform input directly.
+class NativeSurfaceInputForwarder {
+ public:
+  virtual ~NativeSurfaceInputForwarder() = default;
+  virtual bool send_pointer_move(const NativePointerEvent& event,
+                                 bool leave) = 0;
+  virtual bool send_pointer_button(const NativePointerEvent& event,
+                                   NativePointerButton button,
+                                   bool pressed,
+                                   int click_count) = 0;
+  virtual bool send_pointer_wheel(const NativePointerEvent& event,
+                                  int delta_x,
+                                  int delta_y) = 0;
+  virtual void set_surface_focus(bool focused) = 0;
+};
+
 // Opaque platform surface description used to attach an engine-rendered view
 // to GoreeCloud-owned native chrome without exposing Chromium types upstream.
 //

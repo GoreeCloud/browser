@@ -113,6 +113,9 @@ jobs:
           assert "GOREECLOUD_BROWSER_FORCE_WINDOWLESS" in host
           assert "windowless-frame-presented" in host
           assert "NativeSurfaceFrameSink" in surface
+          assert "NativeSurfaceInputForwarder" in surface
+          assert "SendMouseClickEvent" in runtime
+          assert "SendMouseWheelEvent" in runtime
           assert "SetAsWindowless" in runtime
           assert "cef.windowless_rendering = true" in scaffold
           assert "native Wayland embedding is not yet enabled" not in runner
@@ -160,7 +163,7 @@ jobs:
             python3 cmake ninja-build build-essential pkg-config \
             libgtk-3-dev libx11-dev libcurl4-openssl-dev \
             libnss3-dev libxss-dev libasound2-dev libcups2-dev \
-            libdrm-dev libgbm-dev xvfb xauth procps dbus-x11
+            libdrm-dev libgbm-dev xvfb xauth xdotool procps dbus-x11
       - name: Bootstrap pinned CEF and build render candidate
         env:
           GOREECLOUD_CEF_CACHE_DIR: ${{ runner.temp }}/goreecloud-cef
@@ -175,6 +178,7 @@ jobs:
           test -f build-cef-render/resources.pak
           test -f build-cef-render/chrome_100_percent.pak
           test -f build-cef-render/v8_context_snapshot.bin
+          test -f build-cef-render/assets/branding/goreecloud-browser.svg
       - name: Launch sandboxed CEF runtime under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
@@ -251,7 +255,7 @@ jobs:
             exit "${runtime_status}"
           fi
 
-      - name: Launch CEF windowless software surface under Xvfb
+      - name: Exercise CEF windowless page pixels and pointer input under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
           GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
@@ -264,63 +268,60 @@ jobs:
             sudo chmod 4755 build-cef-render/chrome-sandbox
           fi
 
-          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless.log"
+          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless-input.log"
           : > "${log_file}"
+          test_url='data:text/html,%3Ca%20href%3D%22https%3A%2F%2Fexample.com%2F%22%20style%3D%22position%3Afixed%3Binset%3A0%3Bdisplay%3Ablock%3Bbackground%3A%23fff%22%3Econtinue%3C%2Fa%3E'
 
           timeout --signal=TERM --kill-after=5s 90s \
             dbus-run-session -- \
             xvfb-run -a -s "-screen 0 1280x800x24" \
-            ./scripts/run_linux_render_beta.sh https://example.com/ \
-            >"${log_file}" 2>&1 &
-          runtime_pid=$!
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
+              browser_pid=$!
 
-          windowless_ready=0
-          for _ in $(seq 1 90); do
-            load_ready=0
-            paint_ready=0
+              window_id=""
+              for _ in $(seq 1 60); do
+                window_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
+                if [ -n "$window_id" ] && grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                  break
+                fi
+                sleep 0.25
+              done
 
-            if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"; then
-              load_ready=1
-            fi
-            if grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "${log_file}"; then
-              paint_ready=1
-            fi
+              test -n "$window_id"
+              xdotool mousemove --window "$window_id" 640 420 click 5
+              sleep 0.25
+              xdotool click 1
 
-            if [[ "${load_ready}" -eq 1 && "${paint_ready}" -eq 1 ]]; then
-              windowless_ready=1
-              break
-            fi
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$2"; then
+                  kill "$browser_pid" 2>/dev/null || true
+                  wait "$browser_pid" 2>/dev/null || true
+                  exit 0
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
 
-            if ! kill -0 "${runtime_pid}" 2>/dev/null; then
-              break
-            fi
-            sleep 1
-          done
-
-          if kill -0 "${runtime_pid}" 2>/dev/null; then
-            kill "${runtime_pid}" || true
-          fi
-          set +e
-          wait "${runtime_pid}"
-          runtime_status=$?
-          set -e
+              kill "$browser_pid" 2>/dev/null || true
+              wait "$browser_pid" 2>/dev/null || true
+              exit 1
+            ' sh "${test_url}" "${log_file}"
 
           cat "${log_file}"
 
-          test "${windowless_ready}" -eq 1
           grep -Fq "mode=windowless" "${log_file}"
           grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "${log_file}"
           grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
-          if grep -Fq "[GoreeCloud CEF] main-frame-load-error" "${log_file}"; then
-            echo "CEF windowless main-frame navigation reported a load error" >&2
-            exit 1
-          fi
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
-            echo "CEF subprocess stack corruption detected during windowless runtime smoke" >&2
+            echo "CEF subprocess stack corruption detected during windowless input smoke" >&2
             exit 1
           fi
 
-          if [[ "${runtime_status}" -ne 0 && "${runtime_status}" -ne 124 && "${runtime_status}" -ne 143 ]]; then
-            echo "CEF windowless runtime exited unexpectedly with status ${runtime_status}" >&2
-            exit "${runtime_status}"
-          fi

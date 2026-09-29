@@ -30,6 +30,43 @@ bool cef_runtime_diagnostics_enabled() {
   return value && *value && std::string_view{value} != "0";
 }
 
+int cef_mouse_modifiers(std::uint32_t modifiers) {
+  int flags = EVENTFLAG_NONE;
+  if (modifiers & native_modifier_shift) flags |= EVENTFLAG_SHIFT_DOWN;
+  if (modifiers & native_modifier_control) flags |= EVENTFLAG_CONTROL_DOWN;
+  if (modifiers & native_modifier_alt) flags |= EVENTFLAG_ALT_DOWN;
+  if (modifiers & native_modifier_left_button) {
+    flags |= EVENTFLAG_LEFT_MOUSE_BUTTON;
+  }
+  if (modifiers & native_modifier_middle_button) {
+    flags |= EVENTFLAG_MIDDLE_MOUSE_BUTTON;
+  }
+  if (modifiers & native_modifier_right_button) {
+    flags |= EVENTFLAG_RIGHT_MOUSE_BUTTON;
+  }
+  return flags;
+}
+
+CefBrowserHost::MouseButtonType cef_mouse_button(NativePointerButton button) {
+  switch (button) {
+    case NativePointerButton::left:
+      return MBT_LEFT;
+    case NativePointerButton::middle:
+      return MBT_MIDDLE;
+    case NativePointerButton::right:
+      return MBT_RIGHT;
+  }
+  return MBT_LEFT;
+}
+
+CefMouseEvent cef_mouse_event(const NativePointerEvent& event) {
+  CefMouseEvent mouse_event;
+  mouse_event.x = event.x;
+  mouse_event.y = event.y;
+  mouse_event.modifiers = cef_mouse_modifiers(event.modifiers);
+  return mouse_event;
+}
+
 class CefRuntimeView final : public ChromiumRuntimeView {
  public:
   CefRuntimeView(CefRefPtr<CefRequestContext> request_context,
@@ -80,6 +117,49 @@ class CefRuntimeView final : public ChromiumRuntimeView {
 
   void stop_find() override {
     if (client_ && client_->browser()) client_->browser()->GetHost()->StopFinding(true);
+  }
+
+  bool send_pointer_move(const NativePointerEvent& event, bool leave) override {
+    if (!windowless_browser()) return false;
+    client_->browser()->GetHost()->SendMouseMoveEvent(cef_mouse_event(event), leave);
+    return true;
+  }
+
+  bool send_pointer_button(const NativePointerEvent& event,
+                           NativePointerButton button,
+                           bool pressed,
+                           int click_count) override {
+    if (!windowless_browser()) return false;
+    client_->browser()->GetHost()->SendMouseClickEvent(
+        cef_mouse_event(event), cef_mouse_button(button), !pressed,
+        click_count > 0 ? click_count : 1);
+    if (pressed) client_->browser()->GetHost()->SetFocus(true);
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-pointer-button button="
+                << static_cast<int>(button)
+                << " pressed=" << (pressed ? "yes" : "no")
+                << " x=" << event.x << " y=" << event.y << std::endl;
+    }
+    return true;
+  }
+
+  bool send_pointer_wheel(const NativePointerEvent& event,
+                          int delta_x,
+                          int delta_y) override {
+    if (!windowless_browser()) return false;
+    client_->browser()->GetHost()->SendMouseWheelEvent(
+        cef_mouse_event(event), delta_x, delta_y);
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-pointer-wheel dx="
+                << delta_x << " dy=" << delta_y << std::endl;
+    }
+    return true;
+  }
+
+  void set_surface_focus(bool focused) override {
+    if (windowless_browser()) {
+      client_->browser()->GetHost()->SetFocus(focused);
+    }
   }
 
   bool request_media_probe(int viewport_x,
@@ -200,6 +280,11 @@ class CefRuntimeView final : public ChromiumRuntimeView {
   }
 
  private:
+  [[nodiscard]] bool windowless_browser() const {
+    return client_ && client_->browser() && surface_ &&
+           surface_->window_handle == 0 && surface_->frame_sink != nullptr;
+  }
+
   CefRefPtr<CefRequestContext> request_context_;
   EngineViewOptions options_;
   CefRefPtr<GoreeCloudCefClient> client_;

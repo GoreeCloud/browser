@@ -1,6 +1,6 @@
 # Building GoreeCloud Browser
 
-GoreeCloud Browser is on the **0.1.0-beta.1** development channel. The repository contains a build-tested Browser core, an optional visible Linux GTK3 Glaze shell, the Chromium engine adapter, and an optional CEF runtime path. CEF page embedding currently uses an X11/XWayland child-surface contract. A successful build is not production-readiness evidence.
+GoreeCloud Browser is on the **0.1.0-beta.1** development channel. The repository contains a build-tested Browser core, an optional visible Linux GTK3 Glaze shell, the Chromium engine adapter, and an optional CEF runtime path. Linux CEF rendering supports the native X11/XWayland child-surface path plus a software-rendered windowless path used by native Wayland GTK sessions. A successful build is not production-readiness evidence.
 
 The Linux build supports **CMake 3.22 or newer**, including the system CMake supplied by Ubuntu 22.04 / Zorin OS 17-class environments. The dedicated GTK beta-shell CI lane runs on Ubuntu 22.04 so this compatibility remains continuously checked.
 
@@ -65,7 +65,7 @@ cmake -S . -B build-cef \
 cmake --build build-cef --parallel
 ```
 
-The build integrates CEF's binary-distribution CMake targets, `libcef_dll_wrapper`, CEF runtime libraries/resources, subprocess dispatch, GoreeCloud request-context separation, and the GTK/X11 child-content surface.
+The build integrates CEF's binary-distribution CMake targets, `libcef_dll_wrapper`, CEF runtime libraries/resources, subprocess dispatch, GoreeCloud request-context separation, the GTK/X11 child-content surface, and the GTK windowless software-rendering surface used when a child handle is unavailable.
 
 Runtime environment:
 
@@ -90,7 +90,7 @@ Private launch examples:
 
 ## Beta runtime boundary
 
-CEF/Chromium source integration does not by itself satisfy the render-capable beta gate. Real runtime evidence is still required for HTTPS rendering, native child-window behavior, navigation, private-context isolation, cleanup, sandbox/site isolation, and sustained desktop operation. See `docs/BETA_0_1.md`.
+CEF/Chromium source integration does not by itself satisfy the render-capable beta gate. Development evidence now covers HTTPS page rendering on both the native child and software-rendered Wayland paths, including representative Wayland page pixels. Interaction completeness, navigation behavior, private-context isolation, cleanup, sandbox/site isolation, accessibility, performance, packaging, and sustained desktop operation remain separate acceptance work. See `docs/BETA_0_1.md`.
 
 ## Security requirements
 
