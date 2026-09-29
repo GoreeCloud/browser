@@ -307,6 +307,15 @@ class GoreeCloudCefClient final : public CefClient,
     sink->show_native_context_menu(
         std::move(request),
         [callback](std::optional<int> command_id) {
+          if (runtime_diagnostics_enabled()) {
+            if (command_id) {
+              std::cerr << "[GoreeCloud CEF] windowless-context-menu-result command="
+                        << *command_id << std::endl;
+            } else {
+              std::cerr << "[GoreeCloud CEF] windowless-context-menu-result canceled"
+                        << std::endl;
+            }
+          }
           if (command_id) callback->Continue(*command_id, EVENTFLAG_NONE);
           else callback->Cancel();
         });
