@@ -1,5 +1,13 @@
 # GoreeCloud Browser — Implemented Features
 
+
+## September 29, 2026 — Android Find in page candidate
+
+A stacked Android Development candidate adds **Find in page** to the existing Browser-owned menu. The query is ephemeral, matching delegates only to the already-rendered WebView document through Android's platform find APIs, Previous/Next navigates local matches, match-count feedback is Browser-owned, and dismissing the surface clears both the WebView match highlights and the transient query.
+
+This capability does not navigate, delegate Search, create network requests, persist history/query state, request permissions, enable downloads, or change website authority. Focused JVM coverage locks searching/empty/match-count presentation. Fresh exact-head Core/Android/security workflow validation is required before this candidate is treated as verified.
+
+
 ## September 28, 2026 — Android first-use guidance and local browsing-data reset
 
 The Android launcher activity now presents a resumable three-step first-use flow before ordinary first-run browsing. Setup explains the GoreeCloud-owned chrome/WebView engine boundary, conservative permission/privacy defaults, direct-address versus fail-closed free-text Search behavior, and the optional contextual-hint model. Voluntary replay is dismissible; first-run setup is not. Setup progress, hint enablement, and dismissed-hint state stay in application-local preferences.
