@@ -7,7 +7,7 @@ project_status: "Active Development / nonconformant"
 classification: "Internal"
 document_type: "Native Web Browser Project Specification and Implementation Blueprint"
 project_name: "GoreeCloud Browser"
-repository: "GoreeCloud/goreecloud-browser"
+repository: "GoreeCloud/browser"
 authoritative_record: true
 canonical_path: "SPECIFICATIONS.md"
 created: "2026-08-29"
