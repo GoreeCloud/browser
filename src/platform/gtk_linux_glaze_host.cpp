@@ -532,15 +532,28 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       return;
     }
 
+    auto* trigger_event = gtk_get_current_event();
+    if (!trigger_event) {
+      if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+        std::cerr << "[GoreeCloud GTK] windowless-context-menu-missing-trigger"
+                  << std::endl;
+      }
+      finish_context_menu(session, std::nullopt);
+      gtk_widget_destroy(menu);
+      return;
+    }
+
     GdkRectangle anchor{request.x, request.y, 1, 1};
     gtk_menu_popup_at_rect(GTK_MENU(menu), gdk_window, &anchor,
                            GDK_GRAVITY_NORTH_WEST,
-                           GDK_GRAVITY_NORTH_WEST, nullptr);
+                           GDK_GRAVITY_NORTH_WEST, trigger_event);
+    gdk_event_free(trigger_event);
 
     if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
       std::cerr << "[GoreeCloud GTK] windowless-context-menu-presented items="
                 << request.items.size()
-                << " x=" << request.x << " y=" << request.y << std::endl;
+                << " x=" << request.x << " y=" << request.y
+                << " trigger=yes" << std::endl;
     }
   }
 
