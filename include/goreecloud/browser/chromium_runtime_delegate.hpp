@@ -34,6 +34,31 @@ class ChromiumRuntimeView {
   virtual void detach_surface() = 0;
   virtual void resize_surface(const NativeEngineSurface& surface) = 0;
 
+  virtual bool send_pointer_move(const NativePointerEvent& event, bool leave) {
+    (void)event;
+    (void)leave;
+    return false;
+  }
+  virtual bool send_pointer_button(const NativePointerEvent& event,
+                                   NativePointerButton button,
+                                   bool pressed,
+                                   int click_count) {
+    (void)event;
+    (void)button;
+    (void)pressed;
+    (void)click_count;
+    return false;
+  }
+  virtual bool send_pointer_wheel(const NativePointerEvent& event,
+                                  int delta_x,
+                                  int delta_y) {
+    (void)event;
+    (void)delta_x;
+    (void)delta_y;
+    return false;
+  }
+  virtual void set_surface_focus(bool focused) { (void)focused; }
+
   // Optional asynchronous media probe. Runtime implementations that do not
   // support point media hit testing return false without invoking callback.
   virtual bool request_media_probe(int viewport_x,
