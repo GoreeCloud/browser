@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -131,7 +132,8 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
 
 }  // namespace
 
-class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
+class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
+                                      public NativeSurfaceContextMenuSink {
  public:
   Impl() {
     media_hover.set_present_callback(
@@ -428,6 +430,120 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
     return FALSE;
   }
 
+  struct ContextMenuSession {
+    NativeContextMenuSelectionCallback callback;
+    bool completed{false};
+  };
+
+  static void finish_context_menu(
+      ContextMenuSession* session,
+      std::optional<int> command_id) {
+    if (!session || session->completed) return;
+    session->completed = true;
+    if (session->callback) session->callback(command_id);
+  }
+
+  static void on_context_menu_item_activate(GtkMenuItem* item, gpointer data) {
+    auto* session = static_cast<ContextMenuSession*>(data);
+    auto* stored = static_cast<int*>(
+        g_object_get_data(G_OBJECT(item), "gc-context-command"));
+    if (!stored) {
+      finish_context_menu(session, std::nullopt);
+      return;
+    }
+    finish_context_menu(session, *stored);
+  }
+
+  static void on_context_menu_selection_done(GtkMenuShell* menu,
+                                             gpointer data) {
+    auto* session = static_cast<ContextMenuSession*>(data);
+    finish_context_menu(session, std::nullopt);
+    gtk_widget_destroy(GTK_WIDGET(menu));
+  }
+
+  static GtkWidget* build_native_context_menu_items(
+      const std::vector<NativeContextMenuItem>& items,
+      ContextMenuSession* session) {
+    auto* menu = gtk_menu_new();
+    add_style_class(menu, "gc-context-menu");
+
+    for (const auto& item : items) {
+      GtkWidget* widget = nullptr;
+      switch (item.type) {
+        case NativeContextMenuItemType::separator:
+          widget = gtk_separator_menu_item_new();
+          break;
+        case NativeContextMenuItemType::check:
+        case NativeContextMenuItemType::radio:
+          widget = gtk_check_menu_item_new_with_label(item.label.c_str());
+          gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget),
+                                         item.checked);
+          break;
+        case NativeContextMenuItemType::submenu:
+        case NativeContextMenuItemType::command:
+          widget = gtk_menu_item_new_with_label(item.label.c_str());
+          break;
+      }
+
+      if (!widget) continue;
+      gtk_widget_set_sensitive(widget, item.enabled ? TRUE : FALSE);
+
+      if (item.type == NativeContextMenuItemType::submenu) {
+        auto* submenu = build_native_context_menu_items(item.children, session);
+        gtk_menu_item_set_submenu(GTK_MENU_ITEM(widget), submenu);
+      } else if (item.type != NativeContextMenuItemType::separator) {
+        g_object_set_data_full(
+            G_OBJECT(widget), "gc-context-command",
+            new int(item.command_id),
+            [](gpointer value) { delete static_cast<int*>(value); });
+        g_signal_connect(widget, "activate",
+                         G_CALLBACK(on_context_menu_item_activate), session);
+      }
+
+      gtk_menu_shell_append(GTK_MENU_SHELL(menu), widget);
+    }
+    return menu;
+  }
+
+  void show_native_context_menu(
+      NativeContextMenuRequest request,
+      NativeContextMenuSelectionCallback callback) override {
+    if (!content_area || !gtk_widget_get_realized(content_area) ||
+        request.items.empty()) {
+      if (callback) callback(std::nullopt);
+      return;
+    }
+
+    auto* session = new ContextMenuSession{std::move(callback), false};
+    auto* menu = build_native_context_menu_items(request.items, session);
+    g_object_set_data_full(
+        G_OBJECT(menu), "gc-context-menu-session", session,
+        [](gpointer value) {
+          delete static_cast<ContextMenuSession*>(value);
+        });
+    g_signal_connect(menu, "selection-done",
+                     G_CALLBACK(on_context_menu_selection_done), session);
+    gtk_widget_show_all(menu);
+
+    auto* gdk_window = gtk_widget_get_window(content_area);
+    if (!gdk_window) {
+      finish_context_menu(session, std::nullopt);
+      gtk_widget_destroy(menu);
+      return;
+    }
+
+    GdkRectangle anchor{request.x, request.y, 1, 1};
+    gtk_menu_popup_at_rect(GTK_MENU(menu), gdk_window, &anchor,
+                           GDK_GRAVITY_NORTH_WEST,
+                           GDK_GRAVITY_NORTH_WEST, nullptr);
+
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-context-menu-presented items="
+                << request.items.size()
+                << " x=" << request.x << " y=" << request.y << std::endl;
+    }
+  }
+
   void present_software_frame(const NativeSurfaceFrame& frame) override {
     if (!frame.bgra || frame.width <= 0 || frame.height <= 0 ||
         frame.stride < frame.width * 4) {
@@ -677,6 +793,20 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
       }
       .gc-search-control:hover {
         background-color: alpha(@theme_fg_color, 0.06);
+      }
+      menu.gc-context-menu {
+        padding: 6px;
+        border-radius: 14px;
+        background-color: alpha(@theme_bg_color, 0.98);
+        border: 1px solid alpha(@theme_fg_color, 0.12);
+      }
+      menu.gc-context-menu menuitem {
+        min-height: 34px;
+        padding: 4px 10px;
+        border-radius: 9px;
+      }
+      menu.gc-context-menu menuitem:hover {
+        background-color: alpha(@theme_selected_bg_color, 0.16);
       }
       .gc-overflow-card {
         padding: 8px;
@@ -1337,6 +1467,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink {
           gdk_x11_display_get_xdisplay(display));
     } else {
       surface.frame_sink = this;
+      surface.context_menu_sink = this;
     }
     return surface;
   }
