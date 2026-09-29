@@ -283,7 +283,7 @@ jobs:
               window_id=""
               for _ in $(seq 1 60); do
                 window_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
-                if [[ -n "$window_id" ]] && grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                if [ -n "$window_id" ] && grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
                   break
                 fi
                 sleep 0.25
