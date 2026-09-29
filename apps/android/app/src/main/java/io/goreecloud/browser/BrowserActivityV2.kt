@@ -10,6 +10,8 @@ import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
@@ -576,6 +578,9 @@ class BrowserActivityV2 : Activity() {
                 putExtra(Intent.EXTRA_TEXT, currentUrl)
             }, "Share page"))
         }
+        addAction("Find in page") {
+            showFindInPageDialog()
+        }
 
         val firstUseState = firstUsePreferences.state()
         addAction("Contextual hints: " + if (firstUseState.hintsEnabled) "On" else "Off") {
@@ -608,6 +613,168 @@ class BrowserActivityV2 : Activity() {
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
+    private fun showFindInPageDialog() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "Find in page"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = "Find in page" }
+        glaze.styleMenuTitle(title)
+        sheet.addView(title)
+
+        val query = EditText(this).apply {
+            hint = "Text on this page"
+            contentDescription = "Find text on page"
+            isSingleLine = true
+            imeOptions = EditorInfo.IME_ACTION_SEARCH
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            setPadding(dp(16), 0, dp(16), 0)
+        }
+        glaze.styleAddressField(query)
+        sheet.addView(
+            query,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(GlazeContract.OMNIBOX_HEIGHT_DP),
+            ),
+        )
+
+        val status = TextView(this).apply {
+            text = "Type text to find on this page"
+            contentDescription = "Find in page result count"
+        }
+        glaze.styleMenuSubtitle(status)
+        sheet.addView(status)
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+        }
+        val previous = TextView(this).apply {
+            text = "Previous"
+            contentDescription = "Previous match"
+            glaze.styleMenuAction(this)
+            isEnabled = false
+            alpha = 0.45f
+            setOnClickListener {
+                if (query.text.isNotBlank()) webView.findNext(false)
+            }
+        }
+        val next = TextView(this).apply {
+            text = "Next"
+            contentDescription = "Next match"
+            glaze.styleMenuAction(this)
+            isEnabled = false
+            alpha = 0.45f
+            setOnClickListener {
+                if (query.text.isNotBlank()) webView.findNext(true)
+            }
+        }
+        val close = TextView(this).apply {
+            text = "Close"
+            contentDescription = "Close Find in page"
+            glaze.styleMenuAction(this)
+            setOnClickListener { dialog.dismiss() }
+        }
+        listOf(previous, next, close).forEach { control ->
+            actions.addView(
+                control,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(GlazeContract.MENU_ACTION_HEIGHT_DP),
+                    1f,
+                ),
+            )
+        }
+        sheet.addView(actions)
+
+        webView.setFindListener { activeMatchOrdinal, numberOfMatches, doneCounting ->
+            runOnUiThread {
+                status.text = FindInPagePresentation.status(
+                    activeMatchOrdinal = activeMatchOrdinal,
+                    numberOfMatches = numberOfMatches,
+                    doneCounting = doneCounting,
+                )
+                val canNavigate = doneCounting && numberOfMatches > 0
+                previous.isEnabled = canNavigate
+                next.isEnabled = canNavigate
+                previous.alpha = if (canNavigate) 1f else 0.45f
+                next.alpha = if (canNavigate) 1f else 0.45f
+            }
+        }
+
+        query.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(
+                value: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int,
+            ) = Unit
+
+            override fun onTextChanged(
+                value: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int,
+            ) {
+                val text = value?.toString().orEmpty()
+                if (text.isBlank()) {
+                    webView.clearMatches()
+                    status.text = "Type text to find on this page"
+                    previous.isEnabled = false
+                    next.isEnabled = false
+                    previous.alpha = 0.45f
+                    next.alpha = 0.45f
+                } else {
+                    status.text = "Searching…"
+                    previous.isEnabled = false
+                    next.isEnabled = false
+                    previous.alpha = 0.45f
+                    next.alpha = 0.45f
+                    webView.findAllAsync(text)
+                }
+            }
+
+            override fun afterTextChanged(value: Editable?) = Unit
+        })
+        query.setOnEditorActionListener { _, actionId, event ->
+            val search = actionId == EditorInfo.IME_ACTION_SEARCH ||
+                (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+            if (search && query.text.isNotBlank()) {
+                webView.findNext(true)
+                true
+            } else {
+                false
+            }
+        }
+
+        dialog.setOnDismissListener {
+            webView.setFindListener(null)
+            webView.clearMatches()
+            hideKeyboard()
+        }
+        dialog.setContentView(sheet)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.setOnShowListener {
+            query.requestFocus()
+            query.post {
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(query, InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+        dialog.show()
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            setGravity(Gravity.BOTTOM)
+        }
     }
 
     private fun showClearBrowsingDataDialog() {
