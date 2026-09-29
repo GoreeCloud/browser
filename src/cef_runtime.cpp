@@ -133,7 +133,7 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     client_->browser()->GetHost()->SendMouseClickEvent(
         cef_mouse_event(event), cef_mouse_button(button), !pressed,
         click_count > 0 ? click_count : 1);
-    if (pressed) client_->browser()->GetHost()->SendFocusEvent(true);
+    if (pressed) client_->browser()->GetHost()->SetFocus(true);
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] windowless-pointer-button button="
                 << static_cast<int>(button)
@@ -158,7 +158,7 @@ class CefRuntimeView final : public ChromiumRuntimeView {
 
   void set_surface_focus(bool focused) override {
     if (windowless_browser()) {
-      client_->browser()->GetHost()->SendFocusEvent(focused);
+      client_->browser()->GetHost()->SetFocus(focused);
     }
   }
 
