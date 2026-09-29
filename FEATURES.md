@@ -40,7 +40,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Current migration-candidate identity `0.1.0-beta.1+android.6` / versionCode `10006`.
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
-- Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
+- Back, Forward, Reload, Go, unified address/search field, progress state, web-content region, and local Find in page with match navigation.
 - Direct HTTP/HTTPS navigation.
 - HTTPS upgrade for bare hosts.
 - GoreeCloud Search for non-URL input.
