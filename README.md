@@ -70,11 +70,11 @@ Consumer validation does not create producer authority. Search, Index, Vault, Sy
 
 ## Glaze UI requirement
 
-The current Official Stable consumer target published by `GoreeCloud/goreecloud-glaze-ui` is **Glaze UI V1.5 / `1.5.1`**. V1.6 remains Development-only and is not consumer authority.
+The current Official consumer target published by `GoreeCloud/glaze-ui` is **GLAZE UI V1.6 / `1.6.0`**. The canonical shared lifecycle is **Anchor**; retained Stable naming is compatibility/release-channel vocabulary.
 
-Browser source now maps the reviewed V1.5 context/capability presentation behavior while pinning the current V1.5.1 Stable promotion, qualification-source, and rollback boundaries. Glaze UI remains presentation-only: it cannot infer authorization, consent, provider precedence, security/privacy truth, or automatic consequential execution.
+Browser source maps the current V1.6 presentation contract and exact release/qualification anchors while retaining V1.5.1 only as the immediate known-good rollback baseline. Glaze UI remains presentation-only: it cannot infer authorization, consent, provider precedence, security/privacy truth, or automatic consequential execution.
 
-Browser remains **Glaze migration-required / not accepted** until fresh Browser-local exact-revision rendered/native, accessibility, representative-device/form-factor/posture, performance, localization/RTL, rollback, workflow, and production acceptance evidence exists. Shared Glaze V1.5.1 Stable qualification does not certify Browser.
+Browser remains **Glaze adoption-required / not accepted** until fresh Browser-local exact-revision rendered/native, accessibility, representative-device/form-factor/posture, performance, localization/RTL, rollback, workflow, and production acceptance evidence exists. Shared Glaze V1.6 Anchor qualification does not certify Browser.
 
 See [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md).
 
