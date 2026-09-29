@@ -1,5 +1,14 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-09-29 — GTK renderer compatibility surface candidate
+
+- Kept the Linux GTK browser shell available on initialized non-X11 displays instead of aborting the whole host.
+- Native page embedding still fails closed outside X11/XWayland; an explicit renderer-compatibility surface now explains the limitation without substituting a remote renderer.
+- Failed native-surface attachment also falls back to the same truthful compatibility presentation.
+- No Search, sync, download, permission, renderer-network, account, or persistence authority was added.
+
+**Acceptance boundary:** Development candidate on PR #108. Exact-head Core/CEF validation and representative Linux display/runtime acceptance remain required.
+
 ## 2026-09-29 — Android local Find in page candidate
 
 - Added **Find in page** to the Android Browser menu.
