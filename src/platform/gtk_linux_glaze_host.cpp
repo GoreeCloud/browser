@@ -432,6 +432,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
 
   struct ContextMenuSession {
     NativeContextMenuSelectionCallback callback;
+    GtkWidget* popover{nullptr};
     bool completed{false};
   };
 
@@ -443,66 +444,89 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     if (session->callback) session->callback(command_id);
   }
 
-  static void on_context_menu_item_activate(GtkMenuItem* item, gpointer data) {
+  static void on_context_menu_row_clicked(GtkButton* button, gpointer data) {
     auto* session = static_cast<ContextMenuSession*>(data);
     auto* stored = static_cast<int*>(
-        g_object_get_data(G_OBJECT(item), "gc-context-command"));
+        g_object_get_data(G_OBJECT(button), "gc-context-command"));
     if (!stored) {
       finish_context_menu(session, std::nullopt);
-      return;
+    } else {
+      finish_context_menu(session, *stored);
     }
-    finish_context_menu(session, *stored);
+    if (session && session->popover) {
+      gtk_popover_popdown(GTK_POPOVER(session->popover));
+    }
   }
 
-  static void on_context_menu_selection_done(GtkMenuShell* menu,
-                                             gpointer data) {
+  static void on_context_popover_closed(GtkPopover* popover, gpointer data) {
     auto* session = static_cast<ContextMenuSession*>(data);
     finish_context_menu(session, std::nullopt);
-    gtk_widget_destroy(GTK_WIDGET(menu));
+    gtk_widget_destroy(GTK_WIDGET(popover));
   }
 
-  static GtkWidget* build_native_context_menu_items(
+  static gboolean on_context_menu_stability_check(gpointer data) {
+    auto* popover = GTK_WIDGET(data);
+    const bool visible = popover && gtk_widget_get_visible(popover);
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-context-menu-stable visible="
+                << (visible ? "yes" : "no") << std::endl;
+    }
+    if (popover) g_object_unref(popover);
+    return G_SOURCE_REMOVE;
+  }
+
+  static GtkWidget* build_context_popover_box(
       const std::vector<NativeContextMenuItem>& items,
       ContextMenuSession* session) {
-    auto* menu = gtk_menu_new();
-    add_style_class(menu, "gc-context-menu");
+    auto* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    add_style_class(box, "gc-context-popover-box");
 
     for (const auto& item : items) {
-      GtkWidget* widget = nullptr;
-      switch (item.type) {
-        case NativeContextMenuItemType::separator:
-          widget = gtk_separator_menu_item_new();
-          break;
-        case NativeContextMenuItemType::check:
-        case NativeContextMenuItemType::radio:
-          widget = gtk_check_menu_item_new_with_label(item.label.c_str());
-          gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(widget),
-                                         item.checked);
-          break;
-        case NativeContextMenuItemType::submenu:
-        case NativeContextMenuItemType::command:
-          widget = gtk_menu_item_new_with_label(item.label.c_str());
-          break;
+      if (item.type == NativeContextMenuItemType::separator) {
+        auto* separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+        add_style_class(separator, "gc-context-separator");
+        gtk_box_pack_start(GTK_BOX(box), separator, FALSE, FALSE, 3);
+        continue;
       }
 
-      if (!widget) continue;
-      gtk_widget_set_sensitive(widget, item.enabled ? TRUE : FALSE);
-
+      GtkWidget* row = nullptr;
       if (item.type == NativeContextMenuItemType::submenu) {
-        auto* submenu = build_native_context_menu_items(item.children, session);
-        gtk_menu_item_set_submenu(GTK_MENU_ITEM(widget), submenu);
-      } else if (item.type != NativeContextMenuItemType::separator) {
+        auto* menu_button = gtk_menu_button_new();
+        auto* label = gtk_label_new(item.label.c_str());
+        gtk_label_set_xalign(GTK_LABEL(label), 0.0F);
+        gtk_container_add(GTK_CONTAINER(menu_button), label);
+        auto* submenu = gtk_popover_new(menu_button);
+        auto* submenu_box = build_context_popover_box(item.children, session);
+        gtk_container_add(GTK_CONTAINER(submenu), submenu_box);
+        gtk_popover_set_position(GTK_POPOVER(submenu), GTK_POS_RIGHT);
+        gtk_menu_button_set_popover(GTK_MENU_BUTTON(menu_button), submenu);
+        row = menu_button;
+      } else {
+        std::string label = item.label;
+        if ((item.type == NativeContextMenuItemType::check ||
+             item.type == NativeContextMenuItemType::radio) &&
+            item.checked) {
+          label = "✓ " + label;
+        }
+        auto* button = gtk_button_new_with_label(label.c_str());
+        gtk_button_set_relief(GTK_BUTTON(button), GTK_RELIEF_NONE);
+        gtk_widget_set_halign(button, GTK_ALIGN_FILL);
         g_object_set_data_full(
-            G_OBJECT(widget), "gc-context-command",
+            G_OBJECT(button), "gc-context-command",
             new int(item.command_id),
             [](gpointer value) { delete static_cast<int*>(value); });
-        g_signal_connect(widget, "activate",
-                         G_CALLBACK(on_context_menu_item_activate), session);
+        g_signal_connect(button, "clicked",
+                         G_CALLBACK(on_context_menu_row_clicked), session);
+        row = button;
       }
 
-      gtk_menu_shell_append(GTK_MENU_SHELL(menu), widget);
+      if (!row) continue;
+      gtk_widget_set_sensitive(row, item.enabled ? TRUE : FALSE);
+      add_style_class(row, "gc-context-row");
+      gtk_box_pack_start(GTK_BOX(box), row, FALSE, FALSE, 0);
     }
-    return menu;
+
+    return box;
   }
 
   void show_native_context_menu(
@@ -514,46 +538,36 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       return;
     }
 
-    auto* session = new ContextMenuSession{std::move(callback), false};
-    auto* menu = build_native_context_menu_items(request.items, session);
+    auto* popover = gtk_popover_new(content_area);
+    add_style_class(popover, "gc-context-popover");
+    gtk_popover_set_modal(GTK_POPOVER(popover), TRUE);
+
+    auto* session =
+        new ContextMenuSession{std::move(callback), popover, false};
     g_object_set_data_full(
-        G_OBJECT(menu), "gc-context-menu-session", session,
+        G_OBJECT(popover), "gc-context-menu-session", session,
         [](gpointer value) {
           delete static_cast<ContextMenuSession*>(value);
         });
-    g_signal_connect(menu, "selection-done",
-                     G_CALLBACK(on_context_menu_selection_done), session);
-    gtk_widget_show_all(menu);
+    g_signal_connect(popover, "closed",
+                     G_CALLBACK(on_context_popover_closed), session);
 
-    auto* gdk_window = gtk_widget_get_window(content_area);
-    if (!gdk_window) {
-      finish_context_menu(session, std::nullopt);
-      gtk_widget_destroy(menu);
-      return;
-    }
-
-    auto* trigger_event = gtk_get_current_event();
-    if (!trigger_event) {
-      if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
-        std::cerr << "[GoreeCloud GTK] windowless-context-menu-missing-trigger"
-                  << std::endl;
-      }
-      finish_context_menu(session, std::nullopt);
-      gtk_widget_destroy(menu);
-      return;
-    }
+    auto* box = build_context_popover_box(request.items, session);
+    gtk_container_add(GTK_CONTAINER(popover), box);
 
     GdkRectangle anchor{request.x, request.y, 1, 1};
-    gtk_menu_popup_at_rect(GTK_MENU(menu), gdk_window, &anchor,
-                           GDK_GRAVITY_NORTH_WEST,
-                           GDK_GRAVITY_NORTH_WEST, trigger_event);
-    gdk_event_free(trigger_event);
+    gtk_popover_set_pointing_to(GTK_POPOVER(popover), &anchor);
+    gtk_popover_set_position(GTK_POPOVER(popover), GTK_POS_BOTTOM);
+    gtk_widget_show_all(popover);
+    gtk_popover_popup(GTK_POPOVER(popover));
+    g_timeout_add(750, on_context_menu_stability_check,
+                  g_object_ref(popover));
 
     if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
       std::cerr << "[GoreeCloud GTK] windowless-context-menu-presented items="
                 << request.items.size()
                 << " x=" << request.x << " y=" << request.y
-                << " trigger=yes" << std::endl;
+                << " host=popover" << std::endl;
     }
   }
 
@@ -807,19 +821,24 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       .gc-search-control:hover {
         background-color: alpha(@theme_fg_color, 0.06);
       }
-      menu.gc-context-menu {
-        padding: 6px;
+      popover.gc-context-popover > contents {
         border-radius: 14px;
         background-color: alpha(@theme_bg_color, 0.98);
         border: 1px solid alpha(@theme_fg_color, 0.12);
       }
-      menu.gc-context-menu menuitem {
+      .gc-context-popover-box {
+        padding: 6px;
+      }
+      .gc-context-row {
         min-height: 34px;
         padding: 4px 10px;
         border-radius: 9px;
       }
-      menu.gc-context-menu menuitem:hover {
+      .gc-context-row:hover {
         background-color: alpha(@theme_selected_bg_color, 0.16);
+      }
+      .gc-context-separator {
+        margin: 3px 4px;
       }
       .gc-overflow-card {
         padding: 8px;
