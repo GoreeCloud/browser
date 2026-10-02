@@ -115,13 +115,13 @@ See [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md).
 7. Engine-specific exceptions must be isolated and documented.
 8. Planned capabilities must not be presented as production-ready until implementation and acceptance evidence exists.
 9. Security, privacy, credential, identity, DNS, networking, search, indexing, and synchronization authority boundaries remain explicit.
-10. Browser-owned user-facing surfaces must conform to the latest approved Stable Glaze UI release before production acceptance.
+10. Browser-owned user-facing surfaces must conform to the current approved Glaze UI Anchor release before production acceptance.
 
 ## Development phases
 
 ### 0.x — GoreeCloud-owned browser shell
 
-Build and harden the native application, current-Stable Glaze UI browser chrome, tabs, windows, sessions, profiles, settings, permissions UI, history, bookmarks integration, Search integration, Index invocation, downloads, Browser-owned state storage, Media Hover, and engine adapters.
+Build and harden the native application, current-Anchor Glaze UI browser chrome, tabs, windows, sessions, profiles, settings, permissions UI, history, bookmarks integration, Search integration, Index invocation, downloads, Browser-owned state storage, Media Hover, and engine adapters.
 
 ### 0.x — First-party services
 
@@ -157,7 +157,7 @@ packaging/                    Linux, Flatpak, Windows, and other packaging work
 - [`USER-MANUAL.md`](USER-MANUAL.md) — current user-facing behavior and beta guidance.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architectural boundaries and ownership model.
 - [`docs/ENGINE_LAYER.md`](docs/ENGINE_LAYER.md) — Browser Engine Layer contracts.
-- [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md) — current-Stable Glaze adoption policy.
+- [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md) — current-Anchor Glaze adoption policy.
 - [`docs/SEARCH_INDEX_INTEGRATION.md`](docs/SEARCH_INDEX_INTEGRATION.md) — Browser/Search/Index delegation and authority contract.
 - [`docs/MEDIA_HOVER.md`](docs/MEDIA_HOVER.md) — Media Hover contract.
 - [`docs/WARDVEIL_DOWNLOAD_SCANNING.md`](docs/WARDVEIL_DOWNLOAD_SCANNING.md) — download security contract.
