@@ -22,6 +22,29 @@ This is a model foundation only. It does not add a visible Android tab switcher,
 
 The runtime object-model roadmap remains open. Android chrome/engine binding, lifecycle restoration, accessibility/adaptive-device behavior, privacy-context isolation, representative-device evidence, and release qualification remain separate gates.
 
+## 2026-10-02 — Android first-use setup and contextual guidance
+
+### Added
+
+- Added a required three-step first-use setup for fresh Android Browser profiles.
+- Added device-local setup progression, completion, optional-tip enablement, dismissed-tip state, setup replay, and dismissed-tip reset.
+- Added a compact post-setup Browser tip plus one grouped **Guidance & tips** menu surface rather than multiple top-level onboarding controls.
+- Added unit coverage for setup-step bounds plus Android 15 instrumentation coverage for preference persistence, full fresh-setup completion, and Activity recreation resuming the durably accepted setup step.
+
+### Changed
+
+- Setup progress and guidance mutations use synchronous local preference commits; Browser does not visually advance a setup transition when the corresponding local state write fails.
+- Onboarding text now reflects the integrated Page controls, Clear browsing data, current privacy/security defaults, and fail-closed free-text Search boundary rather than replaying the stale pre-Page-controls UI from historical PR #108.
+- Advanced the Android beta artifact identity to `0.1.0-beta.1+android.12` / versionCode `10012` and updated the exact APK identity guard.
+
+### Privacy and authority boundary
+
+First-use and tip state is stored only in device-local Browser preferences. This feature adds no account, telemetry, Search transmission, website permission, provider authorization, Sync dataset, Privacy Shield decision, or Wardveil authority.
+
+### Acceptance boundary
+
+Representative-device fresh-install/upgrade behavior, interruption outside Activity recreation, TalkBack/Switch Access, large-text/reflow, localization/RTL, adaptive form factors, Browser-specific Glaze acceptance, protected Development signing/update continuity, production signing/distribution, Release Candidate, Stable, and Anchor qualification remain open.
+
 ## 2026-10-02 — Android Page controls, JavaScript, and image-loading controls
 
 ### Added
