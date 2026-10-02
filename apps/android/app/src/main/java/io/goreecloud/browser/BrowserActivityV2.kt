@@ -60,6 +60,9 @@ class BrowserActivityV2 : Activity() {
     private var failedMainFrameUrl: String? = null
     private var chromeOverrideTitle: String? = null
     private var pageTextZoomPercent = PageTextZoom.DEFAULT_PERCENT
+    private var desktopSiteEnabled = false
+    private var clearHistoryAfterNextPageFinished = false
+    private lateinit var mobileUserAgent: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,6 +72,7 @@ class BrowserActivityV2 : Activity() {
             getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
                 .getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
         )
+        desktopSiteEnabled = savedInstanceState?.getBoolean(STATE_DESKTOP_SITE, false) == true
         buildBrowserSurface()
         configureWebView()
 
@@ -90,6 +94,7 @@ class BrowserActivityV2 : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         webView.saveState(outState)
+        outState.putBoolean(STATE_DESKTOP_SITE, desktopSiteEnabled)
         super.onSaveInstanceState(outState)
     }
 
@@ -291,7 +296,15 @@ class BrowserActivityV2 : Activity() {
             textZoom = pageTextZoomPercent
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
-            userAgentString = "$userAgentString GoreeCloudBrowser/${BuildConfig.VERSION_NAME} Android"
+            mobileUserAgent =
+                "$userAgentString GoreeCloudBrowser/${BuildConfig.VERSION_NAME} Android"
+            userAgentString = if (desktopSiteEnabled) {
+                DesktopUserAgent.fromMobile(mobileUserAgent)
+            } else {
+                mobileUserAgent
+            }
+            useWideViewPort = desktopSiteEnabled
+            loadWithOverviewMode = desktopSiteEnabled
         }
 
         CookieManager.getInstance().apply {
@@ -324,6 +337,10 @@ class BrowserActivityV2 : Activity() {
                 }
                 loading = false
                 progressBar.visibility = View.GONE
+                if (clearHistoryAfterNextPageFinished) {
+                    view.clearHistory()
+                    clearHistoryAfterNextPageFinished = false
+                }
                 refreshChrome()
             }
 
@@ -568,6 +585,10 @@ class BrowserActivityV2 : Activity() {
         addAction("Text size · ${PageTextZoom.label(pageTextZoomPercent)}") {
             showTextZoomControls()
         }
+        addAction("Desktop site · ${if (desktopSiteEnabled) "On" else "Off"}") {
+            setDesktopSiteEnabled(!desktopSiteEnabled)
+        }
+        addAction("Clear browsing data") { showClearBrowsingDataConfirmation() }
 
         BrowserDisclosurePolicy.shareablePageUrl(currentUrl)?.let { shareablePageUrl ->
             addAction("Copy page address") {
@@ -1022,6 +1043,181 @@ class BrowserActivityV2 : Activity() {
             .apply()
     }
 
+    private fun setDesktopSiteEnabled(enabled: Boolean) {
+        if (desktopSiteEnabled == enabled) return
+        desktopSiteEnabled = enabled
+        webView.settings.apply {
+            userAgentString = if (enabled) {
+                DesktopUserAgent.fromMobile(mobileUserAgent)
+            } else {
+                mobileUserAgent
+            }
+            useWideViewPort = enabled
+            loadWithOverviewMode = enabled
+        }
+
+        if (NavigationResolver.isAllowedWebUrl(currentUrl)) {
+            failedMainFrameUrl = null
+            chromeOverrideTitle = null
+            webView.reload()
+        } else {
+            refreshChrome()
+        }
+
+        Toast.makeText(
+            this,
+            if (enabled) "Desktop site enabled for this Browser session." else
+                "Mobile site mode restored for this Browser session.",
+            Toast.LENGTH_SHORT,
+        ).show()
+    }
+
+    private fun showClearBrowsingDataConfirmation() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "Clear browsing data confirmation"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = "Clear browsing data?" }
+        glaze.styleMenuTitle(title)
+        sheet.addView(
+            title,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val warning = TextView(this).apply {
+            text = "This signs you out of websites and removes local website data from this Browser app. The action cannot be undone."
+        }
+        glaze.styleMenuSubtitle(warning)
+        sheet.addView(
+            warning,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val clearedHeading = TextView(this).apply {
+            text = "Will be cleared"
+            textSize = 14f
+            setTextColor(glaze.palette.textPrimary)
+            setPadding(dp(12), dp(8), dp(12), dp(2))
+        }
+        sheet.addView(
+            clearedHeading,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val cleared = TextView(this).apply {
+            text = BrowsingDataClearScope.clearedItems.joinToString(separator = "\n") { "• $it" }
+        }
+        glaze.styleMenuSubtitle(cleared)
+        sheet.addView(
+            cleared,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val preservedHeading = TextView(this).apply {
+            text = "Will stay"
+            textSize = 14f
+            setTextColor(glaze.palette.textPrimary)
+            setPadding(dp(12), dp(8), dp(12), dp(2))
+        }
+        sheet.addView(
+            preservedHeading,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val preserved = TextView(this).apply {
+            text = BrowsingDataClearScope.preservedItems.joinToString(separator = "\n") { "• $it" }
+        }
+        glaze.styleMenuSubtitle(preserved)
+        sheet.addView(
+            preserved,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        fun action(label: String): TextView = TextView(this).apply {
+            text = label
+            gravity = Gravity.CENTER
+            glaze.styleMenuAction(this)
+        }
+
+        val cancel = action("Cancel")
+        val clear = action("Clear data")
+        actions.addView(cancel, LinearLayout.LayoutParams(0, dp(56), 1f))
+        actions.addView(clear, LinearLayout.LayoutParams(0, dp(56), 1f))
+        sheet.addView(
+            actions,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        cancel.setOnClickListener { dialog.dismiss() }
+        clear.setOnClickListener {
+            setTextActionEnabled(clear, false)
+            setTextActionEnabled(cancel, false)
+            BrowserBrowsingDataCleaner.clear(webView) {
+                runOnUiThread {
+                    clearHistoryAfterNextPageFinished = true
+                    showStartPage()
+                    dialog.dismiss()
+                    Toast.makeText(
+                        this,
+                        "Browsing data cleared. Browser settings were kept.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
+        }
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(
+                sheet,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+
+        dialog.setContentView(scroll)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
     private fun setTextActionEnabled(view: TextView, enabled: Boolean) {
         view.isEnabled = enabled
         view.alpha = if (enabled) 1f else 0.34f
@@ -1050,5 +1246,6 @@ class BrowserActivityV2 : Activity() {
         private const val START_BASE_URL = "https://start.goreecloud.local/"
         private const val PREFERENCES_NAME = "goreecloud_browser_preferences"
         private const val PREF_PAGE_TEXT_ZOOM = "page_text_zoom_percent"
+        private const val STATE_DESKTOP_SITE = "desktop_site_enabled"
     }
 }
