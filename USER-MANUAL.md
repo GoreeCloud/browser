@@ -8,8 +8,8 @@ Current Android beta identity for this source revision:
 
 - Application: **GoreeCloud Browser Beta**
 - Package: `io.goreecloud.browser.beta`
-- Version: `0.1.0-beta.1+android.11`
-- versionCode: `10011`
+- Version: `0.1.0-beta.1+android.12`
+- versionCode: `10012`
 - Minimum Android: Android 8.0 / API 26
 - Target API: 35
 - Rendering dependency: Android System WebView/Chromium
@@ -73,12 +73,27 @@ The current bounded menu actions are:
 - Privacy & security, which summarizes Browser-enforced Android defaults and explicit fail-closed integration boundaries;
 - Find in page, which searches only the currently rendered page and provides live match count plus Previous/Next controls;
 - Page controls, which groups Text size, Desktop site, JavaScript, and automatic image loading into one compact Browser-owned surface;
+- Guidance & tips, which replays setup and controls optional device-local Browser tips;
 - Clear browsing data, which opens a confirmation surface before removing website data;
 - Copy page address, only when the current surface has a Browser-approved HTTP(S) page address;
 - Share page, under the same disclosure rule; and
 - About this development build.
 
 Browser-owned local surfaces such as the start page and local Search/error explanations do not expose implementation-only addresses through Copy or Share. The Start page already has a dedicated bottom-toolbar control. The current menu is still not the final Browser settings system.
+
+### First-use setup and guidance
+
+A fresh Android Browser profile opens a required three-step setup before ordinary use. Setup explains:
+
+- GoreeCloud Browser ownership versus the Android System WebView engine dependency;
+- the current fail-closed privacy and security defaults, including blocked mixed content, third-party-cookie defaults, certificate-error handling, website-permission denial, and the Clear browsing data control; and
+- direct website navigation, the current non-transmitting free-text Search boundary, Find in page, and the Page controls surface.
+
+Setup progress is stored only in Browser-local Android preferences. Progress is written synchronously before Browser advances to the next setup step, so Activity recreation resumes from the last durably accepted step rather than assuming an unsaved transition. The initial setup cannot be skipped. After completion, **Guidance & tips** can replay the setup voluntarily; replay can be dismissed without changing the completed first-use state.
+
+Optional contextual tips are enabled by default after setup. The current compact Browser tip explains the direct-address versus fail-closed free-text Search boundary and can be dismissed with **Got it**. Guidance & tips can disable or re-enable optional tips and show the dismissed tip again.
+
+First-use and tip state is device-local. It is not an account setting, Browser Sync dataset, Privacy Shield decision, telemetry signal, website permission, or provider authorization.
 
 ### Find in page
 
