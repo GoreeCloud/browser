@@ -37,7 +37,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 
 - Installable debug-signed APK target.
 - Package `io.goreecloud.browser.beta`.
-- Current migration-candidate identity `0.1.0-beta.1+android.7` / versionCode `10007`.
+- Current migration-candidate identity `0.1.0-beta.1+android.8` / versionCode `10008`.
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
@@ -53,6 +53,8 @@ This native extension foundation does not parse or install real `.gcex` archives
 - WebView file/content access disabled.
 - Browser-owned Site information and Privacy & security status sheets for truthful origin/transport and local protection-state visibility.
 - Copy/Share page-address actions are available only for Browser-approved HTTP(S) pages; local Browser/resource addresses remain internal.
+- Local Find in page with live match counting, previous/next navigation, and no remote query delegation.
+- Page text-size controls from 75% to 200% in 25-point steps, persisted as an application-local Browser preference without changing Android system font scale.
 - Website permissions and geolocation denied until Browser-owned policy surfaces are accepted.
 - Downloads blocked until the Android path satisfies the authoritative Wardveil release contract.
 - Unit tests for Browser-owned navigation resolution.
@@ -71,7 +73,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Presentation does not infer authorization, permission, provider precedence, privacy/security truth, or automatic consequential/fallback execution.
 - 48dp general and 56dp Touch Assistance target floors remain represented in source.
 - Accessibility precedence, effects-free fallback, vector Browser chrome, and current interaction-state rules remain covered by regression tests.
-- Android artifact candidate is `0.1.0-beta.1+android.7` / versionCode `10007`.
+- Android artifact candidate is `0.1.0-beta.1+android.8` / versionCode `10008`.
 - Android CI now checks out/verifies the exact PR head and records `SOURCE_REVISION` plus SHA-256 artifact evidence.
 
 This is Development source/build-contract evidence only. Browser-local rendered/native visual, accessibility, large-text, localization/RTL, representative-device/posture, sustained performance, workflow, rollback, production, and Stable acceptance remain separate gates.
