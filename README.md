@@ -70,7 +70,7 @@ Consumer validation does not create producer authority. Search, Index, Vault, Sy
 
 ## Glaze UI requirement
 
-The current Official consumer target published by `GoreeCloud/glaze-ui` is **GLAZE UI V1.6 / `1.6.0`**. The canonical shared lifecycle is **Anchor**; retained Stable naming is compatibility/release-channel vocabulary.
+The current Official consumer target published by `GoreeCloud/glaze` is **GLAZE UI V1.6 / `1.6.0`**. The canonical shared lifecycle is **Anchor**; retained Stable naming is compatibility/release-channel vocabulary.
 
 Browser source maps the current V1.6 presentation contract and exact release/qualification anchors while retaining V1.5.1 only as the immediate known-good rollback baseline. Glaze UI remains presentation-only: it cannot infer authorization, consent, provider precedence, security/privacy truth, or automatic consequential execution.
 
