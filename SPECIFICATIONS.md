@@ -95,6 +95,7 @@ Current verified source behavior includes:
 - WebView file/content access disabled;
 - website permission and geolocation callbacks denied by default;
 - downloads blocked until the Wardveil release gate is integrated;
+- Browser-owned resumable first-use setup and optional contextual guidance stored only in device-local Browser preferences, with no account, provider, or synchronization authority;
 - current GLAZE UI V1.6 / 1.6.0 source mapping with Browser-local adoption still required.
 
 Current source-level defenses and contracts are Development evidence only. They do not establish rendered/native-device GLAZE acceptance, complete Privacy Shield or Wardveil integration, production signing, Release Candidate status, production approval, or Stable qualification.
