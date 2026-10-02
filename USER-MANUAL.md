@@ -83,7 +83,7 @@ When the omnibox is being edited, Android Back first leaves omnibox editing and 
 
 ## Glaze UI on Android
 
-The Android beta maps Browser-owned chrome to the current **Glaze UI V1.6 / 1.6.0 Anchor** presentation contract using native Android controls. Browser acceptance still depends on Browser-specific implementation and evidence; the Glaze Stable baseline does not by itself promote Browser lifecycle status.
+The Android beta maps Browser-owned chrome to the current **Glaze UI V1.6 / 1.6.0 Anchor** presentation contract using native Android controls. Browser acceptance still depends on Browser-specific implementation and evidence; the Glaze Anchor baseline does not by itself promote Browser lifecycle status.
 
 Browser remains migration-required/not accepted until repository-local rendered/native visual, accessibility, representative-device/posture, large-text, RTL/localization, reduced-effects, performance, rollback, workflow, and production evidence is accepted. Glaze presentation never creates Browser authorization, privacy/security truth, provider precedence, or execution authority.
 
