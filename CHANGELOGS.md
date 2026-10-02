@@ -5,6 +5,28 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-02 — Android Find in page and page text-size controls
+
+### Added
+
+- Added a Browser-owned **Find in page** Glaze bottom sheet backed by the active Android WebView's local find facility, with bounded 512-character input, live match status, Previous/Next navigation, and highlight cleanup on close.
+- Added Browser-owned **Page text size** controls from 75% through 200% in 25-point steps with Reset to 100%.
+- Added focused unit coverage for find-status presentation and bounded text-zoom behavior, plus managed-emulator verification of the default WebView text-zoom state.
+
+### Changed
+
+- Page text zoom now persists as an application-local Browser preference across pages and launches without changing Android system font scale.
+- Advanced the Android beta artifact identity to `0.1.0-beta.1+android.8` / versionCode `10008`.
+- Updated the feature inventory and user manual so Find in page is explicitly local-only and page text zoom is not represented as synchronized Browser state.
+
+### Privacy boundary
+
+Find in page does not delegate text to GoreeCloud Search or another provider. Page text zoom stores only the selected percentage as local application preference state.
+
+### Acceptance boundary
+
+These are Development browser-utility capabilities. They do not establish representative-device accessibility, large-text interaction quality, localization/RTL behavior, form-factor acceptance, Browser Sync inclusion, production approval, Stable, or Anchor qualification.
+
 ## 2026-10-02 — Android origin disclosure, site information, and privacy-status controls
 
 ### Added

@@ -8,8 +8,8 @@ Current Android beta identity for this source revision:
 
 - Application: **GoreeCloud Browser Beta**
 - Package: `io.goreecloud.browser.beta`
-- Version: `0.1.0-beta.1+android.7`
-- versionCode: `10007`
+- Version: `0.1.0-beta.1+android.8`
+- versionCode: `10008`
 - Minimum Android: Android 8.0 / API 26
 - Target API: 35
 - Rendering dependency: Android System WebView/Chromium
@@ -71,11 +71,25 @@ The current bounded menu actions are:
 
 - Site information, which shows the current website origin and HTTPS/HTTP transport without claiming an independent trust or certificate verdict;
 - Privacy & security, which summarizes Browser-enforced Android defaults and explicit fail-closed integration boundaries;
+- Find in page, which searches only the currently rendered page and provides live match count plus Previous/Next controls;
+- Text size, which adjusts website text between 75% and 200% without changing Android system font scale;
 - Copy page address, only when the current surface has a Browser-approved HTTP(S) page address;
 - Share page, under the same disclosure rule; and
 - About this development build.
 
 Browser-owned local surfaces such as the start page and local Search/error explanations do not expose implementation-only addresses through Copy or Share. The Start page already has a dedicated bottom-toolbar control. The current menu is still not the final Browser settings system.
+
+### Find in page
+
+Find in page uses the active Android WebView's local page-search facility. Enter text to see live match status, then use Previous or Next to move among matches. Closing the Find surface clears the match highlights. The find text stays inside the active WebView and is not sent to GoreeCloud Search or another provider.
+
+Find input is capped at 512 characters to keep the local operation bounded.
+
+### Page text size
+
+Text size changes website text rendering in GoreeCloud Browser from 75% through 200% in 25-point steps. Reset returns to 100%.
+
+The selected value is stored as an application-local Browser preference and applies to later pages and launches. It does not change Android's system font-size setting and is not represented as synchronized Browser state until an accepted Browser Sync preference contract explicitly includes it.
 
 ## Android Back behavior
 

@@ -57,6 +57,7 @@ class BrowserAndroidRuntimeSmokeTest {
                 assertFalse(settings.allowFileAccess)
                 assertFalse(settings.allowContentAccess)
                 assertEquals(WebSettings.MIXED_CONTENT_NEVER_ALLOW, settings.mixedContentMode)
+                assertEquals(PageTextZoom.DEFAULT_PERCENT, settings.textZoom)
                 assertFalse(CookieManager.getInstance().acceptThirdPartyCookies(webView))
                 assertNotEquals(0, activity.applicationInfo.icon)
                 assertEquals("io.goreecloud.browser.beta", activity.packageName)
