@@ -8,8 +8,8 @@ Current Android beta identity for this source revision:
 
 - Application: **GoreeCloud Browser Beta**
 - Package: `io.goreecloud.browser.beta`
-- Version: `0.1.0-beta.1+android.10`
-- versionCode: `10010`
+- Version: `0.1.0-beta.1+android.11`
+- versionCode: `10011`
 - Minimum Android: Android 8.0 / API 26
 - Target API: 35
 - Rendering dependency: Android System WebView/Chromium
@@ -72,8 +72,7 @@ The current bounded menu actions are:
 - Site information, which shows the current website origin and HTTPS/HTTP transport without claiming an independent trust or certificate verdict;
 - Privacy & security, which summarizes Browser-enforced Android defaults and explicit fail-closed integration boundaries;
 - Find in page, which searches only the currently rendered page and provides live match count plus Previous/Next controls;
-- Text size, which adjusts website text between 75% and 200% without changing Android system font scale;
-- Desktop site, which switches the current Browser session between mobile and desktop-style site presentation;
+- Page controls, which groups Text size, Desktop site, JavaScript, and automatic image loading into one compact Browser-owned surface;
 - Clear browsing data, which opens a confirmation surface before removing website data;
 - Copy page address, only when the current surface has a Browser-approved HTTP(S) page address;
 - Share page, under the same disclosure rule; and
@@ -92,6 +91,19 @@ Find input is capped at 512 characters to keep the local operation bounded.
 Text size changes website text rendering in GoreeCloud Browser from 75% through 200% in 25-point steps. Reset returns to 100%.
 
 The selected value is stored as an application-local Browser preference and applies to later pages and launches. It does not change Android's system font-size setting and is not represented as synchronized Browser state until an accepted Browser Sync preference contract explicitly includes it.
+
+### Page controls
+
+Page controls groups several page-level settings into one compact Glaze surface:
+
+- Text size opens the existing 75%–200% Browser text-size control. Text size remains an application-local Browser preference.
+- Desktop site switches the current session between mobile and desktop-style presentation.
+- JavaScript can be enabled or disabled for the current Browser session.
+- Images can be enabled or disabled for automatic page loading in the current Browser session.
+
+JavaScript and Images default to On for ordinary web compatibility. Changing either setting reloads the current HTTP(S) page so the new setting applies consistently. Their state survives Android Activity recreation but is not stored as a durable Browser preference and is not synchronized.
+
+Disabling JavaScript or automatic image loading may cause websites to lose functionality or content. Browser does not describe these controls as Privacy Shield policy or as a security verdict.
 
 ### Desktop site
 
