@@ -5,6 +5,25 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-02 — Android origin disclosure, site information, and privacy-status controls
+
+### Added
+
+- Added a Browser-owned **Site information** bottom sheet that presents the current website origin and HTTPS/HTTP transport classification without turning HTTPS into a certificate, Wardveil, or trust verdict.
+- Added a scrollable Browser-owned **Privacy & security** bottom sheet that truthfully exposes enforced Android/WebView defaults and explicit fail-closed Search, permission, download, and provider boundaries.
+- Added focused unit coverage for page-address disclosure, site-information presentation, protection-state rendering, numeric-host handling, and port-range validation.
+
+### Changed
+
+- Page-address Copy/Share actions now appear only when the current surface has a canonical Browser-approved HTTP(S) URL, preventing Browser-owned `goreecloud://`, local-resource, data, blob, file, or content addresses from being disclosed through Android clipboard/share flows.
+- Android navigation now rejects zero/out-of-range ports and ambiguous or invalid numeric IPv4 host forms in addition to the existing credential, unsupported-scheme, and control-character fail-closed checks.
+- Reconciled Browser capability records to the merged Linux Wayland pointer/wheel/focus forwarding in PR #111 and updated the user manual to the current Android beta identity and actual `BrowserActivityV2` behavior.
+- Updated the documented canonical Glaze repository identity from the retired `GoreeCloud/glaze-ui` name to `GoreeCloud/glaze`.
+
+### Acceptance boundary
+
+These changes are Development hardening and truthful Browser-owned status UX. The Site information surface does not replace engine certificate details, the Privacy & security surface does not manufacture Privacy Shield/Wardveil/Policy/Search authority, and this change does not establish representative-device accessibility/usability, production signing, Release Candidate, Stable, or Anchor acceptance.
+
 ## 2026-09-29 — Linux Wayland page rendering integrated; pointer interaction candidate
 
 ### Changed

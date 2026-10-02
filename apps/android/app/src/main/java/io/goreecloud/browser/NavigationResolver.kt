@@ -81,7 +81,13 @@ object NavigationResolver {
         is Intent.Blocked -> ""
     }
 
-    fun isAllowedWebUrl(url: String): Boolean = normalizeWebUrl(url) != null
+    /**
+     * Returns the canonical HTTP(S) URL accepted by Browser navigation policy,
+     * or null when the input is not safe to disclose or navigate.
+     */
+    fun canonicalizeWebUrl(url: String): String? = normalizeWebUrl(url)
+
+    fun isAllowedWebUrl(url: String): Boolean = canonicalizeWebUrl(url) != null
 
     private fun hasHttpScheme(value: String): Boolean =
         value.startsWith("https://", ignoreCase = true) ||
@@ -92,8 +98,16 @@ object NavigationResolver {
         val uri = runCatching { URI(raw.trim()) }.getOrNull() ?: return null
         val scheme = uri.scheme?.lowercase(Locale.ROOT) ?: return null
         if (scheme != "https" && scheme != "http") return null
-        if (uri.host.isNullOrBlank()) return null
+        val host = uri.host?.takeIf { it.isNotBlank() } ?: return null
         if (uri.userInfo != null) return null
+
+        // Keep navigation syntax inside ordinary browser/network ranges. Java URI
+        // accepts numeric ports above 65535 even though they cannot identify a
+        // valid TCP/UDP destination, and browser engines may interpret unusual
+        // numeric host forms differently. Reject those ambiguous forms here.
+        if (uri.port == 0 || uri.port > 65535) return null
+        if (NUMERIC_HOST_REGEX.matches(host) && !isCanonicalIpv4Literal(host)) return null
+
         return uri.normalize().toASCIIString()
     }
 
@@ -116,6 +130,18 @@ object NavigationResolver {
             IPV4_REGEX.matches(host)
     }
 
+    private fun isCanonicalIpv4Literal(host: String): Boolean {
+        val octets = host.split('.')
+        if (octets.size != 4) return false
+        return octets.all { octet ->
+            octet.isNotEmpty() &&
+                octet.length <= 3 &&
+                (octet.length == 1 || !octet.startsWith('0')) &&
+                (octet.toIntOrNull()?.let { it in 0..255 } == true)
+        }
+    }
+
     private val IPV4_REGEX = Regex("""^(?:\d{1,3}\.){3}\d{1,3}$""")
+    private val NUMERIC_HOST_REGEX = Regex("""^[0-9.]+$""")
     private val EXPLICIT_SCHEME_REGEX = Regex("""^[A-Za-z][A-Za-z0-9+.-]*:""")
 }

@@ -95,4 +95,36 @@ class NavigationResolverTest {
         assertFalse(NavigationResolver.isAllowedWebUrl("\nhttps://example.com"))
         assertFalse(NavigationResolver.isAllowedWebUrl("https://example.com\r"))
     }
+
+    @Test
+    fun zeroAndOutOfRangePortsFailClosed() {
+        for (raw in listOf(
+            "https://example.com:0/",
+            "https://example.com:65536/",
+            "example.com:0/path",
+            "example.com:65536/path",
+        )) {
+            assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
+            assertFalse(NavigationResolver.isAllowedWebUrl(raw))
+        }
+    }
+
+    @Test
+    fun ambiguousOrInvalidNumericHostsFailClosed() {
+        for (raw in listOf(
+            "https://127.1/",
+            "https://127.01.0.1/",
+            "https://999.1.1.1/",
+            "999.1.1.1",
+        )) {
+            assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
+            assertFalse(NavigationResolver.isAllowedWebUrl(raw))
+        }
+
+        assertTrue(NavigationResolver.isAllowedWebUrl("https://127.0.0.1/"))
+        assertEquals(
+            "https://127.0.0.1/",
+            NavigationResolver.canonicalizeWebUrl("https://127.0.0.1/"),
+        )
+    }
 }
