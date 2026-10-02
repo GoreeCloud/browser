@@ -742,7 +742,7 @@ class BrowserActivityV2 : Activity() {
     }
 
     private fun renderContextualHint() {
-        contextualHintRow?.let(topChrome::removeView)
+        contextualHintRow?.let { topChrome.removeView(it) }
         contextualHintRow = null
 
         val state = firstUsePreferences.state()
