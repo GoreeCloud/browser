@@ -1,5 +1,6 @@
 package io.goreecloud.browser
 
+import android.content.Context
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
@@ -9,6 +10,7 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -17,6 +19,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -27,6 +30,17 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class BrowserAndroidRuntimeSmokeTest {
+    private val context by lazy {
+        ApplicationProvider.getApplicationContext<Context>()
+    }
+
+    @Before
+    fun completeFirstUseForNonOnboardingSmoke() {
+        val preferences = BrowserFirstUsePreferences(context)
+        assertTrue(preferences.complete())
+        assertTrue(preferences.setHintsEnabled(false))
+    }
+
     @Test
     fun launcherActivityBuildsBrowserOwnedChromeWithConservativeWebViewDefaults() {
         ActivityScenario.launch(BrowserActivityV2::class.java).use { scenario ->
