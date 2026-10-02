@@ -5,6 +5,27 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-02 — Current-main internationalized host canonicalization
+
+### Added
+
+- Added a Browser-owned internationalized-host policy that converts Unicode HTTP(S) DNS names to lowercase ASCII A-label identity before Android direct navigation and Browser-owned unfocused address presentation.
+- Added regression coverage for direct and scheme-less Unicode domains, trailing DNS root dots, explicit ports, path/query/fragment preservation, canonical numeric IPv4, bracketed IPv6, malformed STD3 labels, credential rejection, and credential-safe address presentation.
+
+### Changed
+
+- Reconciled the still-valid intent of historical PR #80 onto current authoritative Browser architecture without replaying its stale resolver implementation or discarding newer Search/control-character/port/numeric-host/disclosure hardening.
+- Bracketed non-IPv6 authorities and invalid port forms fail closed before WebView navigation; valid IPv6-shaped bracket contents are syntactically validated without allowing ordinary bracketed hostnames to trigger DNS resolution.
+- Advanced the Android beta artifact identity to `0.1.0-beta.1+android.10` / versionCode `10010` and updated the CI identity guard.
+
+### Trust boundary
+
+A-label canonicalization establishes deterministic Browser-owned host identity only. It does not establish UTS #39/confusable safety, DNS resolution trust, certificate validity, reputation, registrable-domain identity, Wardveil verdicts, or origin acceptance.
+
+### Acceptance boundary
+
+This is Development source hardening. Broader Unicode confusable/spoofing analysis, certificate-detail/origin transitions, full bidi/RTL acceptance, representative-device validation, production approval, Stable, and Anchor qualification remain open.
+
 ## 2026-10-02 — Android Desktop site and Clear browsing data controls
 
 ### Added
