@@ -20,7 +20,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Pinned Linux x86_64 CEF render-candidate bootstrap for CEF `152.0.6+g708dc14+chromium-152.0.7977.83` / Chromium `152.0.7977.83`, with repository-owned SHA-1/SHA-256 archive identity enforcement, official-sidecar verification, safe extraction, immutable-cache/provenance validation, exact-version CMake enforcement, and one-command Development build/launch scripts.
 - The integrated Linux CEF/Chromium Development renderer preserves the X11/XWayland native child-window path and adds a windowless/off-screen path for GTK backends that cannot expose an X11 child handle. The windowless path implements `CefRenderHandler` sizing and BGRA `OnPaint` delivery into a Browser-owned software frame sink painted by the GTK web drawing area.
 - Exact-head Ubuntu 22.04 validation for the integrated renderer required successful HTTPS main-frame completion and a materially non-uniform software-rendered frame. Representative owner-device Zorin OS 17.3 Wayland evidence additionally verified real `https://example.com/` page pixels inside the Browser content surface without the former compatibility placeholder.
-- Pointer interaction for the software-rendered path is being advanced separately; its presence in an unmerged candidate is not implementation authority.
+- The software-rendered Wayland path now forwards GTK pointer motion/enter/leave, left/middle/right button presses including multi-click counts, wheel input, and focus state through a Browser-owned native-surface input bridge into CEF. Keyboard/IME, cursor propagation, popup/context-menu, drag-and-drop, clipboard, accessibility, and sustained interaction acceptance remain open.
 - CEF browser-process initialization receives the host Linux `argc/argv`; X11 native child-window embedding uses the CEF integral window-handle type; persistent profile paths resolve under the Browser cache root.
 - Linux GTK3 native beta shell build path with automatic X11 child-surface selection or software windowless fallback.
 - Linux Development tab chrome with multi-tab presentation plus create, activate, explicit close, cyclic next/previous navigation, keyboard-first shortcuts for common tab/navigation actions, Ctrl+K/F6 location focus, and Escape dismissal for Browser-owned panels.
@@ -42,12 +42,15 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Installable Development APK target with Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product policy and behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
-- Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search for non-URL input.
+- Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search intent classification for non-URL input.
+- Direct-navigation canonicalization rejects credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous or invalid numeric IPv4 host forms before WebView navigation.
 - Free-text Search and omnibox classification reject C0/C1 and narrow Unicode Bidi_Control formatting characters before trimming, enforce a 2,048-character Search-query maximum, and reject Search capability claims above the Browser-supported 100-result maximum before request construction; this does not enable remote Search.
 - Android Browser-owned page-title and unfocused-address presentation strips Unicode bidirectional formatting controls before rendering chrome text while retaining the unchanged full URL as navigation authority.
 - Browser-intent handling for HTTP/HTTPS links.
 - TLS errors fail closed; Android Safe Browsing enabled with return-to-safety behavior.
 - Mixed content disabled, third-party cookies disabled by default, and WebView file/content access disabled.
+- Browser-owned Site information and Privacy & security sheets expose the current origin/transport and enforced/fail-closed Android protection state without manufacturing certificate, Privacy Shield, Wardveil, Policy, or Search authority.
+- Page-address Copy/Share disclosure is restricted to canonical Browser-approved HTTP(S) URLs; Browser-owned local/resource addresses are not placed on the clipboard or sent through Android sharing.
 - Website permissions/geolocation denied until Browser-owned policy surfaces and authority adapters are accepted.
 - Downloads remain fail-closed until the Wardveil release contract is satisfied.
 - CI covers Browser-owned navigation behavior, Android lint/build, package/signature verification, SHA-256, artifact provenance, and an Android 15 managed-emulator smoke lane for Browser-owned chrome, conservative WebView defaults, and fail-closed local Search behavior.
