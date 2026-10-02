@@ -5,6 +5,28 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-02 — Android Desktop site and Clear browsing data controls
+
+### Added
+
+- Added a Browser-owned **Desktop site** control that changes the current Android Browser session between mobile and desktop-style presentation, derives its desktop user agent from the active WebView engine identity, and enables wide-viewport/overview behavior without pinning a separate Chromium version.
+- Added a confirmed **Clear browsing data** flow that explicitly lists data to remove versus settings to preserve before clearing Android WebView cookies/sign-in state, website storage, cache, form data, navigation history, and SSL preferences.
+- Added unit coverage for desktop user-agent derivation and browsing-data scope plus managed-emulator coverage that verifies WebView cookie removal.
+
+### Changed
+
+- Desktop site state is preserved across Android Activity recreation but remains session-local rather than becoming a durable or synchronized preference.
+- Clear browsing data returns Browser to the local Start page and clears prior WebView navigation history after that local page finishes loading.
+- Advanced the Android beta artifact identity to `0.1.0-beta.1+android.9` / versionCode `10009` and advanced the CI package/version verification contract with it.
+
+### Privacy boundary
+
+Clear browsing data does not erase Browser preferences or Android app permissions. It is an app-wide Android WebView data reset in the current Development shell, not profile-scoped Private/Isolated Private or Close & Forget acceptance.
+
+### Acceptance boundary
+
+These are Development local browsing controls. Representative-device usability, destructive-action accessibility, TalkBack/Switch Access, localization/RTL, profile-scoped deletion, private-context isolation, production approval, Stable, and Anchor qualification remain open.
+
 ## 2026-10-02 — Android Find in page and page text-size controls
 
 ### Added

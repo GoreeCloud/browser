@@ -8,8 +8,8 @@ Current Android beta identity for this source revision:
 
 - Application: **GoreeCloud Browser Beta**
 - Package: `io.goreecloud.browser.beta`
-- Version: `0.1.0-beta.1+android.8`
-- versionCode: `10008`
+- Version: `0.1.0-beta.1+android.9`
+- versionCode: `10009`
 - Minimum Android: Android 8.0 / API 26
 - Target API: 35
 - Rendering dependency: Android System WebView/Chromium
@@ -73,6 +73,8 @@ The current bounded menu actions are:
 - Privacy & security, which summarizes Browser-enforced Android defaults and explicit fail-closed integration boundaries;
 - Find in page, which searches only the currently rendered page and provides live match count plus Previous/Next controls;
 - Text size, which adjusts website text between 75% and 200% without changing Android system font scale;
+- Desktop site, which switches the current Browser session between mobile and desktop-style site presentation;
+- Clear browsing data, which opens a confirmation surface before removing website data;
 - Copy page address, only when the current surface has a Browser-approved HTTP(S) page address;
 - Share page, under the same disclosure rule; and
 - About this development build.
@@ -90,6 +92,20 @@ Find input is capped at 512 characters to keep the local operation bounded.
 Text size changes website text rendering in GoreeCloud Browser from 75% through 200% in 25-point steps. Reset returns to 100%.
 
 The selected value is stored as an application-local Browser preference and applies to later pages and launches. It does not change Android's system font-size setting and is not represented as synchronized Browser state until an accepted Browser Sync preference contract explicitly includes it.
+
+### Desktop site
+
+Desktop site changes the current Browser session to a desktop-style website presentation. Browser derives the desktop user agent from the active WebView engine user agent instead of pinning a separate stale Chromium version, enables wide-viewport/overview presentation, and reloads the current website when necessary.
+
+Desktop site is session-local. It survives Android Activity recreation through saved state but is not stored as a durable Browser preference and is not synchronized.
+
+### Clear browsing data
+
+Clear browsing data always opens a confirmation surface before deletion. The confirmation identifies both the data that will be cleared and the settings that will remain.
+
+The current Development action clears Android WebView cookies and website sign-in state, website storage, cached web content, form data, WebView navigation history, and WebView SSL preferences. After clearing, Browser returns to its local Start page and clears the prior back-navigation history again after that page finishes loading.
+
+Browser preferences such as Page text size and Android app permissions are preserved. This action is app-wide for GoreeCloud Browser's Android WebView data; it is not yet a profile-scoped privacy-context control.
 
 ## Android Back behavior
 
@@ -120,6 +136,8 @@ These behaviors do not mean the beta has completed Wardveil Security production 
 ## Privacy behavior
 
 The beta uses privacy-protective defaults where a complete user-controlled Privacy Shield workflow does not yet exist. Third-party cookies are disabled and site permission grants fail closed. The Browser menu's Privacy & security sheet makes these local defaults and unavailable-provider boundaries visible without claiming Privacy Shield or Wardveil runtime acceptance.
+
+Android now also provides a Browser-owned Clear browsing data control for local WebView state. This is a local deletion mechanism, not evidence of complete Privacy Shield, profile isolation, Private/Isolated Private mode, or Close & Forget acceptance.
 
 The Android beta does not yet provide the complete production Privacy Shield filtering, consent, diagnostics, private-browsing isolation, or user-control surface required for Stable release.
 

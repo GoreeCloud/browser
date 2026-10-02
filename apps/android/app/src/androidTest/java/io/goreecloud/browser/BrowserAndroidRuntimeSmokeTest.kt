@@ -111,6 +111,45 @@ class BrowserAndroidRuntimeSmokeTest {
         }
     }
 
+    @Test
+    fun browsingDataCleanerRemovesWebViewCookies() {
+        val cookieUrl = "https://example.com/"
+        val cookieName = "goreecloud_clear_test"
+
+        ActivityScenario.launch(BrowserActivityV2::class.java).use { scenario ->
+            val cookieSet = CountDownLatch(1)
+            scenario.onActivity {
+                CookieManager.getInstance().setCookie(
+                    cookieUrl,
+                    "$cookieName=1; Path=/",
+                ) {
+                    cookieSet.countDown()
+                }
+            }
+            assertTrue(cookieSet.await(5, TimeUnit.SECONDS))
+            assertTrue(
+                CookieManager.getInstance().getCookie(cookieUrl)
+                    ?.contains("$cookieName=1") == true,
+            )
+
+            val cleared = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val webView = collectViews(activity.window.decorView)
+                    .filterIsInstance<WebView>()
+                    .single()
+                BrowserBrowsingDataCleaner.clear(webView) {
+                    cleared.countDown()
+                }
+            }
+
+            assertTrue(cleared.await(5, TimeUnit.SECONDS))
+            assertFalse(
+                CookieManager.getInstance().getCookie(cookieUrl)
+                    ?.contains("$cookieName=1") == true,
+            )
+        }
+    }
+
     private fun collectViews(view: View): List<View> = when (view) {
         is ViewGroup -> buildList {
             add(view)
