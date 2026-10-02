@@ -5,6 +5,30 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-02 — Android Page controls, JavaScript, and image-loading controls
+
+### Added
+
+- Added a compact Browser-owned **Page controls** Glaze sheet that groups Text size, Desktop site, JavaScript, and automatic image loading.
+- Added session-local **JavaScript** On/Off control for Android WebView pages.
+- Added session-local **Images** On/Off control using WebView automatic/network image-loading settings.
+- Added focused unit coverage for Page controls defaults and managed-emulator assertions that JavaScript and automatic image loading remain enabled by default.
+
+### Changed
+
+- Moved Text size and Desktop site out of the top-level Browser menu and into Page controls to reduce menu density while preserving direct Find in page and Clear browsing data access.
+- JavaScript and Images choices survive Android Activity recreation but are not written to durable Browser preferences or represented as synchronized profile state.
+- Ordinary HTTP(S) pages reload when a Page control changes so the new content setting is applied consistently.
+- Advanced the Android beta artifact identity to `0.1.0-beta.1+android.10` / versionCode `10010` with the matching CI package/version verification contract.
+
+### Privacy and compatibility boundary
+
+JavaScript and Images remain enabled by default for web compatibility. Turning either off is an explicit session-local user choice and may reduce website functionality or content. These controls do not manufacture Privacy Shield, security, profile-policy, or Browser Sync authority.
+
+### Acceptance boundary
+
+These are Development page-content controls. Representative-device usability, disabled-content compatibility across real websites, TalkBack/Switch Access, localization/RTL, durable per-site policy, profile-scoped settings, production approval, Stable, and Anchor qualification remain open.
+
 ## 2026-10-02 — Android Desktop site and Clear browsing data controls
 
 ### Added
