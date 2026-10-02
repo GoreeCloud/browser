@@ -8,8 +8,8 @@ Current Android beta identity for this source revision:
 
 - Application: **GoreeCloud Browser Beta**
 - Package: `io.goreecloud.browser.beta`
-- Version: `0.1.0-beta.1+android.9`
-- versionCode: `10009`
+- Version: `0.1.0-beta.1+android.10`
+- versionCode: `10010`
 - Minimum Android: Android 8.0 / API 26
 - Target API: 35
 - Rendering dependency: Android System WebView/Chromium
@@ -127,6 +127,7 @@ The Android beta intentionally fails closed in several areas while the full Gore
 - WebView file access and content access are disabled.
 - Third-party cookies are disabled by default.
 - Credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous/invalid numeric IPv4 host forms fail closed before ordinary navigation.
+- Internationalized DNS hosts are converted to lowercase ASCII A-label form before navigation and unfocused address display. This canonicalization does not by itself establish DNS, certificate, reputation, registrable-domain, or Unicode-confusable trust.
 - Website permission requests are denied until Browser-owned permission and policy surfaces are integrated.
 - Geolocation permission requests are denied.
 - Downloads are blocked until the Android path can satisfy the authoritative Wardveil download verification and release contract.
