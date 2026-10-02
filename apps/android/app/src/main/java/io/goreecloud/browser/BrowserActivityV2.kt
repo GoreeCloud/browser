@@ -61,6 +61,8 @@ class BrowserActivityV2 : Activity() {
     private var chromeOverrideTitle: String? = null
     private var pageTextZoomPercent = PageTextZoom.DEFAULT_PERCENT
     private var desktopSiteEnabled = false
+    private var pageScriptsEnabled = true
+    private var pageImagesEnabled = true
     private var clearHistoryAfterNextPageFinished = false
     private lateinit var mobileUserAgent: String
 
@@ -73,6 +75,8 @@ class BrowserActivityV2 : Activity() {
                 .getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
         )
         desktopSiteEnabled = savedInstanceState?.getBoolean(STATE_DESKTOP_SITE, false) == true
+        pageScriptsEnabled = savedInstanceState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
+        pageImagesEnabled = savedInstanceState?.getBoolean(STATE_PAGE_IMAGES, true) ?: true
         buildBrowserSurface()
         configureWebView()
 
@@ -95,6 +99,8 @@ class BrowserActivityV2 : Activity() {
     override fun onSaveInstanceState(outState: Bundle) {
         webView.saveState(outState)
         outState.putBoolean(STATE_DESKTOP_SITE, desktopSiteEnabled)
+        outState.putBoolean(STATE_PAGE_SCRIPTS, pageScriptsEnabled)
+        outState.putBoolean(STATE_PAGE_IMAGES, pageImagesEnabled)
         super.onSaveInstanceState(outState)
     }
 
@@ -284,9 +290,10 @@ class BrowserActivityV2 : Activity() {
     private fun configureWebView() {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         webView.settings.apply {
-            javaScriptEnabled = true
+            javaScriptEnabled = pageScriptsEnabled
             domStorageEnabled = true
-            loadsImagesAutomatically = true
+            loadsImagesAutomatically = pageImagesEnabled
+            blockNetworkImage = !pageImagesEnabled
             mediaPlaybackRequiresUserGesture = true
             allowFileAccess = false
             allowContentAccess = false
@@ -582,12 +589,7 @@ class BrowserActivityV2 : Activity() {
         addAction("Site information") { showSiteInformation() }
         addAction("Privacy & security") { showPrivacyAndSecurityStatus() }
         addAction("Find in page") { showFindInPage() }
-        addAction("Text size · ${PageTextZoom.label(pageTextZoomPercent)}") {
-            showTextZoomControls()
-        }
-        addAction("Desktop site · ${if (desktopSiteEnabled) "On" else "Off"}") {
-            setDesktopSiteEnabled(!desktopSiteEnabled)
-        }
+        addAction("Page controls") { showPageControls() }
         addAction("Clear browsing data") { showClearBrowsingDataConfirmation() }
 
         BrowserDisclosurePolicy.shareablePageUrl(currentUrl)?.let { shareablePageUrl ->
@@ -912,6 +914,97 @@ class BrowserActivityV2 : Activity() {
         }
     }
 
+    private fun showPageControls() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "Page controls"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = "Page controls" }
+        glaze.styleMenuTitle(title)
+        sheet.addView(
+            title,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val note = TextView(this).apply {
+            text = "Session-local content and presentation controls for website pages."
+        }
+        glaze.styleMenuSubtitle(note)
+        sheet.addView(
+            note,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        fun action(label: String): TextView = TextView(this).apply {
+            text = label
+            glaze.styleMenuAction(this)
+        }
+
+        val textSize = action("Text size · ${PageTextZoom.label(pageTextZoomPercent)}")
+        val desktop = action("Desktop site · ${if (desktopSiteEnabled) "On" else "Off"}")
+        val scripts = action(PageContentControls.javaScriptLabel(pageScriptsEnabled))
+        val images = action(PageContentControls.imagesLabel(pageImagesEnabled))
+        val close = action("Close")
+
+        listOf(textSize, desktop, scripts, images, close).forEach { item ->
+            sheet.addView(
+                item,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+
+        textSize.setOnClickListener {
+            dialog.dismiss()
+            showTextZoomControls()
+        }
+        desktop.setOnClickListener {
+            setDesktopSiteEnabled(!desktopSiteEnabled)
+            desktop.text = "Desktop site · ${if (desktopSiteEnabled) "On" else "Off"}"
+        }
+        scripts.setOnClickListener {
+            setPageScriptsEnabled(!pageScriptsEnabled)
+            scripts.text = PageContentControls.javaScriptLabel(pageScriptsEnabled)
+        }
+        images.setOnClickListener {
+            setPageImagesEnabled(!pageImagesEnabled)
+            images.text = PageContentControls.imagesLabel(pageImagesEnabled)
+        }
+        close.setOnClickListener { dialog.dismiss() }
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(
+                sheet,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        dialog.setContentView(scroll)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
     private fun showTextZoomControls() {
         val dialog = Dialog(this)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -1041,6 +1134,31 @@ class BrowserActivityV2 : Activity() {
             .edit()
             .putInt(PREF_PAGE_TEXT_ZOOM, normalized)
             .apply()
+    }
+
+    private fun setPageScriptsEnabled(enabled: Boolean) {
+        if (pageScriptsEnabled == enabled) return
+        pageScriptsEnabled = enabled
+        webView.settings.javaScriptEnabled = enabled
+        reloadWebsiteAfterPageControlChange()
+    }
+
+    private fun setPageImagesEnabled(enabled: Boolean) {
+        if (pageImagesEnabled == enabled) return
+        pageImagesEnabled = enabled
+        webView.settings.loadsImagesAutomatically = enabled
+        webView.settings.blockNetworkImage = !enabled
+        reloadWebsiteAfterPageControlChange()
+    }
+
+    private fun reloadWebsiteAfterPageControlChange() {
+        if (NavigationResolver.isAllowedWebUrl(currentUrl)) {
+            failedMainFrameUrl = null
+            chromeOverrideTitle = null
+            webView.reload()
+        } else {
+            refreshChrome()
+        }
     }
 
     private fun setDesktopSiteEnabled(enabled: Boolean) {
@@ -1247,5 +1365,7 @@ class BrowserActivityV2 : Activity() {
         private const val PREFERENCES_NAME = "goreecloud_browser_preferences"
         private const val PREF_PAGE_TEXT_ZOOM = "page_text_zoom_percent"
         private const val STATE_DESKTOP_SITE = "desktop_site_enabled"
+        private const val STATE_PAGE_SCRIPTS = "page_scripts_enabled"
+        private const val STATE_PAGE_IMAGES = "page_images_enabled"
     }
 }
