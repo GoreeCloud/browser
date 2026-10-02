@@ -40,6 +40,38 @@ class NavigationResolverTest {
     }
 
     @Test
+    fun unicodeHttpHostUsesCanonicalAsciiALabel() {
+        assertEquals(
+            NavigationResolver.Intent.Navigate(
+                "https://xn--r8jz45g.xn--zckzah/path?q=1#section",
+            ),
+            NavigationResolver.classify("https://例え.テスト/path?q=1#section"),
+        )
+    }
+
+    @Test
+    fun schemeLessUnicodeHostUsesCanonicalAsciiALabel() {
+        assertEquals(
+            NavigationResolver.Intent.Navigate(
+                "https://xn--r8jz45g.xn--zckzah/path",
+            ),
+            NavigationResolver.classify("例え.テスト/path"),
+        )
+    }
+
+    @Test
+    fun invalidStd3AndBracketedNonIpv6NavigationFailClosed() {
+        for (raw in listOf(
+            "https://exa_mple.com/path",
+            "https://[example.com]/path",
+            "https://[127.0.0.1]/path",
+        )) {
+            assertEquals(NavigationResolver.Intent.Blocked(raw), NavigationResolver.classify(raw))
+            assertFalse(NavigationResolver.isAllowedWebUrl(raw))
+        }
+    }
+
+    @Test
     fun textQueryIsClassifiedWithoutConstructingRemoteSearchUrl() {
         val intent = NavigationResolver.classify(" privacy browser ")
         assertEquals(
