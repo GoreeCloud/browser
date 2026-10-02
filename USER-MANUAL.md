@@ -8,8 +8,8 @@ Current Android beta identity for this source revision:
 
 - Application: **GoreeCloud Browser Beta**
 - Package: `io.goreecloud.browser.beta`
-- Version: `0.1.0-beta.1+android.4`
-- versionCode: `10004`
+- Version: `0.1.0-beta.1+android.7`
+- versionCode: `10007`
 - Minimum Android: Android 8.0 / API 26
 - Target API: 35
 - Rendering dependency: Android System WebView/Chromium
@@ -18,7 +18,7 @@ GoreeCloud owns the Browser product layer, navigation/search behavior, mobile br
 
 ### Linux desktop development candidate
 
-The Linux GTK3 development host can present the GoreeCloud Browser shell on an available GTK desktop display. X11/XWayland keeps the native CEF child-window path. Native Wayland can use the CEF windowless/software-rendering path: CEF supplies BGRA page frames and the Browser paints those frames into its GTK web surface. Exact-head validation plus representative Zorin OS 17.3 Wayland evidence have established real Development page pixels. Pointer/wheel/focus interaction is still under Development validation, while keyboard/IME, popup, drag-and-drop, accessibility, performance, and accelerated-buffer acceptance remain separate gates.
+The Linux GTK3 development host can present the GoreeCloud Browser shell on an available GTK desktop display. X11/XWayland keeps the native CEF child-window path. Native Wayland can use the CEF windowless/software-rendering path: CEF supplies BGRA page frames and the Browser paints those frames into its GTK web surface. Exact-head validation plus representative Zorin OS 17.3 Wayland evidence have established real Development page pixels. Pointer motion/enter/leave, left/middle/right clicks, wheel input, and focus forwarding are integrated on the windowless path; representative interaction acceptance plus keyboard/IME, popup, drag-and-drop, clipboard, cursor, accessibility, performance, and accelerated-buffer acceptance remain separate gates.
 
 ## Installing the Android beta
 
@@ -43,26 +43,11 @@ The web page occupies the full region between them.
 
 The top omnibox reserves most of its width for the unified address/search field. When the field is not being edited, Browser presents a condensed address with the hostname kept at the leading edge. This prevents a long path such as `/preferences` from horizontally scrolling the field so far that the hostname disappears. Focus the field to expose and select the complete current URL for editing.
 
-The leading `HTTPS`, `HTTP`, or `WEB` label reports the parsed address scheme. It is not a Wardveil verdict, certificate-verification badge, or claim that a page is trustworthy.
-
 Use the arrow action at the right edge of the omnibox or the Android keyboard's Go action to navigate.
 
 Enter a complete `https://` or `http://` URL to navigate directly. A host such as `example.com` is upgraded to HTTPS before navigation.
 
-Text that is not interpreted as a URL is sent to **GoreeCloud Search**, which is the sole integrated search authority for this beta. Browser does not silently fall back to another search provider.
-
-### Scroll-aware chrome
-
-When a page has been scrolled meaningfully downward, Browser can hide the top omnibox to return more vertical space to the page. The 56dp bottom toolbar remains available.
-
-The top omnibox returns when you:
-
-- scroll upward;
-- return near the top of the page;
-- focus the omnibox; or
-- start a new navigation.
-
-This changes presentation only. It does not change the current URL, page history, permission state, or security/privacy policy.
+Text that is not interpreted as a URL is classified as a GoreeCloud Search intent, but this Development build keeps the query local and shows an authorization-required surface until accepted Privacy Shield authorization and compatible GoreeCloud Search capability evidence are available. Browser does not silently fall back to another search provider.
 
 ### Bottom navigation
 
@@ -70,7 +55,7 @@ The bottom toolbar contains:
 
 - Back;
 - Forward;
-- GoreeCloud Search Home;
+- Start page;
 - Reload, which becomes Stop while a page is loading; and
 - Browser menu.
 
@@ -84,11 +69,13 @@ The Browser menu uses a Browser-owned Glaze bottom sheet rather than Android's p
 
 The current bounded menu actions are:
 
-- Copy page address;
-- Share page; and
-- About this beta.
+- Site information, which shows the current website origin and HTTPS/HTTP transport without claiming an independent trust or certificate verdict;
+- Privacy & security, which summarizes Browser-enforced Android defaults and explicit fail-closed integration boundaries;
+- Copy page address, only when the current surface has a Browser-approved HTTP(S) page address;
+- Share page, under the same disclosure rule; and
+- About this development build.
 
-Search Home is intentionally not duplicated in the menu because it already has a dedicated control in the bottom toolbar. The current menu is not yet the final Browser settings/menu system.
+Browser-owned local surfaces such as the start page and local Search/error explanations do not expose implementation-only addresses through Copy or Share. The Start page already has a dedicated bottom-toolbar control. The current menu is still not the final Browser settings system.
 
 ## Android Back behavior
 
@@ -96,7 +83,7 @@ When the omnibox is being edited, Android Back first leaves omnibox editing and 
 
 ## Glaze UI on Android
 
-The Android beta maps Browser-owned chrome to the current **Glaze UI V1.6 / 1.6.0 Stable** presentation contract using native Android controls. Browser acceptance still depends on Browser-specific implementation and evidence; the Glaze Stable baseline does not by itself promote Browser lifecycle status.
+The Android beta maps Browser-owned chrome to the current **Glaze UI V1.6 / 1.6.0 Anchor** presentation contract using native Android controls. Browser acceptance still depends on Browser-specific implementation and evidence; the Glaze Stable baseline does not by itself promote Browser lifecycle status.
 
 Browser remains migration-required/not accepted until repository-local rendered/native visual, accessibility, representative-device/posture, large-text, RTL/localization, reduced-effects, performance, rollback, workflow, and production evidence is accepted. Glaze presentation never creates Browser authorization, privacy/security truth, provider precedence, or execution authority.
 
@@ -109,6 +96,7 @@ The Android beta intentionally fails closed in several areas while the full Gore
 - Mixed-content loading is disabled.
 - WebView file access and content access are disabled.
 - Third-party cookies are disabled by default.
+- Credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous/invalid numeric IPv4 host forms fail closed before ordinary navigation.
 - Website permission requests are denied until Browser-owned permission and policy surfaces are integrated.
 - Geolocation permission requests are denied.
 - Downloads are blocked until the Android path can satisfy the authoritative Wardveil download verification and release contract.
@@ -117,7 +105,7 @@ These behaviors do not mean the beta has completed Wardveil Security production 
 
 ## Privacy behavior
 
-The beta uses privacy-protective defaults where a complete user-controlled Privacy Shield workflow does not yet exist. Third-party cookies are disabled and site permission grants fail closed.
+The beta uses privacy-protective defaults where a complete user-controlled Privacy Shield workflow does not yet exist. Third-party cookies are disabled and site permission grants fail closed. The Browser menu's Privacy & security sheet makes these local defaults and unavailable-provider boundaries visible without claiming Privacy Shield or Wardveil runtime acceptance.
 
 The Android beta does not yet provide the complete production Privacy Shield filtering, consent, diagnostics, private-browsing isolation, or user-control surface required for Stable release.
 
@@ -145,7 +133,7 @@ The Android beta does not yet claim:
 
 - production signing or managed beta signing continuity;
 - production or Stable readiness;
-- complete Glaze UI 2.0 native-device acceptance;
+- complete Glaze UI V1.6 native-device acceptance;
 - complete Wardveil Security runtime acceptance;
 - complete Privacy Shield runtime acceptance;
 - Everkeep backup/recovery acceptance;
