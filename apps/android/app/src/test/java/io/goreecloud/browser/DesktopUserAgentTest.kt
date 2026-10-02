@@ -10,13 +10,13 @@ class DesktopUserAgentTest {
     fun desktopSiteUserAgentKeepsEngineVersionAndRemovesMobileTokens() {
         val mobile = "Mozilla/5.0 (Linux; Android 15; Pixel Build/AP3A; wv) " +
             "AppleWebKit/537.36 Version/4.0 Chrome/152.0.7977.83 Mobile Safari/537.36 " +
-            "GoreeCloudBrowser/0.1.0-beta.1+android.11 Android"
+            "GoreeCloudBrowser/0.1.0-beta.1+android.12 Android"
 
         val desktop = DesktopUserAgent.fromMobile(mobile)
 
         assertTrue(desktop.startsWith("Mozilla/5.0 (X11; Linux x86_64)"))
         assertTrue(desktop.contains("Chrome/152.0.7977.83"))
-        assertTrue(desktop.contains("GoreeCloudBrowser/0.1.0-beta.1+android.11 DesktopSite"))
+        assertTrue(desktop.contains("GoreeCloudBrowser/0.1.0-beta.1+android.12 DesktopSite"))
         assertFalse(desktop.contains("Android 15"))
         assertFalse(desktop.contains(" Mobile "))
         assertFalse(desktop.contains("; wv"))
