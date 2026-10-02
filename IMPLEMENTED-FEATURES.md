@@ -44,6 +44,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
 - Direct HTTP/HTTPS navigation, HTTPS upgrade for bare hosts, and GoreeCloud Search intent classification for non-URL input.
 - Direct-navigation canonicalization rejects credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous or invalid numeric IPv4 host forms before WebView navigation.
+- Internationalized Android HTTP(S) DNS host identity is canonicalized to lowercase ASCII A-label form before direct navigation and Browser-owned unfocused address presentation; path, query, fragment, explicit valid ports and trailing DNS root dots are preserved, while malformed STD3 labels and bracketed non-IPv6 authorities fail closed.
 - Free-text Search and omnibox classification reject C0/C1 and narrow Unicode Bidi_Control formatting characters before trimming, enforce a 2,048-character Search-query maximum, and reject Search capability claims above the Browser-supported 100-result maximum before request construction; this does not enable remote Search.
 - Android Browser-owned page-title and unfocused-address presentation strips Unicode bidirectional formatting controls before rendering chrome text while retaining the unchanged full URL as navigation authority.
 - Browser-intent handling for HTTP/HTTPS links.
