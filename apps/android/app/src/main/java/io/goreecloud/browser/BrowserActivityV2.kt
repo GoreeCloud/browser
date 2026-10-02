@@ -6,7 +6,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.os.Bundle
@@ -30,6 +29,7 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 
@@ -527,7 +527,7 @@ class BrowserActivityV2 : Activity() {
         )
 
         val subtitle = TextView(this).apply {
-            text = if (currentUrl == INTERNAL_HOME) "Development build" else Uri.parse(currentUrl).host.orEmpty()
+            text = SiteInformation.forUrl(currentUrl).menuSubtitle
         }
         glaze.styleMenuSubtitle(subtitle)
         sheet.addView(
@@ -556,16 +556,25 @@ class BrowserActivityV2 : Activity() {
             )
         }
 
-        addAction("Copy page address") {
-            val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Page address", currentUrl))
+        addAction("Site information") { showSiteInformation() }
+        addAction("Privacy & security") { showPrivacyAndSecurityStatus() }
+
+        BrowserDisclosurePolicy.shareablePageUrl(currentUrl)?.let { shareablePageUrl ->
+            addAction("Copy page address") {
+                val clipboard =
+                    getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(
+                    android.content.ClipData.newPlainText("Page address", shareablePageUrl),
+                )
+            }
+            addAction("Share page") {
+                startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_TEXT, shareablePageUrl)
+                }, "Share page"))
+            }
         }
-        addAction("Share page") {
-            startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, currentUrl)
-            }, "Share page"))
-        }
+
         addAction("About this development build") {
             Toast.makeText(
                 this,
@@ -578,6 +587,124 @@ class BrowserActivityV2 : Activity() {
         dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         dialog.show()
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
+    private fun showSiteInformation() {
+        val info = SiteInformation.forUrl(currentUrl)
+        showInformationSheet(
+            titleText = "Site information",
+            subtitleText = info.displayOrigin,
+            rows = listOf(
+                "Connection" to info.transportLabel,
+                "Details" to info.details,
+            ),
+        )
+    }
+
+    private fun showPrivacyAndSecurityStatus() {
+        val entries = BrowserProtectionStatus.current(
+            safeBrowsingEnabled = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O,
+        )
+        showInformationSheet(
+            titleText = "Privacy & security",
+            subtitleText = "Current Development defaults",
+            rows = entries.map { entry ->
+                entry.label to "${entry.state}\n${entry.details}"
+            },
+        )
+    }
+
+    private fun showInformationSheet(
+        titleText: String,
+        subtitleText: String,
+        rows: List<Pair<String, String>>,
+    ) {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "$titleText sheet"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = titleText }
+        glaze.styleMenuTitle(title)
+        sheet.addView(
+            title,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val subtitle = TextView(this).apply { text = subtitleText }
+        glaze.styleMenuSubtitle(subtitle)
+        sheet.addView(
+            subtitle,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        rows.forEach { (label, value) ->
+            val heading = TextView(this).apply {
+                text = label
+                textSize = 14f
+                setTextColor(glaze.palette.textPrimary)
+                setPadding(dp(12), dp(10), dp(12), 0)
+            }
+            sheet.addView(
+                heading,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+
+            val body = TextView(this).apply { text = value }
+            glaze.styleMenuSubtitle(body)
+            sheet.addView(
+                body,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+
+        val close = TextView(this).apply {
+            text = "Close"
+            setOnClickListener { dialog.dismiss() }
+        }
+        glaze.styleMenuAction(close)
+        sheet.addView(
+            close,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(
+                sheet,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        dialog.setContentView(scroll)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
         dialog.window?.setGravity(Gravity.BOTTOM)
     }
 
