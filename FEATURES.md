@@ -44,7 +44,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Direct HTTP/HTTPS navigation.
 - Direct-navigation safety rejects credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous/invalid numeric IPv4 host forms.
 - HTTPS upgrade for bare hosts.
-- GoreeCloud Search for non-URL input.
+- GoreeCloud Search intent classification for non-URL input; remote Search remains fail-closed until accepted Privacy Shield authorization and compatible Search capability evidence are available.
 - Browser-intent handling for HTTP/HTTPS links.
 - TLS certificate errors fail closed.
 - Android Safe Browsing enabled with return-to-safety behavior.
