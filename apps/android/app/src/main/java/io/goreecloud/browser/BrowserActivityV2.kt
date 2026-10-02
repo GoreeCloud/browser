@@ -59,11 +59,16 @@ class BrowserActivityV2 : Activity() {
     private var loading = false
     private var failedMainFrameUrl: String? = null
     private var chromeOverrideTitle: String? = null
+    private var pageTextZoomPercent = PageTextZoom.DEFAULT_PERCENT
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         glaze = GlazeNativeStyle(this)
         glaze.applyWindow(this)
+        pageTextZoomPercent = PageTextZoom.normalize(
+            getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
+                .getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
+        )
         buildBrowserSurface()
         configureWebView()
 
@@ -283,6 +288,7 @@ class BrowserActivityV2 : Activity() {
             builtInZoomControls = true
             displayZoomControls = false
             setSupportZoom(true)
+            textZoom = pageTextZoomPercent
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
             userAgentString = "$userAgentString GoreeCloudBrowser/${BuildConfig.VERSION_NAME} Android"
@@ -558,6 +564,10 @@ class BrowserActivityV2 : Activity() {
 
         addAction("Site information") { showSiteInformation() }
         addAction("Privacy & security") { showPrivacyAndSecurityStatus() }
+        addAction("Find in page") { showFindInPage() }
+        addAction("Text size · ${PageTextZoom.label(pageTextZoomPercent)}") {
+            showTextZoomControls()
+        }
 
         BrowserDisclosurePolicy.shareablePageUrl(currentUrl)?.let { shareablePageUrl ->
             addAction("Copy page address") {
@@ -708,6 +718,315 @@ class BrowserActivityV2 : Activity() {
         dialog.window?.setGravity(Gravity.BOTTOM)
     }
 
+    private fun showFindInPage() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "Find in page"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = "Find in page" }
+        glaze.styleMenuTitle(title)
+        sheet.addView(
+            title,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val privacyNote = TextView(this).apply {
+            text = "Searches only this page. Find text stays inside the active WebView."
+        }
+        glaze.styleMenuSubtitle(privacyNote)
+        sheet.addView(
+            privacyNote,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val queryShell = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        glaze.styleOmniboxCapsule(queryShell)
+
+        val query = EditText(this).apply {
+            hint = "Find text"
+            contentDescription = "Find in page query"
+            isSingleLine = true
+            imeOptions = EditorInfo.IME_ACTION_SEARCH
+            filters = arrayOf(
+                android.text.InputFilter.LengthFilter(FindInPageStatus.MAX_QUERY_LENGTH),
+            )
+        }
+        glaze.styleAddressField(query)
+        queryShell.addView(
+            query,
+            LinearLayout.LayoutParams(
+                0,
+                dp(GlazeContract.OMNIBOX_HEIGHT_DP),
+                1f,
+            ),
+        )
+        sheet.addView(
+            queryShell,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(GlazeContract.OMNIBOX_HEIGHT_DP),
+            ),
+        )
+
+        val status = TextView(this).apply {
+            text = FindInPageStatus.label("", 0, 0, true)
+        }
+        glaze.styleMenuSubtitle(status)
+        sheet.addView(
+            status,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        fun findAction(label: String): TextView = TextView(this).apply {
+            text = label
+            gravity = Gravity.CENTER
+            glaze.styleMenuAction(this)
+        }
+
+        val previous = findAction("Previous")
+        val next = findAction("Next")
+        val close = findAction("Close")
+        controls.addView(previous, LinearLayout.LayoutParams(0, dp(56), 1f))
+        controls.addView(next, LinearLayout.LayoutParams(0, dp(56), 1f))
+        controls.addView(close, LinearLayout.LayoutParams(0, dp(56), 1f))
+        sheet.addView(
+            controls,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        var activeQuery = ""
+        setTextActionEnabled(previous, false)
+        setTextActionEnabled(next, false)
+
+        webView.setFindListener { activeMatchOrdinal, numberOfMatches, isDoneCounting ->
+            status.text = FindInPageStatus.label(
+                activeQuery,
+                activeMatchOrdinal,
+                numberOfMatches,
+                isDoneCounting,
+            )
+            val hasMatches = activeQuery.isNotEmpty() && isDoneCounting && numberOfMatches > 0
+            setTextActionEnabled(previous, hasMatches)
+            setTextActionEnabled(next, hasMatches)
+        }
+
+        query.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(
+                value: CharSequence?,
+                start: Int,
+                count: Int,
+                after: Int,
+            ) = Unit
+
+            override fun onTextChanged(
+                value: CharSequence?,
+                start: Int,
+                before: Int,
+                count: Int,
+            ) = Unit
+
+            override fun afterTextChanged(value: android.text.Editable?) {
+                activeQuery = value?.toString().orEmpty()
+                if (activeQuery.isEmpty()) {
+                    webView.clearMatches()
+                    status.text = FindInPageStatus.label("", 0, 0, true)
+                    setTextActionEnabled(previous, false)
+                    setTextActionEnabled(next, false)
+                } else {
+                    status.text = FindInPageStatus.label(activeQuery, 0, 0, false)
+                    setTextActionEnabled(previous, false)
+                    setTextActionEnabled(next, false)
+                    webView.findAllAsync(activeQuery)
+                }
+            }
+        })
+
+        previous.setOnClickListener { webView.findNext(false) }
+        next.setOnClickListener { webView.findNext(true) }
+        close.setOnClickListener { dialog.dismiss() }
+
+        dialog.setOnDismissListener {
+            webView.clearMatches()
+            webView.setFindListener(null)
+            hideKeyboard(query)
+        }
+        dialog.setContentView(sheet)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        dialog.window?.setGravity(Gravity.BOTTOM)
+
+        query.requestFocus()
+        query.post {
+            (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)
+                ?.showSoftInput(query, InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    private fun showTextZoomControls() {
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "Page text size"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = "Page text size" }
+        glaze.styleMenuTitle(title)
+        sheet.addView(
+            title,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val note = TextView(this).apply {
+            text = "Changes website text size in Browser only. System font size is unchanged."
+        }
+        glaze.styleMenuSubtitle(note)
+        sheet.addView(
+            note,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val value = TextView(this).apply {
+            gravity = Gravity.CENTER
+            textSize = 24f
+            setTextColor(glaze.palette.textPrimary)
+            setPadding(dp(12), dp(8), dp(12), dp(12))
+        }
+        sheet.addView(
+            value,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        fun zoomAction(label: String): TextView = TextView(this).apply {
+            text = label
+            gravity = Gravity.CENTER
+            glaze.styleMenuAction(this)
+        }
+
+        val smaller = zoomAction("Smaller")
+        val reset = zoomAction("Reset")
+        val larger = zoomAction("Larger")
+        controls.addView(smaller, LinearLayout.LayoutParams(0, dp(56), 1f))
+        controls.addView(reset, LinearLayout.LayoutParams(0, dp(56), 1f))
+        controls.addView(larger, LinearLayout.LayoutParams(0, dp(56), 1f))
+        sheet.addView(
+            controls,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
+
+        val close = zoomAction("Close")
+        sheet.addView(
+            close,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(56),
+            ),
+        )
+
+        fun refreshZoomControls() {
+            value.text = PageTextZoom.label(pageTextZoomPercent)
+            setTextActionEnabled(
+                smaller,
+                pageTextZoomPercent > PageTextZoom.MIN_PERCENT,
+            )
+            setTextActionEnabled(
+                reset,
+                pageTextZoomPercent != PageTextZoom.DEFAULT_PERCENT,
+            )
+            setTextActionEnabled(
+                larger,
+                pageTextZoomPercent < PageTextZoom.MAX_PERCENT,
+            )
+        }
+
+        smaller.setOnClickListener {
+            applyPageTextZoom(PageTextZoom.decrease(pageTextZoomPercent))
+            refreshZoomControls()
+        }
+        reset.setOnClickListener {
+            applyPageTextZoom(PageTextZoom.DEFAULT_PERCENT)
+            refreshZoomControls()
+        }
+        larger.setOnClickListener {
+            applyPageTextZoom(PageTextZoom.increase(pageTextZoomPercent))
+            refreshZoomControls()
+        }
+        close.setOnClickListener { dialog.dismiss() }
+
+        refreshZoomControls()
+        dialog.setContentView(sheet)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
+    private fun applyPageTextZoom(percent: Int) {
+        val normalized = PageTextZoom.normalize(percent)
+        pageTextZoomPercent = normalized
+        webView.settings.textZoom = normalized
+        getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
+            .edit()
+            .putInt(PREF_PAGE_TEXT_ZOOM, normalized)
+            .apply()
+    }
+
+    private fun setTextActionEnabled(view: TextView, enabled: Boolean) {
+        view.isEnabled = enabled
+        view.alpha = if (enabled) 1f else 0.34f
+    }
+
     private fun chromeButton(icon: Int, description: String, action: (View) -> Unit): ImageButton =
         ImageButton(this).apply {
             setImageResource(icon)
@@ -716,9 +1035,9 @@ class BrowserActivityV2 : Activity() {
             glaze.styleChromeButton(this, GlazeContract.ButtonRole.Quiet)
         }
 
-    private fun hideKeyboard() {
+    private fun hideKeyboard(view: View = addressField) {
         (getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager)
-            ?.hideSoftInputFromWindow(addressField.windowToken, 0)
+            ?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     private fun isInternalStartUrl(url: String): Boolean =
@@ -729,5 +1048,7 @@ class BrowserActivityV2 : Activity() {
     companion object {
         private const val INTERNAL_HOME = "goreecloud://start"
         private const val START_BASE_URL = "https://start.goreecloud.local/"
+        private const val PREFERENCES_NAME = "goreecloud_browser_preferences"
+        private const val PREF_PAGE_TEXT_ZOOM = "page_text_zoom_percent"
     }
 }
