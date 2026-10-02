@@ -5,6 +5,23 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-02 — Android logical tab-session model foundation
+
+### Added
+
+- Added a Browser-owned logical tab/session state model independent from transient Android WebView identity.
+- Added stable bounded tab identities, one exact active tab, a 32-tab ceiling, duplicate/unknown-ID rejection, last-tab protection, deterministic active-tab fallback after close, and exact-tab URL/title updates.
+- Added fail-closed rejection for blank or oversized location mutations instead of allowing invalid location state to reach the logical-tab constructor path.
+- Added JVM coverage for active/inactive close behavior, tab ceilings, exact-tab mutation, invalid location rejection, and bounded/normalized titles.
+
+### Architecture boundary
+
+This is a model foundation only. It does not add a visible Android tab switcher, multiple WebViews, per-tab engine history, process-death persistence/recovery, profiles/Webspaces, Private or Isolated Private semantics, Sync projection, or new network/provider authority.
+
+### Acceptance boundary
+
+The runtime object-model roadmap remains open. Android chrome/engine binding, lifecycle restoration, accessibility/adaptive-device behavior, privacy-context isolation, representative-device evidence, and release qualification remain separate gates.
+
 ## 2026-10-02 — Android Page controls, JavaScript, and image-loading controls
 
 ### Added
