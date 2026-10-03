@@ -58,12 +58,14 @@ class GoreeCloudCefClient final : public CefClient,
 
   void configure_windowless_surface(
       NativeSurfaceFrameSink* sink,
+      NativeSurfaceCursorSink* cursor_sink,
       NativeSurfaceContextMenuSink* context_menu_sink,
       int width,
       int height,
       float scale_factor) {
     std::scoped_lock lock(render_mutex_);
     frame_sink_ = sink;
+    cursor_sink_ = cursor_sink;
     context_menu_sink_ = context_menu_sink;
     view_width_ = std::max(1, width);
     view_height_ = std::max(1, height);
@@ -73,6 +75,7 @@ class GoreeCloudCefClient final : public CefClient,
   void clear_windowless_surface() {
     std::scoped_lock lock(render_mutex_);
     frame_sink_ = nullptr;
+    cursor_sink_ = nullptr;
     context_menu_sink_ = nullptr;
   }
 
@@ -90,6 +93,37 @@ class GoreeCloudCefClient final : public CefClient,
     screen_info.rect =
         CefRect(0, 0, std::max(1, view_width_), std::max(1, view_height_));
     screen_info.available_rect = screen_info.rect;
+    return true;
+  }
+
+  bool OnCursorChange(CefRefPtr<CefBrowser>,
+                      CefCursorHandle,
+                      cef_cursor_type_t type,
+                      const CefCursorInfo&) override {
+    CEF_REQUIRE_UI_THREAD();
+
+    NativeSurfaceCursorSink* sink = nullptr;
+    {
+      std::scoped_lock lock(render_mutex_);
+      sink = cursor_sink_;
+    }
+    if (!sink) return false;
+
+    const auto mapped = native_cursor_type(type);
+    if (!mapped) {
+      if (runtime_diagnostics_enabled()) {
+        std::cerr << "[GoreeCloud CEF] windowless-cursor-unsupported raw="
+                  << static_cast<int>(type) << std::endl;
+      }
+      return false;
+    }
+
+    sink->apply_native_cursor(*mapped);
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-cursor-change type="
+                << native_cursor_name(*mapped)
+                << " raw=" << static_cast<int>(type) << std::endl;
+    }
     return true;
   }
 
@@ -379,6 +413,118 @@ class GoreeCloudCefClient final : public CefClient,
   }
 
  private:
+  static std::optional<NativeCursorType> native_cursor_type(
+      cef_cursor_type_t type) {
+    switch (type) {
+      case CT_POINTER:
+        return NativeCursorType::pointer;
+      case CT_CROSS:
+        return NativeCursorType::crosshair;
+      case CT_HAND:
+        return NativeCursorType::hand;
+      case CT_IBEAM:
+        return NativeCursorType::text;
+      case CT_WAIT:
+        return NativeCursorType::wait;
+      case CT_HELP:
+        return NativeCursorType::help;
+      case CT_EASTRESIZE:
+      case CT_WESTRESIZE:
+      case CT_EASTWESTRESIZE:
+        return NativeCursorType::east_west_resize;
+      case CT_NORTHRESIZE:
+      case CT_SOUTHRESIZE:
+      case CT_NORTHSOUTHRESIZE:
+        return NativeCursorType::north_south_resize;
+      case CT_NORTHEASTRESIZE:
+      case CT_SOUTHWESTRESIZE:
+      case CT_NORTHEASTSOUTHWESTRESIZE:
+        return NativeCursorType::northeast_southwest_resize;
+      case CT_NORTHWESTRESIZE:
+      case CT_SOUTHEASTRESIZE:
+      case CT_NORTHWESTSOUTHEASTRESIZE:
+        return NativeCursorType::northwest_southeast_resize;
+      case CT_COLUMNRESIZE:
+        return NativeCursorType::column_resize;
+      case CT_ROWRESIZE:
+        return NativeCursorType::row_resize;
+      case CT_MIDDLEPANNING:
+      case CT_EASTPANNING:
+      case CT_NORTHPANNING:
+      case CT_NORTHEASTPANNING:
+      case CT_NORTHWESTPANNING:
+      case CT_SOUTHPANNING:
+      case CT_SOUTHEASTPANNING:
+      case CT_SOUTHWESTPANNING:
+      case CT_WESTPANNING:
+      case CT_MOVE:
+        return NativeCursorType::move;
+      case CT_VERTICALTEXT:
+        return NativeCursorType::vertical_text;
+      case CT_CELL:
+        return NativeCursorType::cell;
+      case CT_CONTEXTMENU:
+        return NativeCursorType::context_menu;
+      case CT_ALIAS:
+        return NativeCursorType::alias;
+      case CT_PROGRESS:
+        return NativeCursorType::progress;
+      case CT_NODROP:
+        return NativeCursorType::no_drop;
+      case CT_COPY:
+        return NativeCursorType::copy;
+      case CT_NONE:
+        return NativeCursorType::none;
+      case CT_NOTALLOWED:
+        return NativeCursorType::not_allowed;
+      case CT_ZOOMIN:
+        return NativeCursorType::zoom_in;
+      case CT_ZOOMOUT:
+        return NativeCursorType::zoom_out;
+      case CT_GRAB:
+        return NativeCursorType::grab;
+      case CT_GRABBING:
+        return NativeCursorType::grabbing;
+      case CT_CUSTOM:
+      default:
+        return std::nullopt;
+    }
+  }
+
+  static const char* native_cursor_name(NativeCursorType cursor) {
+    switch (cursor) {
+      case NativeCursorType::pointer: return "pointer";
+      case NativeCursorType::crosshair: return "crosshair";
+      case NativeCursorType::hand: return "hand";
+      case NativeCursorType::text: return "text";
+      case NativeCursorType::wait: return "wait";
+      case NativeCursorType::help: return "help";
+      case NativeCursorType::move: return "move";
+      case NativeCursorType::east_west_resize: return "east-west-resize";
+      case NativeCursorType::north_south_resize: return "north-south-resize";
+      case NativeCursorType::northeast_southwest_resize:
+        return "northeast-southwest-resize";
+      case NativeCursorType::northwest_southeast_resize:
+        return "northwest-southeast-resize";
+      case NativeCursorType::column_resize: return "column-resize";
+      case NativeCursorType::row_resize: return "row-resize";
+      case NativeCursorType::vertical_text: return "vertical-text";
+      case NativeCursorType::cell: return "cell";
+      case NativeCursorType::context_menu: return "context-menu";
+      case NativeCursorType::alias: return "alias";
+      case NativeCursorType::progress: return "progress";
+      case NativeCursorType::no_drop: return "no-drop";
+      case NativeCursorType::copy: return "copy";
+      case NativeCursorType::none: return "none";
+      case NativeCursorType::not_allowed: return "not-allowed";
+      case NativeCursorType::zoom_in: return "zoom-in";
+      case NativeCursorType::zoom_out: return "zoom-out";
+      case NativeCursorType::grab: return "grab";
+      case NativeCursorType::grabbing: return "grabbing";
+    }
+    return "pointer";
+  }
+
   static void append_context_menu_items(
       CefRefPtr<CefMenuModel> model,
       std::vector<NativeContextMenuItem>& items) {
@@ -601,6 +747,7 @@ class GoreeCloudCefClient final : public CefClient,
   NavigationState state_;
   mutable std::mutex render_mutex_;
   NativeSurfaceFrameSink* frame_sink_{nullptr};
+  NativeSurfaceCursorSink* cursor_sink_{nullptr};
   NativeSurfaceContextMenuSink* context_menu_sink_{nullptr};
   int view_width_{1};
   int view_height_{1};
