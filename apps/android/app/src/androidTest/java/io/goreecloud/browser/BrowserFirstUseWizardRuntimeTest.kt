@@ -39,7 +39,7 @@ class BrowserFirstUseWizardRuntimeTest {
             assertTrue(waitForText("Privacy & security by default"))
             clickText("Continue")
 
-            assertTrue(waitForText("Browse with clear boundaries"))
+            assertTrue(waitForText("Browse with tabs and clear boundaries"))
             clickText("Start browsing")
 
             assertTrue(waitUntil {
@@ -98,5 +98,6 @@ class BrowserFirstUseWizardRuntimeTest {
             BrowserFirstUsePreferences.FILE_NAME,
             Context.MODE_PRIVATE,
         ).edit().clear().commit()
+        BrowserTabSessionStore(context).clear()
     }
 }
