@@ -80,6 +80,19 @@ class NativeSurfaceInputForwarder {
   virtual void set_surface_focus(bool focused) = 0;
 };
 
+// Optional text-composition bridge used by software/windowless engine
+// surfaces. The host owns platform IME integration while the engine adapter
+// owns translation into renderer-specific composition APIs.
+class NativeSurfaceTextInputForwarder {
+ public:
+  virtual ~NativeSurfaceTextInputForwarder() = default;
+  virtual bool set_text_composition(std::u16string text,
+                                    int selection_start,
+                                    int selection_end) = 0;
+  virtual bool commit_text(std::u16string text) = 0;
+  virtual void cancel_text_composition() = 0;
+};
+
 enum class NativeCursorType {
   pointer,
   crosshair,
