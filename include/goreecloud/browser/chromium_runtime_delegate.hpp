@@ -57,6 +57,10 @@ class ChromiumRuntimeView {
     (void)delta_y;
     return false;
   }
+  virtual bool send_key_event(const NativeKeyEvent& event) {
+    (void)event;
+    return false;
+  }
   virtual void set_surface_focus(bool focused) { (void)focused; }
 
   // Optional asynchronous media probe. Runtime implementations that do not
