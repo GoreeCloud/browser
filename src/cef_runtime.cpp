@@ -30,11 +30,17 @@ bool cef_runtime_diagnostics_enabled() {
   return value && *value && std::string_view{value} != "0";
 }
 
-int cef_mouse_modifiers(std::uint32_t modifiers) {
+int cef_keyboard_modifiers(std::uint32_t modifiers) {
   int flags = EVENTFLAG_NONE;
   if (modifiers & native_modifier_shift) flags |= EVENTFLAG_SHIFT_DOWN;
   if (modifiers & native_modifier_control) flags |= EVENTFLAG_CONTROL_DOWN;
   if (modifiers & native_modifier_alt) flags |= EVENTFLAG_ALT_DOWN;
+  if (modifiers & native_modifier_caps_lock) flags |= EVENTFLAG_CAPS_LOCK_ON;
+  return flags;
+}
+
+int cef_mouse_modifiers(std::uint32_t modifiers) {
+  int flags = cef_keyboard_modifiers(modifiers);
   if (modifiers & native_modifier_left_button) {
     flags |= EVENTFLAG_LEFT_MOUSE_BUTTON;
   }
@@ -65,6 +71,45 @@ CefMouseEvent cef_mouse_event(const NativePointerEvent& event) {
   mouse_event.y = event.y;
   mouse_event.modifiers = cef_mouse_modifiers(event.modifiers);
   return mouse_event;
+}
+
+CefKeyEvent cef_key_event(const NativeKeyEvent& event) {
+  CefKeyEvent key_event;
+  switch (event.type) {
+    case NativeKeyEventType::raw_key_down:
+      key_event.type = KEYEVENT_RAWKEYDOWN;
+      break;
+    case NativeKeyEventType::key_up:
+      key_event.type = KEYEVENT_KEYUP;
+      break;
+    case NativeKeyEventType::character:
+      key_event.type = KEYEVENT_CHAR;
+      break;
+  }
+  key_event.modifiers = cef_keyboard_modifiers(event.modifiers);
+  key_event.windows_key_code = event.virtual_key_code;
+  key_event.native_key_code = event.native_key_code;
+  key_event.is_system_key = false;
+  if (event.character <= 0xFFFFU) {
+    key_event.character = static_cast<char16_t>(event.character);
+  }
+  if (event.unmodified_character <= 0xFFFFU) {
+    key_event.unmodified_character =
+        static_cast<char16_t>(event.unmodified_character);
+  }
+  return key_event;
+}
+
+const char* native_key_event_name(NativeKeyEventType type) {
+  switch (type) {
+    case NativeKeyEventType::raw_key_down:
+      return "raw-key-down";
+    case NativeKeyEventType::key_up:
+      return "key-up";
+    case NativeKeyEventType::character:
+      return "character";
+  }
+  return "unknown";
 }
 
 class CefRuntimeView final : public ChromiumRuntimeView {
@@ -152,6 +197,26 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] windowless-pointer-wheel dx="
                 << delta_x << " dy=" << delta_y << std::endl;
+    }
+    return true;
+  }
+
+  bool send_key_event(const NativeKeyEvent& event) override {
+    if (!windowless_browser()) return false;
+    if (event.virtual_key_code <= 0 && event.type != NativeKeyEventType::character) {
+      return false;
+    }
+    if (event.character > 0xFFFFU || event.unmodified_character > 0xFFFFU) {
+      return false;
+    }
+
+    client_->browser()->GetHost()->SendKeyEvent(cef_key_event(event));
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-key-event type="
+                << native_key_event_name(event.type)
+                << " vkey=" << event.virtual_key_code
+                << " native=" << event.native_key_code
+                << " character=" << event.character << std::endl;
     }
     return true;
   }
