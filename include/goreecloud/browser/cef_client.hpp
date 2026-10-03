@@ -77,6 +77,14 @@ class GoreeCloudCefClient final : public CefClient,
     frame_sink_ = nullptr;
     cursor_sink_ = nullptr;
     context_menu_sink_ = nullptr;
+    view_pixels_.clear();
+    popup_pixels_.clear();
+    view_frame_width_ = 0;
+    view_frame_height_ = 0;
+    popup_width_ = 0;
+    popup_height_ = 0;
+    popup_visible_ = false;
+    popup_rect_ = CefRect();
   }
 
   void GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect) override {
@@ -127,6 +135,46 @@ class GoreeCloudCefClient final : public CefClient,
     return true;
   }
 
+  void OnPopupShow(CefRefPtr<CefBrowser>, bool show) override {
+    CEF_REQUIRE_UI_THREAD();
+
+    NativeSurfaceFrameSink* sink = nullptr;
+    float scale_factor = 1.0F;
+    int width = 0;
+    int height = 0;
+    std::vector<std::uint8_t> frame;
+    {
+      std::scoped_lock lock(render_mutex_);
+      popup_visible_ = show;
+      if (!show) {
+        popup_pixels_.clear();
+        popup_width_ = 0;
+        popup_height_ = 0;
+      }
+      snapshot_composited_frame_locked(sink, scale_factor, width, height, frame);
+    }
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-popup-show visible="
+                << (show ? "yes" : "no") << std::endl;
+    }
+    present_snapshot(sink, scale_factor, width, height, frame);
+  }
+
+  void OnPopupSize(CefRefPtr<CefBrowser>, const CefRect& rect) override {
+    CEF_REQUIRE_UI_THREAD();
+    {
+      std::scoped_lock lock(render_mutex_);
+      popup_rect_ = rect;
+    }
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-popup-size x=" << rect.x
+                << " y=" << rect.y
+                << " width=" << rect.width
+                << " height=" << rect.height << std::endl;
+    }
+  }
+
   void OnPaint(CefRefPtr<CefBrowser>,
                PaintElementType type,
                const RectList&,
@@ -134,23 +182,39 @@ class GoreeCloudCefClient final : public CefClient,
                int width,
                int height) override {
     CEF_REQUIRE_UI_THREAD();
-    if (type != PET_VIEW || !buffer || width <= 0 || height <= 0) return;
+    if (!buffer || width <= 0 || height <= 0) return;
+    if (type != PET_VIEW && type != PET_POPUP) return;
 
     NativeSurfaceFrameSink* sink = nullptr;
     float scale_factor = 1.0F;
+    int frame_width = 0;
+    int frame_height = 0;
+    std::vector<std::uint8_t> frame;
     {
       std::scoped_lock lock(render_mutex_);
-      sink = frame_sink_;
-      scale_factor = scale_factor_;
-    }
-    if (!sink) return;
+      const auto* pixels = static_cast<const std::uint8_t*>(buffer);
+      const auto byte_count =
+          static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4U;
 
-    sink->present_software_frame(
-        NativeSurfaceFrame{.bgra = static_cast<const std::uint8_t*>(buffer),
-                           .width = width,
-                           .height = height,
-                           .stride = width * 4,
-                           .scale_factor = scale_factor});
+      if (type == PET_VIEW) {
+        view_pixels_.assign(pixels, pixels + byte_count);
+        view_frame_width_ = width;
+        view_frame_height_ = height;
+      } else {
+        popup_pixels_.assign(pixels, pixels + byte_count);
+        popup_width_ = width;
+        popup_height_ = height;
+      }
+
+      snapshot_composited_frame_locked(
+          sink, scale_factor, frame_width, frame_height, frame);
+    }
+
+    if (runtime_diagnostics_enabled() && type == PET_POPUP) {
+      std::cerr << "[GoreeCloud CEF] windowless-popup-painted width="
+                << width << " height=" << height << std::endl;
+    }
+    present_snapshot(sink, scale_factor, frame_width, frame_height, frame);
   }
 
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
@@ -413,6 +477,113 @@ class GoreeCloudCefClient final : public CefClient,
   }
 
  private:
+  static void blend_premultiplied_bgra(std::uint8_t* dst,
+                                       const std::uint8_t* src) {
+    const unsigned int alpha = src[3];
+    if (alpha == 0U) return;
+    if (alpha >= 255U) {
+      dst[0] = src[0];
+      dst[1] = src[1];
+      dst[2] = src[2];
+      dst[3] = src[3];
+      return;
+    }
+
+    const unsigned int inverse = 255U - alpha;
+    dst[0] = static_cast<std::uint8_t>(
+        std::min(255U, static_cast<unsigned int>(src[0]) +
+                           (static_cast<unsigned int>(dst[0]) * inverse + 127U) /
+                               255U));
+    dst[1] = static_cast<std::uint8_t>(
+        std::min(255U, static_cast<unsigned int>(src[1]) +
+                           (static_cast<unsigned int>(dst[1]) * inverse + 127U) /
+                               255U));
+    dst[2] = static_cast<std::uint8_t>(
+        std::min(255U, static_cast<unsigned int>(src[2]) +
+                           (static_cast<unsigned int>(dst[2]) * inverse + 127U) /
+                               255U));
+    dst[3] = static_cast<std::uint8_t>(
+        std::min(255U, alpha +
+                           (static_cast<unsigned int>(dst[3]) * inverse + 127U) /
+                               255U));
+  }
+
+  std::vector<std::uint8_t> composited_frame_locked() const {
+    if (view_frame_width_ <= 0 || view_frame_height_ <= 0 ||
+        view_pixels_.size() !=
+            static_cast<std::size_t>(view_frame_width_) *
+                static_cast<std::size_t>(view_frame_height_) * 4U) {
+      return {};
+    }
+
+    auto output = view_pixels_;
+    if (!popup_visible_ || popup_width_ <= 0 || popup_height_ <= 0 ||
+        popup_pixels_.size() !=
+            static_cast<std::size_t>(popup_width_) *
+                static_cast<std::size_t>(popup_height_) * 4U) {
+      return output;
+    }
+
+    const int src_x0 = std::max(0, -popup_rect_.x);
+    const int src_y0 = std::max(0, -popup_rect_.y);
+    const int dst_x0 = std::max(0, popup_rect_.x);
+    const int dst_y0 = std::max(0, popup_rect_.y);
+    const int copy_width =
+        std::min({popup_width_ - src_x0,
+                  popup_rect_.width - src_x0,
+                  view_frame_width_ - dst_x0});
+    const int copy_height =
+        std::min({popup_height_ - src_y0,
+                  popup_rect_.height - src_y0,
+                  view_frame_height_ - dst_y0});
+    if (copy_width <= 0 || copy_height <= 0) return output;
+
+    for (int row = 0; row < copy_height; ++row) {
+      for (int column = 0; column < copy_width; ++column) {
+        const auto src_index =
+            (static_cast<std::size_t>(src_y0 + row) *
+                 static_cast<std::size_t>(popup_width_) +
+             static_cast<std::size_t>(src_x0 + column)) *
+            4U;
+        const auto dst_index =
+            (static_cast<std::size_t>(dst_y0 + row) *
+                 static_cast<std::size_t>(view_frame_width_) +
+             static_cast<std::size_t>(dst_x0 + column)) *
+            4U;
+        blend_premultiplied_bgra(output.data() + dst_index,
+                                 popup_pixels_.data() + src_index);
+      }
+    }
+    return output;
+  }
+
+  void snapshot_composited_frame_locked(
+      NativeSurfaceFrameSink*& sink,
+      float& scale_factor,
+      int& width,
+      int& height,
+      std::vector<std::uint8_t>& frame) const {
+    sink = frame_sink_;
+    scale_factor = scale_factor_;
+    width = view_frame_width_;
+    height = view_frame_height_;
+    if (sink) frame = composited_frame_locked();
+  }
+
+  static void present_snapshot(NativeSurfaceFrameSink* sink,
+                               float scale_factor,
+                               int width,
+                               int height,
+                               const std::vector<std::uint8_t>& frame) {
+    if (!sink || width <= 0 || height <= 0 || frame.empty()) return;
+    sink->present_software_frame(
+        NativeSurfaceFrame{.bgra = frame.data(),
+                           .width = width,
+                           .height = height,
+                           .stride = width * 4,
+                           .scale_factor = scale_factor});
+  }
+
   static std::optional<NativeCursorType> native_cursor_type(
       cef_cursor_type_t type) {
     switch (type) {
@@ -752,6 +923,14 @@ class GoreeCloudCefClient final : public CefClient,
   int view_width_{1};
   int view_height_{1};
   float scale_factor_{1.0F};
+  std::vector<std::uint8_t> view_pixels_;
+  int view_frame_width_{0};
+  int view_frame_height_{0};
+  std::vector<std::uint8_t> popup_pixels_;
+  int popup_width_{0};
+  int popup_height_{0};
+  CefRect popup_rect_;
+  bool popup_visible_{false};
   NavigationCallback navigation_callback_;
   ClosedCallback closed_callback_;
   MediaContextCallback media_context_callback_;
