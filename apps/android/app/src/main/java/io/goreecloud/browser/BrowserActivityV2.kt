@@ -2007,7 +2007,7 @@ class BrowserActivityV2 : Activity() {
         clear.setOnClickListener {
             setTextActionEnabled(clear, false)
             setTextActionEnabled(cancel, false)
-            BrowserBrowsingDataCleaner.clear(webView) {
+            BrowserBrowsingDataCleaner.clear(tabWebViews.values.toList()) {
                 runOnUiThread {
                     clearHistoryAfterNextPageFinished = true
                     showStartPage()
