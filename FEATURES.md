@@ -41,6 +41,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
+- Visible Glaze tab strip with new/select/close controls, stable Browser-owned logical tab identities, one independent WebView per live tab, exact active-WebView attachment, and bounded device-local regular-session URL/title/selection recovery; DOM/form contents, credentials, private contexts, and engine memory dumps are not serialized by this tab store.
 - Direct HTTP/HTTPS navigation.
 - Direct-navigation safety rejects credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous/invalid numeric IPv4 host forms.
 - Internationalized HTTP(S) DNS hosts are canonicalized to lowercase ASCII A-label identity before Android navigation and unfocused address presentation; malformed STD3 labels and bracketed non-IPv6 authorities fail closed.
@@ -116,7 +117,7 @@ See `docs/HEALTH_READINESS_CONTRACT.md`. Manager/Observability runtime integrati
 
 ## Planned / incomplete Android capabilities
 
-- Browser-owned tab strip/tab switcher and multi-tab lifecycle.
+- Mature multi-tab lifecycle beyond the bounded visible tab foundation: ordering/reordering, pinned/grouped tabs, resource discard/recreation policy, crash/process-death recovery, profiles/Webspaces/private contexts, and representative-device acceptance.
 - Private Browsing and Close & Forget runtime isolation.
 - Browser-owned website permission prompts.
 - Wardveil-authenticated download staging, scan, release, hold, and quarantine handoff.
