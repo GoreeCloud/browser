@@ -763,6 +763,7 @@ class BrowserActivityV2 : Activity() {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
         currentUrl = target
+        updateTabLocation(tabSessionState.activeTabId, target)
         addressField.clearFocus()
         hideKeyboard()
         webView.loadUrl(target)
@@ -774,9 +775,11 @@ class BrowserActivityV2 : Activity() {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
         currentUrl = INTERNAL_HOME
+        updateTabLocation(tabSessionState.activeTabId, INTERNAL_HOME)
+        updateTabTitle(tabSessionState.activeTabId, null)
         addressField.clearFocus()
         hideKeyboard()
-        webView.loadDataWithBaseURL(START_BASE_URL, startHtml(), "text/html", "UTF-8", null)
+        loadStartPageInto(webView)
         refreshChrome()
     }
 
@@ -784,6 +787,8 @@ class BrowserActivityV2 : Activity() {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
         currentUrl = INTERNAL_HOME
+        updateTabLocation(tabSessionState.activeTabId, INTERNAL_HOME)
+        updateTabTitle(tabSessionState.activeTabId, "Search authorization required")
         addressField.clearFocus()
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(query)
@@ -804,6 +809,8 @@ class BrowserActivityV2 : Activity() {
         failedMainFrameUrl = null
         chromeOverrideTitle = null
         currentUrl = INTERNAL_HOME
+        updateTabLocation(tabSessionState.activeTabId, INTERNAL_HOME)
+        updateTabTitle(tabSessionState.activeTabId, "Navigation blocked")
         addressField.clearFocus()
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(input)
@@ -827,7 +834,11 @@ class BrowserActivityV2 : Activity() {
 
         failedMainFrameUrl = retryUrl
         chromeOverrideTitle = "Page unavailable"
-        if (retryUrl != null) currentUrl = retryUrl
+        if (retryUrl != null) {
+            currentUrl = retryUrl
+            updateTabLocation(tabSessionState.activeTabId, retryUrl)
+        }
+        updateTabTitle(tabSessionState.activeTabId, "Page unavailable")
         loading = false
         progressBar.visibility = View.GONE
         addressField.clearFocus()
@@ -939,6 +950,10 @@ class BrowserActivityV2 : Activity() {
             )
         }
 
+        addAction("New tab") { openNewTab() }
+        if (tabSessionState.tabs.size > 1) {
+            addAction("Close current tab") { closeTab(tabSessionState.activeTabId) }
+        }
         addAction("Site information") { showSiteInformation() }
         addAction("Privacy & security") { showPrivacyAndSecurityStatus() }
         addAction("Find in page") { showFindInPage() }
@@ -1100,7 +1115,7 @@ class BrowserActivityV2 : Activity() {
         }
 
         val message = TextView(this).apply {
-            text = "Tip: enter a full website address to navigate directly. Free-text Search stays local until governed Search authorization is available."
+            text = "Tip: use the tab strip to keep pages separate. Regular tab URLs and titles recover locally after relaunch; page contents and form data are not serialized by Browser."
         }
         glaze.styleMenuSubtitle(message)
         row.addView(
@@ -1216,8 +1231,8 @@ class BrowserActivityV2 : Activity() {
                 "Browser chrome, navigation policy, privacy controls, and local state are GoreeCloud-owned. Android System WebView supplies the web engine behind those Browser-owned boundaries.",
             "Privacy & security by default" to
                 "Mixed content is blocked, third-party cookies are off by default, file/content access is disabled, certificate errors fail closed, and website permission requests stay denied until governed authority is available. Clear browsing data is always available from the Browser menu.",
-            "Browse with clear boundaries" to
-                "Enter complete website addresses directly. Free-text Search remains local until accepted GoreeCloud Search authorization is available. Find in page stays inside the current WebView, and Page controls groups text size, Desktop site, JavaScript, and automatic image loading. Optional tips never hide security or failure messages.",
+            "Browse with tabs and clear boundaries" to
+                "Open, switch, and close regular tabs from the Glaze tab strip. Browser keeps each open tab in its own WebView and stores only bounded tab IDs, URLs, titles, and active selection for local relaunch recovery; it does not serialize page DOM or form contents. Free-text Search remains local until accepted GoreeCloud Search authorization is available.",
         )
 
         var step = BrowserFirstUsePolicy.normalizeStep(firstUsePreferences.state().step)
@@ -2052,5 +2067,7 @@ class BrowserActivityV2 : Activity() {
         private const val STATE_DESKTOP_SITE = "desktop_site_enabled"
         private const val STATE_PAGE_SCRIPTS = "page_scripts_enabled"
         private const val STATE_PAGE_IMAGES = "page_images_enabled"
+        private const val STATE_TAB_WEB_PREFIX = "tab_web_state:"
+        private const val MAX_TAB_LABEL_LENGTH = 32
     }
 }
