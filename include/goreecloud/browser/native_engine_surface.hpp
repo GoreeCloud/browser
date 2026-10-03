@@ -1,6 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
+#include <optional>
+#include <string>
+#include <vector>
 
 namespace goreecloud::browser {
 
@@ -59,6 +63,42 @@ class NativeSurfaceInputForwarder {
   virtual void set_surface_focus(bool focused) = 0;
 };
 
+enum class NativeContextMenuItemType {
+  command,
+  check,
+  radio,
+  separator,
+  submenu,
+};
+
+struct NativeContextMenuItem {
+  NativeContextMenuItemType type{NativeContextMenuItemType::command};
+  int command_id{0};
+  std::string label;
+  bool enabled{true};
+  bool checked{false};
+  std::vector<NativeContextMenuItem> children;
+};
+
+struct NativeContextMenuRequest {
+  int x{0};
+  int y{0};
+  std::vector<NativeContextMenuItem> items;
+};
+
+using NativeContextMenuSelectionCallback =
+    std::function<void(std::optional<int> command_id)>;
+
+// Optional Browser-host presentation bridge for software/windowless engine
+// surfaces. Native child-window surfaces keep their engine/native menu path.
+class NativeSurfaceContextMenuSink {
+ public:
+  virtual ~NativeSurfaceContextMenuSink() = default;
+  virtual void show_native_context_menu(
+      NativeContextMenuRequest request,
+      NativeContextMenuSelectionCallback callback) = 0;
+};
+
 // Opaque platform surface description used to attach an engine-rendered view
 // to GoreeCloud-owned native chrome without exposing Chromium types upstream.
 //
@@ -74,6 +114,7 @@ struct NativeEngineSurface {
   int height{0};
   float scale_factor{1.0F};
   NativeSurfaceFrameSink* frame_sink{nullptr};
+  NativeSurfaceContextMenuSink* context_menu_sink{nullptr};
 };
 
 class NativeSurfaceAttachable {

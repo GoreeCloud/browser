@@ -22,6 +22,24 @@ This is a model foundation only. It does not add a visible Android tab switcher,
 
 The runtime object-model roadmap remains open. Android chrome/engine binding, lifecycle restoration, accessibility/adaptive-device behavior, privacy-context isolation, representative-device evidence, and release qualification remain separate gates.
 
+## 2026-10-02 — Linux Wayland windowless context-menu host bridge
+
+### Added
+
+- Added an engine-independent native context-menu request/selection bridge for software/windowless engine surfaces.
+- Added a Glaze-styled GTK popover presenter that preserves command, check, radio, separator, and submenu structure from the CEF menu model and returns the selected command ID or explicit cancellation.
+- Added active-menu replacement/window-destroy cleanup so outstanding windowless context-menu callbacks fail closed instead of being left unresolved.
+- Extended the forced-windowless Core CI lane to right-click a real rendered page, require Browser-owned menu presentation and Escape cancellation, and reject regression to CEF's native-window OSR context-menu error.
+
+### Changed
+
+- Preserved the existing X11/XWayland native child-window context-menu path; the Browser-owned GTK presenter is attached only to the windowless/software surface.
+- Restacked only the still-valid context-menu behavior from stale PR #113 onto current authoritative Browser main rather than replaying its stale ancestry.
+
+### Acceptance boundary
+
+This is Development interaction evidence only. Representative native-Wayland context-menu selection behavior, keyboard/IME, cursor propagation, broader popup behavior, drag-and-drop, clipboard, accessibility, sustained interaction performance, accelerated rendering, production approval, Stable, and Anchor qualification remain open.
+
 ## 2026-10-02 — Android first-use setup and contextual guidance
 
 ### Added
