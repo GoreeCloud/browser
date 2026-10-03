@@ -84,7 +84,7 @@ The current bounded menu actions are:
 - Find in page, which searches only the currently rendered page and provides live match count plus Previous/Next controls;
 - Page controls, which groups Text size, Desktop site, JavaScript, and automatic image loading into one compact Browser-owned surface;
 - Guidance & tips, which replays setup and controls optional device-local Browser tips;
-- Clear browsing data, which opens a confirmation surface before removing website data;
+- Clear browsing data, which opens a confirmation surface before removing website data from all currently live regular tabs;
 - Copy page address, only when the current surface has a Browser-approved HTTP(S) page address;
 - Share page, under the same disclosure rule; and
 - About this development build.
