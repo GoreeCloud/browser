@@ -36,6 +36,7 @@ class BrowserTabSessionStore(context: Context) {
 
 object BrowserTabSessionCodec {
     private const val VERSION = 1
+    private const val INTERNAL_HOME = "goreecloud://start"
 
     fun encode(state: BrowserTabSessionState): String {
         val tabs = JSONArray()
@@ -66,7 +67,16 @@ object BrowserTabSessionCodec {
                 val item = array.optJSONObject(index) ?: return null
                 val id = item.optString("id", "")
                 val url = item.optString("url", "")
-                val title = if (item.isNull("title")) null else item.optString("title", "")
+                if (url != INTERNAL_HOME && !NavigationResolver.isAllowedWebUrl(url)) {
+                    return null
+                }
+                val title = if (item.isNull("title")) {
+                    null
+                } else {
+                    item.optString("title", "")
+                        .trim()
+                        .takeIf { it.isNotEmpty() }
+                }
                 add(BrowserLogicalTab(id = id, url = url, title = title))
             }
         }
