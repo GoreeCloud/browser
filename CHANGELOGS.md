@@ -22,6 +22,23 @@ This is a model foundation only. It does not add a visible Android tab switcher,
 
 The runtime object-model roadmap remains open. Android chrome/engine binding, lifecycle restoration, accessibility/adaptive-device behavior, privacy-context isolation, representative-device evidence, and release qualification remain separate gates.
 
+## 2026-10-03 — Linux Wayland direct keyboard-input candidate
+
+### Added
+
+- Added an engine-independent native key-event contract for software/windowless Browser surfaces and CEF OSR forwarding for raw key-down, key-up, and printable character events.
+- Added GTK mapping for common letters, digits, shifted number-row symbols, punctuation, editing/navigation keys, F1-F24, and keypad keys while carrying hardware keycode plus Shift/Caps state.
+- Extended the forced-windowless CEF validation lane with an actual editable page: CI focuses the Browser web surface, types `wayland` through X events, and requires the page to navigate to a fixed success marker only after the DOM input receives the exact text.
+
+### Changed
+
+- Preserved existing Browser-owned Ctrl/Alt/Super/Meta shortcuts by deferring those combinations instead of automatically forwarding them to page content in this tranche.
+- Preserved native X11/XWayland child-window keyboard handling unchanged; the new key bridge is exercised only by software/windowless surfaces.
+
+### Acceptance boundary
+
+This is a Development candidate until fresh exact-head workflows pass and guarded integration/readback completes. IME composition/preedit/commit, dead-key/non-BMP/international text acceptance, non-conflicting page keyboard shortcuts, clipboard shortcuts, representative native-Wayland typing, accessibility, sustained interaction performance, production approval, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-02 — Linux Wayland standard cursor propagation
 
 ### Added

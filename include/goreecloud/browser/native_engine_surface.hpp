@@ -38,12 +38,28 @@ enum NativeInputModifier : std::uint32_t {
   native_modifier_left_button = 1U << 3,
   native_modifier_middle_button = 1U << 4,
   native_modifier_right_button = 1U << 5,
+  native_modifier_caps_lock = 1U << 6,
 };
 
 struct NativePointerEvent {
   int x{0};
   int y{0};
   std::uint32_t modifiers{native_modifier_none};
+};
+
+enum class NativeKeyEventType {
+  raw_key_down,
+  key_up,
+  character,
+};
+
+struct NativeKeyEvent {
+  NativeKeyEventType type{NativeKeyEventType::raw_key_down};
+  int virtual_key_code{0};
+  int native_key_code{0};
+  std::uint32_t modifiers{native_modifier_none};
+  std::uint32_t character{0};
+  std::uint32_t unmodified_character{0};
 };
 
 // Optional input bridge used by software/windowless engine surfaces. Native
@@ -60,6 +76,7 @@ class NativeSurfaceInputForwarder {
   virtual bool send_pointer_wheel(const NativePointerEvent& event,
                                   int delta_x,
                                   int delta_y) = 0;
+  virtual bool send_key_event(const NativeKeyEvent& event) = 0;
   virtual void set_surface_focus(bool focused) = 0;
 };
 

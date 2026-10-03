@@ -122,6 +122,10 @@ class ChromiumEngineView final : public EngineView,
            runtime_view_->send_pointer_wheel(event, delta_x, delta_y);
   }
 
+  bool send_key_event(const NativeKeyEvent& event) override {
+    return attached_ && runtime_view_->send_key_event(event);
+  }
+
   void set_surface_focus(bool focused) override {
     if (attached_) runtime_view_->set_surface_focus(focused);
   }
