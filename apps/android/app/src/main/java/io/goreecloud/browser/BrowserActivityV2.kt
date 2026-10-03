@@ -329,9 +329,42 @@ class BrowserActivityV2 : Activity() {
         updateNavigationButtons()
     }
 
-    private fun configureWebView() {
+    private fun restoreOrCreateTabSession(savedInstanceState: Bundle?) {
+        tabSessionState = tabSessionStore.read() ?: BrowserTabSessionPolicy.initial(
+            BrowserLogicalTab(newTabId(), INTERNAL_HOME),
+        )
+        tabWebViews.clear()
+
+        tabSessionState.tabs.forEach { tab ->
+            val view = createTabWebView(tab.id)
+            tabWebViews[tab.id] = view
+
+            val restored = savedInstanceState
+                ?.getBundle(STATE_TAB_WEB_PREFIX + tab.id)
+                ?.let { view.restoreState(it) != null } == true
+            if (!restored) {
+                if (tab.url == INTERNAL_HOME) {
+                    loadStartPageInto(view)
+                } else {
+                    view.loadUrl(tab.url)
+                }
+            }
+        }
+
+        activateTab(tabSessionState.activeTabId, persistSelection = false)
+        persistTabSession(showFailure = false)
+    }
+
+    private fun createTabWebView(tabId: String): WebView =
+        WebView(this).also { view ->
+            glaze.styleWebContent(view)
+            view.contentDescription = "Web content"
+            configureWebView(view, tabId)
+        }
+
+    private fun configureWebView(view: WebView, tabId: String) {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
-        webView.settings.apply {
+        view.settings.apply {
             javaScriptEnabled = pageScriptsEnabled
             domStorageEnabled = true
             loadsImagesAutomatically = pageImagesEnabled
@@ -345,8 +378,10 @@ class BrowserActivityV2 : Activity() {
             textZoom = pageTextZoomPercent
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
-            mobileUserAgent =
-                "$userAgentString GoreeCloudBrowser/${BuildConfig.VERSION_NAME} Android"
+            if (!::mobileUserAgent.isInitialized) {
+                mobileUserAgent =
+                    "$userAgentString GoreeCloudBrowser/${BuildConfig.VERSION_NAME} Android"
+            }
             userAgentString = if (desktopSiteEnabled) {
                 DesktopUserAgent.fromMobile(mobileUserAgent)
             } else {
@@ -358,15 +393,21 @@ class BrowserActivityV2 : Activity() {
 
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
-            setAcceptThirdPartyCookies(webView, false)
+            setAcceptThirdPartyCookies(view, false)
         }
 
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                return !NavigationResolver.isAllowedWebUrl(request.url.toString())
-            }
+        view.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest,
+            ): Boolean = !NavigationResolver.isAllowedWebUrl(request.url.toString())
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                if (!isInternalStartUrl(url)) {
+                    updateTabLocation(tabId, url)
+                }
+                if (!isActiveTab(tabId)) return
+
                 if (!isInternalStartUrl(url)) {
                     currentUrl = url
                     failedMainFrameUrl = null
@@ -378,12 +419,25 @@ class BrowserActivityV2 : Activity() {
             }
 
             override fun onPageFinished(view: WebView, url: String) {
+                val tabUrl = tabSessionState.tabs
+                    .firstOrNull { it.id == tabId }
+                    ?.url
+                    ?: return
+
                 if (isInternalStartUrl(url)) {
-                    if (currentUrl != INTERNAL_HOME && chromeOverrideTitle == null) return
+                    if (isActiveTab(tabId) &&
+                        currentUrl != INTERNAL_HOME &&
+                        chromeOverrideTitle == null
+                    ) {
+                        return
+                    }
                 } else {
-                    if (!MainFrameFailureGuard.shouldAccept(currentUrl, url)) return
-                    currentUrl = url
+                    if (!MainFrameFailureGuard.shouldAccept(tabUrl, url)) return
+                    updateTabLocation(tabId, url)
                 }
+
+                if (!isActiveTab(tabId)) return
+                if (!isInternalStartUrl(url)) currentUrl = url
                 loading = false
                 progressBar.visibility = View.GONE
                 if (clearHistoryAfterNextPageFinished) {
@@ -398,6 +452,7 @@ class BrowserActivityV2 : Activity() {
                 request: WebResourceRequest,
                 error: WebResourceError,
             ) {
+                if (!isActiveTab(tabId)) return
                 val failedUrl = request.url.toString()
                 if (
                     !request.isForMainFrame ||
@@ -409,20 +464,41 @@ class BrowserActivityV2 : Activity() {
                 showPageUnavailable(failedUrl)
             }
 
-            override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
+            override fun onReceivedSslError(
+                view: WebView,
+                handler: SslErrorHandler,
+                error: SslError,
+            ) {
                 handler.cancel()
-                if (MainFrameFailureGuard.shouldAccept(currentUrl, error.url)) {
+                if (isActiveTab(tabId) &&
+                    MainFrameFailureGuard.shouldAccept(currentUrl, error.url)
+                ) {
                     showPageUnavailable(error.url)
                 }
             }
         }
 
-        webView.webChromeClient = object : WebChromeClient() {
+        view.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
+                if (!isActiveTab(tabId)) return
                 progressBar.progress = newProgress
                 loading = newProgress < 100
                 progressBar.visibility = if (loading) View.VISIBLE else View.GONE
                 updateNavigationButtons()
+            }
+
+            override fun onReceivedTitle(view: WebView, title: String?) {
+                val tabUrl = tabSessionState.tabs
+                    .firstOrNull { it.id == tabId }
+                    ?.url
+                    ?: INTERNAL_HOME
+                val safeTitle = if (tabUrl == INTERNAL_HOME) {
+                    null
+                } else {
+                    PageTitlePresentation.safe(title, tabUrl)
+                }
+                updateTabTitle(tabId, safeTitle)
+                if (isActiveTab(tabId)) refreshChrome()
             }
 
             override fun onPermissionRequest(request: PermissionRequest) {
@@ -430,13 +506,248 @@ class BrowserActivityV2 : Activity() {
             }
         }
 
-        webView.setDownloadListener { _, _, _, _, _ ->
+        view.setDownloadListener { _, _, _, _, _ ->
+            if (isActiveTab(tabId)) {
+                Toast.makeText(
+                    this,
+                    "Downloads remain gated until Wardveil download integration is ready.",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+        }
+    }
+
+    private fun applyCurrentPageSettings(view: WebView) {
+        view.settings.apply {
+            javaScriptEnabled = pageScriptsEnabled
+            loadsImagesAutomatically = pageImagesEnabled
+            blockNetworkImage = !pageImagesEnabled
+            textZoom = pageTextZoomPercent
+            if (::mobileUserAgent.isInitialized) {
+                userAgentString = if (desktopSiteEnabled) {
+                    DesktopUserAgent.fromMobile(mobileUserAgent)
+                } else {
+                    mobileUserAgent
+                }
+            }
+            useWideViewPort = desktopSiteEnabled
+            loadWithOverviewMode = desktopSiteEnabled
+        }
+    }
+
+    private fun newTabId(): String = "tab-" + UUID.randomUUID().toString()
+
+    private fun isActiveTab(tabId: String): Boolean =
+        ::tabSessionState.isInitialized && tabSessionState.activeTabId == tabId
+
+    private fun updateTabLocation(tabId: String, url: String) {
+        when (val mutation = BrowserTabSessionPolicy.updateLocation(tabSessionState, tabId, url)) {
+            is BrowserTabMutation.Updated -> {
+                tabSessionState = mutation.state
+                persistTabSession(showFailure = false)
+                renderTabStrip()
+            }
+            else -> Unit
+        }
+    }
+
+    private fun updateTabTitle(tabId: String, title: String?) {
+        when (val mutation = BrowserTabSessionPolicy.updateTitle(tabSessionState, tabId, title)) {
+            is BrowserTabMutation.Updated -> {
+                tabSessionState = mutation.state
+                persistTabSession(showFailure = false)
+                renderTabStrip()
+            }
+            else -> Unit
+        }
+    }
+
+    private fun persistTabSession(showFailure: Boolean = true): Boolean {
+        val saved = tabSessionStore.write(tabSessionState)
+        if (!saved && showFailure) {
             Toast.makeText(
                 this,
-                "Downloads remain gated until Wardveil download integration is ready.",
+                "Browser could not save the current tab session.",
                 Toast.LENGTH_LONG,
             ).show()
         }
+        return saved
+    }
+
+    private fun activateTab(tabId: String, persistSelection: Boolean = true) {
+        val view = tabWebViews[tabId] ?: return
+        if (tabSessionState.activeTabId != tabId) {
+            when (val mutation = BrowserTabSessionPolicy.select(tabSessionState, tabId)) {
+                is BrowserTabMutation.Updated -> {
+                    tabSessionState = mutation.state
+                    if (persistSelection) persistTabSession()
+                }
+                else -> return
+            }
+        }
+
+        webView = view
+        applyCurrentPageSettings(webView)
+        currentUrl = tabSessionState.activeTab.url
+        failedMainFrameUrl = null
+        chromeOverrideTitle = null
+        loading = webView.progress in 0 until 100
+        progressBar.progress = webView.progress
+        progressBar.visibility = if (loading) View.VISIBLE else View.GONE
+
+        webHost.removeAllViews()
+        webHost.addView(
+            webView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        webView.requestFocus()
+        renderTabStrip()
+        refreshChrome()
+    }
+
+    private fun openNewTab() {
+        val tab = BrowserLogicalTab(newTabId(), INTERNAL_HOME)
+        when (val mutation = BrowserTabSessionPolicy.open(tabSessionState, tab)) {
+            BrowserTabMutation.MaxTabsReached -> {
+                Toast.makeText(
+                    this,
+                    "Browser supports up to ${BrowserTabSessionPolicy.MAX_TABS} open tabs.",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+            is BrowserTabMutation.Updated -> {
+                tabSessionState = mutation.state
+                val view = createTabWebView(tab.id)
+                tabWebViews[tab.id] = view
+                persistTabSession()
+                activateTab(tab.id, persistSelection = false)
+                showStartPage()
+            }
+            else -> Unit
+        }
+    }
+
+    private fun closeTab(tabId: String) {
+        when (val mutation = BrowserTabSessionPolicy.close(tabSessionState, tabId)) {
+            BrowserTabMutation.LastTabProtected -> {
+                Toast.makeText(
+                    this,
+                    "Keep at least one Browser tab open.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            is BrowserTabMutation.Updated -> {
+                val removed = tabWebViews.remove(tabId)
+                tabSessionState = mutation.state
+                removed?.let(::destroyTabWebView)
+                persistTabSession()
+                activateTab(tabSessionState.activeTabId, persistSelection = false)
+            }
+            else -> Unit
+        }
+    }
+
+    private fun destroyTabWebView(view: WebView) {
+        if (::webHost.isInitialized && view.parent === webHost) {
+            webHost.removeView(view)
+        }
+        view.stopLoading()
+        view.webChromeClient = null
+        view.webViewClient = WebViewClient()
+        view.loadUrl("about:blank")
+        view.removeAllViews()
+        view.destroy()
+    }
+
+    private fun renderTabStrip() {
+        if (!::tabStrip.isInitialized || !::tabSessionState.isInitialized) return
+        tabStrip.removeAllViews()
+
+        tabSessionState.tabs.forEachIndexed { index, tab ->
+            val selected = tab.id == tabSessionState.activeTabId
+            val labelText = tabLabel(tab)
+            val tabGroup = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            val label = TextView(this).apply {
+                text = labelText
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                contentDescription =
+                    "Tab ${index + 1}: $labelText" + if (selected) ", selected" else ""
+                isSelected = selected
+                setOnClickListener { activateTab(tab.id) }
+            }
+            glaze.styleTabChip(label, selected)
+            tabGroup.addView(
+                label,
+                LinearLayout.LayoutParams(dp(152), dp(GlazeContract.GENERAL_TARGET_DP)),
+            )
+
+            if (tabSessionState.tabs.size > 1) {
+                val close = TextView(this).apply {
+                    text = "×"
+                    contentDescription = "Close tab ${index + 1}: $labelText"
+                    setOnClickListener { closeTab(tab.id) }
+                }
+                glaze.styleTabClose(close, selected)
+                tabGroup.addView(
+                    close,
+                    LinearLayout.LayoutParams(
+                        dp(GlazeContract.GENERAL_TARGET_DP),
+                        dp(GlazeContract.GENERAL_TARGET_DP),
+                    ),
+                )
+            }
+
+            tabStrip.addView(
+                tabGroup,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    marginEnd = dp(6)
+                },
+            )
+        }
+
+        val add = TextView(this).apply {
+            text = "+"
+            contentDescription = "New tab"
+            gravity = Gravity.CENTER
+            setOnClickListener { openNewTab() }
+        }
+        glaze.styleTabClose(add, selected = false)
+        tabStrip.addView(
+            add,
+            LinearLayout.LayoutParams(
+                dp(GlazeContract.GENERAL_TARGET_DP),
+                dp(GlazeContract.GENERAL_TARGET_DP),
+            ),
+        )
+    }
+
+    private fun tabLabel(tab: BrowserLogicalTab): String {
+        if (tab.url == INTERNAL_HOME) return "New tab"
+        val title = tab.title?.takeIf { it.isNotBlank() }
+        return (title ?: AddressPresentation.condensed(tab.url))
+            .replace('\n', ' ')
+            .take(MAX_TAB_LABEL_LENGTH)
+    }
+
+    private fun loadStartPageInto(view: WebView) {
+        view.loadDataWithBaseURL(
+            START_BASE_URL,
+            startHtml(),
+            "text/html",
+            "UTF-8",
+            null,
+        )
     }
 
     private fun navigate(raw: String) {
