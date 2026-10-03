@@ -449,21 +449,28 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   void dismiss_active_context_menu() {
     if (!active_context_popover) return;
     auto* popover = active_context_popover;
+    g_object_ref(popover);
     active_context_popover = nullptr;
     auto* session = static_cast<ContextMenuSession*>(
         g_object_get_data(G_OBJECT(popover), "gc-context-menu-session"));
     finish_context_menu(session, std::nullopt);
-    gtk_widget_destroy(popover);
+    if (!gtk_widget_in_destruction(popover)) gtk_widget_destroy(popover);
+    g_object_unref(popover);
   }
 
   static void on_context_menu_row_clicked(GtkButton* button, gpointer data) {
     auto* session = static_cast<ContextMenuSession*>(data);
     auto* stored = static_cast<int*>(
         g_object_get_data(G_OBJECT(button), "gc-context-command"));
+    auto* popover = session ? session->popover : nullptr;
+    if (popover) g_object_ref(popover);
     finish_context_menu(
         session, stored ? std::optional<int>{*stored} : std::nullopt);
-    if (session && session->popover) {
-      gtk_popover_popdown(GTK_POPOVER(session->popover));
+    if (popover) {
+      if (!gtk_widget_in_destruction(popover)) {
+        gtk_popover_popdown(GTK_POPOVER(popover));
+      }
+      g_object_unref(popover);
     }
   }
 
@@ -474,7 +481,9 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       session->owner->active_context_popover = nullptr;
     }
     finish_context_menu(session, std::nullopt);
-    gtk_widget_destroy(GTK_WIDGET(popover));
+    if (!gtk_widget_in_destruction(GTK_WIDGET(popover))) {
+      gtk_widget_destroy(GTK_WIDGET(popover));
+    }
   }
 
   static gboolean on_context_menu_stability_check(gpointer data) {
