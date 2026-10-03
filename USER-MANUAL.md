@@ -18,7 +18,7 @@ GoreeCloud owns the Browser product layer, navigation/search behavior, mobile br
 
 ### Linux desktop development candidate
 
-The Linux GTK3 development host can present the GoreeCloud Browser shell on an available GTK desktop display. X11/XWayland keeps the native CEF child-window path. Native Wayland can use the CEF windowless/software-rendering path: CEF supplies BGRA page frames and the Browser paints those frames into its GTK web surface. Exact-head validation plus representative Zorin OS 17.3 Wayland evidence have established real Development page pixels. Pointer motion/enter/leave, left/middle/right clicks, wheel input, and focus forwarding are integrated on the windowless path; representative interaction acceptance plus keyboard/IME, popup, drag-and-drop, clipboard, cursor, accessibility, performance, and accelerated-buffer acceptance remain separate gates.
+The Linux GTK3 development host can present the GoreeCloud Browser shell on an available GTK desktop display. X11/XWayland keeps the native CEF child-window path. Native Wayland can use the CEF windowless/software-rendering path: CEF supplies BGRA page frames and the Browser paints those frames into its GTK web surface. Exact-head validation plus representative Zorin OS 17.3 Wayland evidence have established real Development page pixels. Pointer motion/enter/leave, left/middle/right clicks, wheel input, focus, standard cursor propagation, Browser-owned context menus, and bounded direct non-IME keyboard input are integrated on the windowless path; representative interaction acceptance plus IME composition/international text, broader popups, drag-and-drop, clipboard, custom cursors, accessibility, performance, and accelerated-buffer acceptance remain separate gates.
 
 ## Installing the Android beta
 
@@ -32,12 +32,21 @@ Do not treat the beta APK as a production release, managed update channel, or lo
 
 ## Mobile browser chrome
 
-The Android shell uses two Browser-owned chrome regions:
+The Android shell uses three Browser-owned chrome regions:
 
+- a compact horizontal tab strip;
 - a top omnibox; and
 - a bottom navigation toolbar.
 
-The web page occupies the full region between them.
+Only the selected tab's WebView is attached to the visible page region. Other live regular tabs keep separate WebView instances until closed or the Activity is recreated.
+
+### Tabs
+
+Use **+** in the tab strip or **New tab** in the Browser menu to create a regular tab. Tap a tab label to switch to it. When more than one tab is open, use the adjacent **×** control or **Close current tab** in the Browser menu to close a tab. Browser keeps at least one tab open.
+
+The Development build stores a bounded device-local regular-session projection containing tab IDs, approved URLs, normalized titles, ordering, and the active selection so ordinary relaunch can recover that structure. Browser does not serialize page DOM, form contents, passwords, credentials, private-browsing state, or an engine memory dump into this tab store. Android Activity recreation may additionally restore transient WebView state through Android's saved-state mechanism.
+
+This is not yet crash/process-death recovery acceptance. Profiles, Private/Isolated Private tabs, Webspaces, tab groups/pins/reordering, resource discard/recreation, Sync/Everkeep recovery, and representative-device multi-tab acceptance remain Development work.
 
 ### Omnibox
 
@@ -69,6 +78,7 @@ The Browser menu uses a Browser-owned Glaze bottom sheet rather than Android's p
 
 The current bounded menu actions are:
 
+- New tab, plus Close current tab whenever more than one tab is open;
 - Site information, which shows the current website origin and HTTPS/HTTP transport without claiming an independent trust or certificate verdict;
 - Privacy & security, which summarizes Browser-enforced Android defaults and explicit fail-closed integration boundaries;
 - Find in page, which searches only the currently rendered page and provides live match count plus Previous/Next controls;
@@ -200,7 +210,7 @@ The Android beta does not yet claim:
 - private-browsing and Close & Forget acceptance;
 - Android download/file-upload acceptance;
 - Browser-owned website-permission prompts;
-- complete Android multi-tab/session/settings surfaces;
+- mature Android tab/session/settings surfaces beyond the current visible regular-tab foundation, including crash/process-death recovery, resource discard/recreation, profiles/private contexts/Webspaces, richer organization, and representative-device acceptance;
 - production GoreeCloud Identity, Vault, Sync, DNS, Network, Mesh, or Everkeep adapters;
 - Play Store or other store publication;
 - signed update, downgrade, rollback, or application-data migration acceptance;
