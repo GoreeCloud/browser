@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cmath>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
@@ -99,7 +100,7 @@ class GoreeCloudCefClient final : public CefClient,
   bool OnCursorChange(CefRefPtr<CefBrowser>,
                       CefCursorHandle,
                       cef_cursor_type_t type,
-                      const CefCursorInfo&) override {
+                      const CefCursorInfo& custom_cursor_info) override {
     CEF_REQUIRE_UI_THREAD();
 
     NativeSurfaceCursorSink* sink = nullptr;
@@ -108,6 +109,51 @@ class GoreeCloudCefClient final : public CefClient,
       sink = cursor_sink_;
     }
     if (!sink) return false;
+
+    if (type == CT_CUSTOM) {
+      constexpr int kMaxCustomCursorDimension = 512;
+      const int width = custom_cursor_info.size.width;
+      const int height = custom_cursor_info.size.height;
+      if (!custom_cursor_info.buffer || width <= 0 || height <= 0 ||
+          width > kMaxCustomCursorDimension ||
+          height > kMaxCustomCursorDimension) {
+        if (runtime_diagnostics_enabled()) {
+          std::cerr << "[GoreeCloud CEF] windowless-custom-cursor-rejected size="
+                    << width << "x" << height << std::endl;
+        }
+        return false;
+      }
+
+      const auto byte_count =
+          static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4U;
+      const auto* pixels =
+          static_cast<const std::uint8_t*>(custom_cursor_info.buffer);
+
+      NativeCustomCursor custom;
+      custom.bgra.assign(pixels, pixels + byte_count);
+      custom.width = width;
+      custom.height = height;
+      custom.hotspot_x =
+          std::clamp(custom_cursor_info.hotspot.x, 0, width - 1);
+      custom.hotspot_y =
+          std::clamp(custom_cursor_info.hotspot.y, 0, height - 1);
+      custom.scale_factor =
+          std::isfinite(custom_cursor_info.image_scale_factor) &&
+                  custom_cursor_info.image_scale_factor > 0.0F
+              ? std::clamp(custom_cursor_info.image_scale_factor, 0.25F, 8.0F)
+              : 1.0F;
+
+      sink->apply_custom_cursor(std::move(custom));
+      if (runtime_diagnostics_enabled()) {
+        std::cerr << "[GoreeCloud CEF] windowless-custom-cursor-change size="
+                  << width << "x" << height
+                  << " hotspot=" << custom_cursor_info.hotspot.x
+                  << "," << custom_cursor_info.hotspot.y
+                  << " scale=" << custom_cursor_info.image_scale_factor
+                  << std::endl;
+      }
+      return true;
+    }
 
     const auto mapped = native_cursor_type(type);
     if (!mapped) {

@@ -22,6 +22,24 @@ This is a model foundation only. It does not add a visible Android tab switcher,
 
 The runtime object-model roadmap remains open. Android chrome/engine binding, lifecycle restoration, accessibility/adaptive-device behavior, privacy-context isolation, representative-device evidence, and release qualification remain separate gates.
 
+## 2026-10-02 — Linux Wayland custom cursor rendering
+
+### Added
+
+- Extended the engine-independent software-surface cursor contract with Browser-owned custom cursor bitmap data, dimensions, hotspot, and reported scale metadata.
+- Bound CEF custom cursor dimensions to 512 by 512, copied transient CEF BGRA bytes before returning from the engine callback, clamped hotspots to the bitmap, and rejected missing, invalid, or oversized buffers instead of retaining borrowed engine memory.
+- Added GTK custom cursor presentation by converting the copied BGRA bitmap to RGBA and constructing a native cursor at the validated hotspot.
+- Extended the forced-windowless CEF runtime lane with a real CSS custom cursor region followed by the existing standard hand-cursor, pointer/wheel/navigation, and Browser-owned context-menu checks.
+
+### Changed
+
+- Preserved native X11/XWayland child-window cursor handling unchanged; custom bitmap transport is attached only to the software/windowless path.
+- The reported CEF custom cursor scale factor is bounded and retained for diagnostics, but representative high-DPI rendering acceptance remains open rather than being inferred from Xvfb.
+
+### Acceptance boundary
+
+This is Development interaction evidence only. Representative native-Wayland and high-DPI custom-cursor behavior, keyboard/IME, broader popup behavior, drag-and-drop, clipboard, accessibility, sustained interaction performance, accelerated rendering, production approval, Stable, and Anchor qualification remain open.
+
 ## 2026-10-02 — Linux Wayland standard cursor propagation
 
 ### Added
