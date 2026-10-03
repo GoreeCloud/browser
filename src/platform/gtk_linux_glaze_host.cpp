@@ -312,10 +312,124 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     if (state & GDK_SHIFT_MASK) modifiers |= native_modifier_shift;
     if (state & GDK_CONTROL_MASK) modifiers |= native_modifier_control;
     if (state & GDK_MOD1_MASK) modifiers |= native_modifier_alt;
+    if (state & GDK_LOCK_MASK) modifiers |= native_modifier_caps_lock;
     if (state & GDK_BUTTON1_MASK) modifiers |= native_modifier_left_button;
     if (state & GDK_BUTTON2_MASK) modifiers |= native_modifier_middle_button;
     if (state & GDK_BUTTON3_MASK) modifiers |= native_modifier_right_button;
     return modifiers;
+  }
+
+  static int virtual_key_code(guint keyval) {
+    const auto upper = gdk_keyval_to_upper(keyval);
+    if (upper >= GDK_KEY_A && upper <= GDK_KEY_Z) {
+      return static_cast<int>(upper);
+    }
+    if (keyval >= GDK_KEY_0 && keyval <= GDK_KEY_9) {
+      return static_cast<int>(keyval);
+    }
+
+    switch (keyval) {
+      case GDK_KEY_BackSpace: return 0x08;
+      case GDK_KEY_Tab:
+      case GDK_KEY_ISO_Left_Tab: return 0x09;
+      case GDK_KEY_Return:
+      case GDK_KEY_KP_Enter:
+      case GDK_KEY_ISO_Enter: return 0x0D;
+      case GDK_KEY_Shift_L:
+      case GDK_KEY_Shift_R: return 0x10;
+      case GDK_KEY_Caps_Lock: return 0x14;
+      case GDK_KEY_Escape: return 0x1B;
+      case GDK_KEY_space:
+      case GDK_KEY_KP_Space: return 0x20;
+      case GDK_KEY_Page_Up:
+      case GDK_KEY_KP_Page_Up: return 0x21;
+      case GDK_KEY_Page_Down:
+      case GDK_KEY_KP_Page_Down: return 0x22;
+      case GDK_KEY_End:
+      case GDK_KEY_KP_End: return 0x23;
+      case GDK_KEY_Home:
+      case GDK_KEY_KP_Home: return 0x24;
+      case GDK_KEY_Left:
+      case GDK_KEY_KP_Left: return 0x25;
+      case GDK_KEY_Up:
+      case GDK_KEY_KP_Up: return 0x26;
+      case GDK_KEY_Right:
+      case GDK_KEY_KP_Right: return 0x27;
+      case GDK_KEY_Down:
+      case GDK_KEY_KP_Down: return 0x28;
+      case GDK_KEY_Insert:
+      case GDK_KEY_KP_Insert: return 0x2D;
+      case GDK_KEY_Delete:
+      case GDK_KEY_KP_Delete: return 0x2E;
+      case GDK_KEY_exclam: return 0x31;
+      case GDK_KEY_at: return 0x32;
+      case GDK_KEY_numbersign: return 0x33;
+      case GDK_KEY_dollar: return 0x34;
+      case GDK_KEY_percent: return 0x35;
+      case GDK_KEY_asciicircum: return 0x36;
+      case GDK_KEY_ampersand: return 0x37;
+      case GDK_KEY_asterisk: return 0x38;
+      case GDK_KEY_parenleft: return 0x39;
+      case GDK_KEY_parenright: return 0x30;
+      case GDK_KEY_semicolon:
+      case GDK_KEY_colon: return 0xBA;
+      case GDK_KEY_equal:
+      case GDK_KEY_plus: return 0xBB;
+      case GDK_KEY_comma:
+      case GDK_KEY_less: return 0xBC;
+      case GDK_KEY_minus:
+      case GDK_KEY_underscore: return 0xBD;
+      case GDK_KEY_period:
+      case GDK_KEY_greater: return 0xBE;
+      case GDK_KEY_slash:
+      case GDK_KEY_question: return 0xBF;
+      case GDK_KEY_grave:
+      case GDK_KEY_asciitilde: return 0xC0;
+      case GDK_KEY_bracketleft:
+      case GDK_KEY_braceleft: return 0xDB;
+      case GDK_KEY_backslash:
+      case GDK_KEY_bar: return 0xDC;
+      case GDK_KEY_bracketright:
+      case GDK_KEY_braceright: return 0xDD;
+      case GDK_KEY_apostrophe:
+      case GDK_KEY_quotedbl: return 0xDE;
+      default:
+        break;
+    }
+
+    if (keyval >= GDK_KEY_F1 && keyval <= GDK_KEY_F24) {
+      return 0x70 + static_cast<int>(keyval - GDK_KEY_F1);
+    }
+    if (keyval >= GDK_KEY_KP_0 && keyval <= GDK_KEY_KP_9) {
+      return 0x60 + static_cast<int>(keyval - GDK_KEY_KP_0);
+    }
+    switch (keyval) {
+      case GDK_KEY_KP_Multiply: return 0x6A;
+      case GDK_KEY_KP_Add: return 0x6B;
+      case GDK_KEY_KP_Separator: return 0x6C;
+      case GDK_KEY_KP_Subtract: return 0x6D;
+      case GDK_KEY_KP_Decimal: return 0x6E;
+      case GDK_KEY_KP_Divide: return 0x6F;
+      default:
+        return 0;
+    }
+  }
+
+  static std::uint32_t direct_character(guint keyval) {
+    const auto character = gdk_keyval_to_unicode(keyval);
+    if (character == 0 || character > 0xFFFFU ||
+        !g_unichar_isprint(character)) {
+      return 0;
+    }
+    return static_cast<std::uint32_t>(character);
+  }
+
+  static bool defer_key_to_browser_chrome(const GdkEventKey& event) {
+    if (event.state &
+        (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SUPER_MASK | GDK_META_MASK)) {
+      return true;
+    }
+    return event.keyval == GDK_KEY_F5 || event.keyval == GDK_KEY_F6;
   }
 
   NativeSurfaceInputForwarder* software_input_forwarder() {
@@ -421,6 +535,54 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
                delta_x, delta_y)
                ? TRUE
                : FALSE;
+  }
+
+  static gboolean on_content_key(GtkWidget*, GdkEventKey* event,
+                                  gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    auto* forwarder = self->software_input_forwarder();
+    if (!forwarder || !event || defer_key_to_browser_chrome(*event)) {
+      return FALSE;
+    }
+
+    const int vkey = virtual_key_code(event->keyval);
+    const auto modifiers = input_modifiers(event->state);
+    const auto character = direct_character(event->keyval);
+    bool handled = false;
+
+    if (event->type == GDK_KEY_PRESS) {
+      if (vkey > 0) {
+        handled |= forwarder->send_key_event(
+            NativeKeyEvent{.type = NativeKeyEventType::raw_key_down,
+                           .virtual_key_code = vkey,
+                           .native_key_code =
+                               static_cast<int>(event->hardware_keycode),
+                           .modifiers = modifiers,
+                           .character = character,
+                           .unmodified_character = character});
+      }
+      if (character != 0) {
+        handled |= forwarder->send_key_event(
+            NativeKeyEvent{.type = NativeKeyEventType::character,
+                           .virtual_key_code = vkey,
+                           .native_key_code =
+                               static_cast<int>(event->hardware_keycode),
+                           .modifiers = modifiers,
+                           .character = character,
+                           .unmodified_character = character});
+      }
+    } else if (event->type == GDK_KEY_RELEASE && vkey > 0) {
+      handled |= forwarder->send_key_event(
+          NativeKeyEvent{.type = NativeKeyEventType::key_up,
+                         .virtual_key_code = vkey,
+                         .native_key_code =
+                             static_cast<int>(event->hardware_keycode),
+                         .modifiers = modifiers,
+                         .character = character,
+                         .unmodified_character = character});
+    }
+
+    return handled ? TRUE : FALSE;
   }
 
   static gboolean on_content_focus(GtkWidget*, GdkEventFocus* event,
@@ -1136,7 +1298,8 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
         GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK |
             GDK_BUTTON_RELEASE_MASK | GDK_SCROLL_MASK |
             GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
-            GDK_FOCUS_CHANGE_MASK);
+            GDK_FOCUS_CHANGE_MASK | GDK_KEY_PRESS_MASK |
+            GDK_KEY_RELEASE_MASK);
     g_signal_connect(content_area, "motion-notify-event",
                      G_CALLBACK(on_content_motion), this);
     g_signal_connect(content_area, "enter-notify-event",
@@ -1149,6 +1312,10 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
                      G_CALLBACK(on_content_button), this);
     g_signal_connect(content_area, "scroll-event",
                      G_CALLBACK(on_content_scroll), this);
+    g_signal_connect(content_area, "key-press-event",
+                     G_CALLBACK(on_content_key), this);
+    g_signal_connect(content_area, "key-release-event",
+                     G_CALLBACK(on_content_key), this);
     g_signal_connect(content_area, "focus-in-event",
                      G_CALLBACK(on_content_focus), this);
     g_signal_connect(content_area, "focus-out-event",
