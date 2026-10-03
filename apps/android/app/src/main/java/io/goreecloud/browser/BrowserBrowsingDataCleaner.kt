@@ -10,11 +10,17 @@ import android.webkit.WebView
  */
 object BrowserBrowsingDataCleaner {
     fun clear(webView: WebView, onComplete: () -> Unit) {
-        webView.stopLoading()
-        webView.clearCache(true)
-        webView.clearHistory()
-        webView.clearFormData()
-        webView.clearSslPreferences()
+        clear(listOf(webView), onComplete)
+    }
+
+    fun clear(webViews: Collection<WebView>, onComplete: () -> Unit) {
+        webViews.distinct().forEach { webView ->
+            webView.stopLoading()
+            webView.clearCache(true)
+            webView.clearHistory()
+            webView.clearFormData()
+            webView.clearSslPreferences()
+        }
         WebStorage.getInstance().deleteAllData()
 
         val cookies = CookieManager.getInstance()
