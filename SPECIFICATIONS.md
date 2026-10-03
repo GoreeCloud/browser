@@ -22,7 +22,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.16
+- **Version:** v0.17
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -40,7 +40,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 
 This specification intentionally avoids embedding a volatile active-branch SHA or workflow-run snapshot in the metadata block. Exact candidate state must be verified from live GitHub before execution, and documentation-only changes must not inherit implementation validation by implication.
 
-Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciled the then-current PR #110 Linux Wayland rendering line and historical GLAZE UI V1.6 / 1.6.0 naming. Version v0.16 reconciles the current Android +android.12 artifact identity, protected-main authority model, and the post-PR #122 Linux Wayland interaction baseline while removing stale volatile PR/check snapshots from document control. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, Seal, or Anchor gates.
+Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciled the then-current PR #110 Linux Wayland rendering line and historical GLAZE UI V1.6 / 1.6.0 naming. Version v0.16 reconciled the current Android +android.12 artifact identity, protected-main authority model, and the post-PR #122 Linux Wayland interaction baseline while removing stale volatile PR/check snapshots from document control. Version v0.17 defines the bounded direct-keyboard continuation on top of the merged PR #123 cursor baseline without treating IME or representative native-Wayland acceptance as complete. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, Seal, or Anchor gates.
 
 ## 1. Project Definition
 
@@ -151,7 +151,7 @@ Before Android Browser may be represented as production-approved or Stable, it m
 
 ## 10. Current Development Status and Evidence Boundary
 
-The authoritative Development source is protected `main` in `GoreeCloud/browser`; live GitHub is authoritative for the exact current commit, active candidate state, review threads, repository protection, and workflow results. The merged Linux interaction baseline through PR #122 includes native-X11/XWayland child rendering, software/windowless Wayland page pixels, pointer/wheel/focus forwarding, and Browser-owned windowless context-menu presentation. This specification revision also defines the standard cursor-propagation tranche for the software/windowless surface. Integration or acceptance of that tranche must be determined from live GitHub evidence rather than inferred from this document.
+The authoritative Development source is protected `main` in `GoreeCloud/browser`; live GitHub is authoritative for the exact current commit, active candidate state, review threads, repository protection, and workflow results. The merged Linux interaction baseline through PR #123 includes native-X11/XWayland child rendering, software/windowless Wayland page pixels, pointer/wheel/focus forwarding, standard cursor propagation, and Browser-owned windowless context-menu presentation. This specification revision defines the next bounded software/windowless input tranche: direct GTK key presses/releases and printable character events for ordinary non-IME typing, while Browser-owned modifier shortcuts and IME composition remain distinct acceptance work. Integration or acceptance of that tranche must be determined from live GitHub evidence rather than inferred from this document.
 
 The current Android package/version is `io.goreecloud.browser.beta`, versionName `0.1.0-beta.1+android.12`, versionCode `10012`. Linux/CEF-only changes do not promote or revalidate that Android artifact identity.
 
