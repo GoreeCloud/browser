@@ -55,14 +55,15 @@ object BrowserTabSessionCodec {
             .toString()
     }
 
-    fun decode(raw: String): BrowserTabSessionState? = try {
-        val root = JSONObject(raw)
-        if (root.optInt("version", -1) != VERSION) return null
+    fun decode(raw: String): BrowserTabSessionState? {
+        return try {
+            val root = JSONObject(raw)
+            if (root.optInt("version", -1) != VERSION) return null
 
-        val array = root.optJSONArray("tabs") ?: return null
-        if (array.length() !in 1..BrowserTabSessionPolicy.MAX_TABS) return null
+            val array = root.optJSONArray("tabs") ?: return null
+            if (array.length() !in 1..BrowserTabSessionPolicy.MAX_TABS) return null
 
-        val tabs = buildList {
+            val tabs = mutableListOf<BrowserLogicalTab>()
             repeat(array.length()) { index ->
                 val item = array.optJSONObject(index) ?: return null
                 val id = item.optString("id", "")
@@ -77,12 +78,13 @@ object BrowserTabSessionCodec {
                         .trim()
                         .takeIf { it.isNotEmpty() }
                 }
-                add(BrowserLogicalTab(id = id, url = url, title = title))
+                tabs += BrowserLogicalTab(id = id, url = url, title = title)
             }
+
+            val activeTabId = root.optString("activeTabId", "")
+            BrowserTabSessionState(tabs = tabs, activeTabId = activeTabId)
+        } catch (_: Exception) {
+            null
         }
-        val activeTabId = root.optString("activeTabId", "")
-        BrowserTabSessionState(tabs = tabs, activeTabId = activeTabId)
-    } catch (_: Exception) {
-        null
     }
 }
