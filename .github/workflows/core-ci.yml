@@ -114,6 +114,9 @@ jobs:
           assert "windowless-frame-presented" in host
           assert "NativeSurfaceFrameSink" in surface
           assert "NativeSurfaceInputForwarder" in surface
+          assert "NativeSurfaceContextMenuSink" in surface
+          assert "windowless-context-menu-presented" in host
+          assert "RunContextMenu" in Path("include/goreecloud/browser/cef_client.hpp").read_text()
           assert "SendMouseClickEvent" in runtime
           assert "SendMouseWheelEvent" in runtime
           assert "SetAsWindowless" in runtime
@@ -255,7 +258,7 @@ jobs:
             exit "${runtime_status}"
           fi
 
-      - name: Exercise CEF windowless page pixels and pointer input under Xvfb
+      - name: Exercise CEF windowless page pixels, pointer input, and context menu under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
           GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
@@ -294,23 +297,51 @@ jobs:
               sleep 0.25
               xdotool click 1
 
+              navigation_ready=0
               for _ in $(seq 1 120); do
                 if grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "$2" &&
                    grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "$2" &&
                    grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$2"; then
-                  kill "$browser_pid" 2>/dev/null || true
-                  wait "$browser_pid" 2>/dev/null || true
-                  exit 0
+                  navigation_ready=1
+                  break
                 fi
                 if ! kill -0 "$browser_pid" 2>/dev/null; then
                   break
                 fi
                 sleep 0.25
               done
+              test "$navigation_ready" -eq 1
+
+              xdotool mousemove --window "$window_id" 640 420 click 3
+
+              menu_ready=0
+              for _ in $(seq 1 40); do
+                if grep -Fq "[GoreeCloud GTK] windowless-context-menu-presented" "$2"; then
+                  menu_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$menu_ready" -eq 1
+
+              xdotool key Escape
+
+              menu_closed=0
+              for _ in $(seq 1 40); do
+                if grep -Fq "[GoreeCloud CEF] windowless-context-menu-result canceled" "$2"; then
+                  menu_closed=1
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$menu_closed" -eq 1
 
               kill "$browser_pid" 2>/dev/null || true
               wait "$browser_pid" 2>/dev/null || true
-              exit 1
+              exit 0
             ' sh "${test_url}" "${log_file}"
 
           cat "${log_file}"
@@ -320,6 +351,13 @@ jobs:
           grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "${log_file}"
           grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "${log_file}"
           grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-context-menu-request" "${log_file}"
+          grep -Fq "[GoreeCloud GTK] windowless-context-menu-presented" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-context-menu-result canceled" "${log_file}"
+          if grep -Fq "Window handle is required for default OSR context menu" "${log_file}"; then
+            echo "CEF fell back to the native-window OSR context menu" >&2
+            exit 1
+          fi
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during windowless input smoke" >&2
             exit 1
