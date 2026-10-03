@@ -133,6 +133,7 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
 }  // namespace
 
 class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
+                                      public NativeSurfaceCursorSink,
                                       public NativeSurfaceContextMenuSink {
  public:
   Impl() {
@@ -549,6 +550,112 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     }
 
     return box;
+  }
+
+  static const char* native_cursor_debug_name(NativeCursorType cursor) {
+    switch (cursor) {
+      case NativeCursorType::pointer: return "pointer";
+      case NativeCursorType::crosshair: return "crosshair";
+      case NativeCursorType::hand: return "hand";
+      case NativeCursorType::text: return "text";
+      case NativeCursorType::wait: return "wait";
+      case NativeCursorType::help: return "help";
+      case NativeCursorType::move: return "move";
+      case NativeCursorType::east_west_resize: return "east-west-resize";
+      case NativeCursorType::north_south_resize: return "north-south-resize";
+      case NativeCursorType::northeast_southwest_resize:
+        return "northeast-southwest-resize";
+      case NativeCursorType::northwest_southeast_resize:
+        return "northwest-southeast-resize";
+      case NativeCursorType::column_resize: return "column-resize";
+      case NativeCursorType::row_resize: return "row-resize";
+      case NativeCursorType::vertical_text: return "vertical-text";
+      case NativeCursorType::cell: return "cell";
+      case NativeCursorType::context_menu: return "context-menu";
+      case NativeCursorType::alias: return "alias";
+      case NativeCursorType::progress: return "progress";
+      case NativeCursorType::no_drop: return "no-drop";
+      case NativeCursorType::copy: return "copy";
+      case NativeCursorType::none: return "none";
+      case NativeCursorType::not_allowed: return "not-allowed";
+      case NativeCursorType::zoom_in: return "zoom-in";
+      case NativeCursorType::zoom_out: return "zoom-out";
+      case NativeCursorType::grab: return "grab";
+      case NativeCursorType::grabbing: return "grabbing";
+    }
+    return "pointer";
+  }
+
+  static const char* gtk_cursor_name(NativeCursorType cursor) {
+    switch (cursor) {
+      case NativeCursorType::crosshair: return "crosshair";
+      case NativeCursorType::hand: return "pointer";
+      case NativeCursorType::text: return "text";
+      case NativeCursorType::wait: return "wait";
+      case NativeCursorType::help: return "help";
+      case NativeCursorType::move: return "move";
+      case NativeCursorType::east_west_resize: return "ew-resize";
+      case NativeCursorType::north_south_resize: return "ns-resize";
+      case NativeCursorType::northeast_southwest_resize: return "nesw-resize";
+      case NativeCursorType::northwest_southeast_resize: return "nwse-resize";
+      case NativeCursorType::column_resize: return "col-resize";
+      case NativeCursorType::row_resize: return "row-resize";
+      case NativeCursorType::vertical_text: return "vertical-text";
+      case NativeCursorType::cell: return "cell";
+      case NativeCursorType::context_menu: return "context-menu";
+      case NativeCursorType::alias: return "alias";
+      case NativeCursorType::progress: return "progress";
+      case NativeCursorType::no_drop: return "no-drop";
+      case NativeCursorType::copy: return "copy";
+      case NativeCursorType::not_allowed: return "not-allowed";
+      case NativeCursorType::zoom_in: return "zoom-in";
+      case NativeCursorType::zoom_out: return "zoom-out";
+      case NativeCursorType::grab: return "grab";
+      case NativeCursorType::grabbing: return "grabbing";
+      case NativeCursorType::pointer:
+      case NativeCursorType::none:
+        return nullptr;
+    }
+    return nullptr;
+  }
+
+  void reset_native_cursor() {
+    active_cursor.reset();
+    if (!content_area || !gtk_widget_get_realized(content_area)) return;
+    if (auto* window = gtk_widget_get_window(content_area)) {
+      gdk_window_set_cursor(window, nullptr);
+    }
+  }
+
+  void apply_native_cursor(NativeCursorType cursor) override {
+    if (active_cursor && *active_cursor == cursor) return;
+    if (!content_area || !gtk_widget_get_realized(content_area)) return;
+
+    auto* window = gtk_widget_get_window(content_area);
+    if (!window) return;
+    auto* display = gdk_window_get_display(window);
+    if (!display) return;
+
+    GdkCursor* native_cursor = nullptr;
+    if (cursor == NativeCursorType::none) {
+      native_cursor = gdk_cursor_new_for_display(display, GDK_BLANK_CURSOR);
+    } else if (cursor != NativeCursorType::pointer) {
+      if (const char* name = gtk_cursor_name(cursor)) {
+        native_cursor = gdk_cursor_new_from_name(display, name);
+      }
+      if (!native_cursor) {
+        native_cursor = gdk_cursor_new_for_display(display, GDK_LEFT_PTR);
+      }
+    }
+
+    gdk_window_set_cursor(window, native_cursor);
+    if (native_cursor) g_object_unref(native_cursor);
+    active_cursor = cursor;
+
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-cursor-applied type="
+                << native_cursor_debug_name(cursor) << std::endl;
+    }
   }
 
   void show_native_context_menu(
@@ -1524,6 +1631,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
           gdk_x11_display_get_xdisplay(display));
     } else {
       surface.frame_sink = this;
+      surface.cursor_sink = this;
       surface.context_menu_sink = this;
     }
     return surface;
@@ -1537,6 +1645,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     auto* attachable = dynamic_cast<NativeSurfaceAttachable*>(attached_view);
     if (!attachable) return;
     const auto surface = current_surface();
+    if (surface.window_handle != 0) reset_native_cursor();
     if ((surface.window_handle == 0 && surface.frame_sink == nullptr) ||
         surface.width <= 0 || surface.height <= 0) {
       engine_surface_attached = false;
@@ -1600,6 +1709,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   GtkWidget* content_stack{nullptr};
   GtkWidget* content_area{nullptr};
   GtkWidget* active_context_popover{nullptr};
+  std::optional<NativeCursorType> active_cursor;
   GtkWidget* internal_canvas{nullptr};
   GtkWidget* internal_card{nullptr};
   GtkWidget* internal_eyebrow{nullptr};
@@ -1732,11 +1842,13 @@ void GtkLinuxGlazeWindowHost::detach_engine_view() {
   impl_->attached_view = nullptr;
   impl_->engine_surface_attached = false;
   impl_->software_surface_attached = false;
+  impl_->reset_native_cursor();
 }
 
 void GtkLinuxGlazeWindowHost::show_internal_surface(
     std::string_view internal_url) {
   impl_->media_hover.invalidate();
+  impl_->reset_native_cursor();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
   if (!impl_->content_stack || !impl_->internal_canvas) return;
   impl_->set_internal_surface_copy(internal_url);
@@ -1745,6 +1857,7 @@ void GtkLinuxGlazeWindowHost::show_internal_surface(
 
 void GtkLinuxGlazeWindowHost::show_panel(std::string_view panel_id) {
   impl_->media_hover.invalidate();
+  impl_->reset_native_cursor();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
   if (!impl_->content_stack || !impl_->panel_label) return;
 
