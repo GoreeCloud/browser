@@ -36,6 +36,7 @@ class BrowserAndroidRuntimeSmokeTest {
 
     @Before
     fun completeFirstUseForNonOnboardingSmoke() {
+        assertTrue(BrowserTabSessionStore(context).clear())
         val preferences = BrowserFirstUsePreferences(context)
         assertTrue(preferences.complete())
         assertTrue(preferences.setHintsEnabled(false))
@@ -78,6 +79,56 @@ class BrowserAndroidRuntimeSmokeTest {
                 assertFalse(CookieManager.getInstance().acceptThirdPartyCookies(webView))
                 assertNotEquals(0, activity.applicationInfo.icon)
                 assertEquals("io.goreecloud.browser.beta", activity.packageName)
+            }
+        }
+    }
+
+    @Test
+    fun visibleTabsUseOneActiveWebViewAndSurviveActivityRecreation() {
+        ActivityScenario.launch(BrowserActivityV2::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val initial = collectViews(activity.window.decorView)
+                assertEquals(
+                    1,
+                    initial.filterIsInstance<TextView>()
+                        .count { it.contentDescription?.toString()?.startsWith("Tab 1:") == true },
+                )
+                assertEquals(1, initial.filterIsInstance<WebView>().size)
+
+                initial.filterIsInstance<TextView>()
+                    .first { it.contentDescription?.toString() == "New tab" }
+                    .performClick()
+
+                val afterOpen = collectViews(activity.window.decorView)
+                assertEquals(
+                    2,
+                    afterOpen.filterIsInstance<TextView>()
+                        .count { it.contentDescription?.toString()?.startsWith("Tab ") == true },
+                )
+                assertEquals(
+                    1,
+                    afterOpen.filterIsInstance<TextView>()
+                        .count { it.contentDescription?.toString()?.contains(", selected") == true },
+                )
+                assertEquals(1, afterOpen.filterIsInstance<WebView>().size)
+            }
+
+            scenario.recreate()
+
+            scenario.onActivity { activity ->
+                val restored = collectViews(activity.window.decorView)
+                assertEquals(
+                    2,
+                    restored.filterIsInstance<TextView>()
+                        .count { it.contentDescription?.toString()?.startsWith("Tab ") == true },
+                )
+                assertEquals(
+                    1,
+                    restored.filterIsInstance<TextView>()
+                        .count { it.contentDescription?.toString()?.contains(", selected") == true },
+                )
+                assertEquals(1, restored.filterIsInstance<WebView>().size)
+                assertEquals(2, BrowserTabSessionStore(context).read()?.tabs?.size)
             }
         }
     }
