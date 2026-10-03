@@ -22,6 +22,24 @@ This is a model foundation only. It does not add a visible Android tab switcher,
 
 The runtime object-model roadmap remains open. Android chrome/engine binding, lifecycle restoration, accessibility/adaptive-device behavior, privacy-context isolation, representative-device evidence, and release qualification remain separate gates.
 
+## 2026-10-02 — Linux Wayland standard cursor propagation
+
+### Added
+
+- Added an engine-independent standard cursor bridge for software/windowless Browser surfaces.
+- Mapped CEF pointer, text, hand, wait/help, resize, move/panning, vertical-text, cell, context-menu, alias, progress, drag-state, zoom, grab/grabbing, hidden and not-allowed cursor types into GTK cursor presentation without leaking CEF types into the native host contract.
+- Reset Browser-owned software-surface cursor state when the engine view is detached or Browser-owned internal/panel surfaces replace web content.
+- Extended the forced-windowless CEF runtime lane so a full-page link must produce both a CEF hand-cursor event and a GTK-applied hand cursor before the existing click/wheel/context-menu checks continue.
+
+### Changed
+
+- Preserved native X11/XWayland child-window cursor handling unchanged; the Browser-owned cursor sink is attached only to the software/windowless path.
+- Left CEF custom bitmap cursors explicitly outside this tranche rather than silently converting them into an inaccurate standard cursor.
+
+### Acceptance boundary
+
+This is Development interaction evidence only. Representative native-Wayland cursor behavior, custom bitmap cursors, keyboard/IME, broader popup behavior, drag-and-drop, clipboard, accessibility, sustained interaction performance, accelerated rendering, production approval, Stable, and Anchor qualification remain open.
+
 ## 2026-10-02 — Linux Wayland windowless context-menu host bridge
 
 ### Added
