@@ -63,6 +63,43 @@ class NativeSurfaceInputForwarder {
   virtual void set_surface_focus(bool focused) = 0;
 };
 
+enum class NativeCursorType {
+  pointer,
+  crosshair,
+  hand,
+  text,
+  wait,
+  help,
+  move,
+  east_west_resize,
+  north_south_resize,
+  northeast_southwest_resize,
+  northwest_southeast_resize,
+  column_resize,
+  row_resize,
+  vertical_text,
+  cell,
+  context_menu,
+  alias,
+  progress,
+  no_drop,
+  copy,
+  none,
+  not_allowed,
+  zoom_in,
+  zoom_out,
+  grab,
+  grabbing,
+};
+
+// Optional cursor bridge for software/windowless engine surfaces. Native
+// child-window surfaces retain platform/engine cursor handling.
+class NativeSurfaceCursorSink {
+ public:
+  virtual ~NativeSurfaceCursorSink() = default;
+  virtual void apply_native_cursor(NativeCursorType cursor) = 0;
+};
+
 enum class NativeContextMenuItemType {
   command,
   check,
@@ -114,6 +151,7 @@ struct NativeEngineSurface {
   int height{0};
   float scale_factor{1.0F};
   NativeSurfaceFrameSink* frame_sink{nullptr};
+  NativeSurfaceCursorSink* cursor_sink{nullptr};
   NativeSurfaceContextMenuSink* context_menu_sink{nullptr};
 };
 

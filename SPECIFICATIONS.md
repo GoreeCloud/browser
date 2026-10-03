@@ -22,7 +22,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.15
+- **Version:** v0.16
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -30,18 +30,17 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 - **Repository:** `GoreeCloud/browser`
 - **Authoritative Record:** Yes
 - **Primary Android Beta Package:** `io.goreecloud.browser.beta`
-- **Android Beta Version:** `0.1.0-beta.1+android.6`
-- **Android versionCode:** `10006`
+- **Android Beta Version:** `0.1.0-beta.1+android.12`
+- **Android versionCode:** `10012`
 - **Android Support Floor:** API 26
 - **Android Target API:** 35
-- **Current GLAZE UI Official/Anchor Authority:** V1.6 / `1.6.0`
-- **Current Development Line:** PR #110, `feature/linux-wayland-cef-osr-20260928`
-- **Latest independently validated implementation checkpoint:** `e22d126ffa9f0fc7b6f72a611b923f7ee67cb2fc`
-- **Validated checks for that exact implementation checkpoint:** GoreeCloud Browser Core CI #736, Browser Security Source Audit #176, Browser Security Evidence #181, and Browser Extension Signature #235
+- **Current Glaze Official/Anchor Authority:** V1.6 / `1.6.0`
+- **Development Source Authority:** protected `main`; live GitHub controls the exact current head, active pull requests, and workflow evidence
+- **Validation Authority:** exact-head GitHub workflow evidence plus protected-merge/readback; issue #33 remains the controlling Browser stabilization record
 
-The current documentation head may be newer than the validated implementation checkpoint. Documentation-only commits must not inherit implementation validation by implication.
+This specification intentionally avoids embedding a volatile active-branch SHA or workflow-run snapshot in the metadata block. Exact candidate state must be verified from live GitHub before execution, and documentation-only changes must not inherit implementation validation by implication.
 
-Version v0.12 reconciled the current nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciles the live repository identity, current PR #110 Development line, exact validated candidate checkpoint, and current GLAZE UI V1.6 / 1.6.0 Official/Anchor authority. These are Development control/implementation updates and do not themselves satisfy runtime, production, Release Candidate, or Stable gates.
+Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciled the then-current PR #110 Linux Wayland rendering line and historical GLAZE UI V1.6 / 1.6.0 naming. Version v0.16 reconciles the current Android +android.12 artifact identity, protected-main authority model, and the post-PR #122 Linux Wayland interaction baseline while removing stale volatile PR/check snapshots from document control. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, Seal, or Anchor gates.
 
 ## 1. Project Definition
 
@@ -152,11 +151,11 @@ Before Android Browser may be represented as production-approved or Stable, it m
 
 ## 10. Current Development Status and Evidence Boundary
 
-PR #110 is the current open Development line on `feature/linux-wayland-cef-osr-20260928`. Its pre-documentation exact implementation checkpoint `e22d126ffa9f0fc7b6f72a611b923f7ee67cb2fc` passed GoreeCloud Browser Core CI #736, Browser Security Source Audit #176, Browser Security Evidence #181, and Browser Extension Signature #235. The current documentation head is newer and must not inherit those implementation checks by implication.
+The authoritative Development source is protected `main` in `GoreeCloud/browser`; live GitHub is authoritative for the exact current commit, active candidate state, review threads, repository protection, and workflow results. The merged Linux interaction baseline through PR #122 includes native-X11/XWayland child rendering, software/windowless Wayland page pixels, pointer/wheel/focus forwarding, and Browser-owned windowless context-menu presentation. This specification revision also defines the standard cursor-propagation tranche for the software/windowless surface. Integration or acceptance of that tranche must be determined from live GitHub evidence rather than inferred from this document.
 
-The current Android package/version remains `io.goreecloud.browser.beta`, versionName `0.1.0-beta.1+android.6`, versionCode `10006`. Documentation changes do not promote that application version.
+The current Android package/version is `io.goreecloud.browser.beta`, versionName `0.1.0-beta.1+android.12`, versionCode `10012`. Linux/CEF-only changes do not promote or revalidate that Android artifact identity.
 
-Historical V1.2, V1.3, V1.4.0, earlier PR, and superseded architectural checkpoints remain historical evidence in Git, pull-request history, and the retained superseded legacy specification. They must not be presented as current acceptance when the current exact source has not been independently verified for the same capability.
+Historical V1.2, V1.3, V1.4.0, GLAZE UI naming, earlier PRs, and superseded architectural checkpoints remain historical evidence in Git, pull-request history, and the retained superseded legacy specification. They must not be presented as current acceptance when the current exact source has not been independently verified for the same capability.
 
 ## 11. GoreeCloud Browser Sync Architecture
 
