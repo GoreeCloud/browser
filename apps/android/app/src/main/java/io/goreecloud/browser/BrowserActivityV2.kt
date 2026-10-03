@@ -32,6 +32,7 @@ import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.util.UUID
 
 /**
  * GoreeCloud Browser Android shell.
@@ -51,11 +52,13 @@ class BrowserActivityV2 : Activity() {
     private lateinit var topChrome: LinearLayout
     private lateinit var addressField: EditText
     private lateinit var pageTitle: TextView
+    private lateinit var tabCount: TextView
     private lateinit var backButton: ImageButton
     private lateinit var forwardButton: ImageButton
     private lateinit var reloadButton: ImageButton
     private lateinit var progressBar: ProgressBar
     private lateinit var firstUsePreferences: BrowserFirstUsePreferences
+    private lateinit var tabSession: BrowserTabSessionState
     private var contextualHintRow: LinearLayout? = null
 
     private var currentUrl: String = INTERNAL_HOME
@@ -74,9 +77,14 @@ class BrowserActivityV2 : Activity() {
         glaze = GlazeNativeStyle(this)
         glaze.applyWindow(this)
         firstUsePreferences = BrowserFirstUsePreferences(this)
+        val preferences = getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
+        tabSession = BrowserTabSessionCodec.decode(
+            preferences.getString(PREF_TAB_SESSION, null),
+        ) ?: BrowserTabSessionPolicy.initial(
+            BrowserLogicalTab(newTabId(), INTERNAL_HOME, PageTitlePresentation.PRODUCT_TITLE),
+        )
         pageTextZoomPercent = PageTextZoom.normalize(
-            getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
-                .getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
+            preferences.getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
         )
         desktopSiteEnabled = savedInstanceState?.getBoolean(STATE_DESKTOP_SITE, false) == true
         pageScriptsEnabled = savedInstanceState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
@@ -85,11 +93,16 @@ class BrowserActivityV2 : Activity() {
         configureWebView()
 
         if (savedInstanceState != null && webView.restoreState(savedInstanceState) != null) {
-            currentUrl = webView.url ?: INTERNAL_HOME
+            currentUrl = webView.url ?: tabSession.activeTab.url
+            recordActiveLocation(currentUrl)
             refreshChrome()
         } else {
             val external = intent?.data?.toString().orEmpty()
-            if (NavigationResolver.isAllowedWebUrl(external)) navigate(external) else showStartPage()
+            if (NavigationResolver.isAllowedWebUrl(external)) {
+                navigate(external)
+            } else {
+                navigateToLogicalTab(tabSession.activeTab)
+            }
         }
 
         renderContextualHint()
@@ -106,6 +119,8 @@ class BrowserActivityV2 : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        captureActiveTabFromCurrentPage()
+        persistTabSession()
         webView.saveState(outState)
         outState.putBoolean(STATE_DESKTOP_SITE, desktopSiteEnabled)
         outState.putBoolean(STATE_PAGE_SCRIPTS, pageScriptsEnabled)
@@ -163,6 +178,22 @@ class BrowserActivityV2 : Activity() {
             pageTitle,
             LinearLayout.LayoutParams(0, dp(GlazeContract.GENERAL_TARGET_DP), 1f).apply {
                 gravity = Gravity.CENTER_VERTICAL
+            },
+        )
+
+        tabCount = TextView(this).apply {
+            text = tabSession.tabs.size.toString()
+            contentDescription = "Tabs, ${tabSession.tabs.size} open"
+            setOnClickListener { showTabTray() }
+        }
+        glaze.styleSchemeBadge(tabCount)
+        identityRow.addView(
+            tabCount,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(GlazeContract.GENERAL_TARGET_DP),
+            ).apply {
+                marginEnd = dp(6)
             },
         )
 
@@ -341,6 +372,7 @@ class BrowserActivityV2 : Activity() {
                 }
                 loading = true
                 progressBar.visibility = View.VISIBLE
+                recordActiveLocation(currentUrl)
                 refreshChrome()
             }
 
@@ -357,6 +389,11 @@ class BrowserActivityV2 : Activity() {
                     view.clearHistory()
                     clearHistoryAfterNextPageFinished = false
                 }
+                recordActiveLocation(currentUrl)
+                recordActiveTitle(
+                    if (currentUrl == INTERNAL_HOME) PageTitlePresentation.PRODUCT_TITLE
+                    else PageTitlePresentation.safe(view.title, currentUrl),
+                )
                 refreshChrome()
             }
 
@@ -392,6 +429,13 @@ class BrowserActivityV2 : Activity() {
                 updateNavigationButtons()
             }
 
+            override fun onReceivedTitle(view: WebView, title: String?) {
+                if (currentUrl != INTERNAL_HOME && NavigationResolver.isAllowedWebUrl(currentUrl)) {
+                    recordActiveTitle(PageTitlePresentation.safe(title, currentUrl))
+                    refreshChrome()
+                }
+            }
+
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.deny()
             }
@@ -421,6 +465,7 @@ class BrowserActivityV2 : Activity() {
         currentUrl = target
         addressField.clearFocus()
         hideKeyboard()
+        recordActiveLocation(target)
         webView.loadUrl(target)
         webView.requestFocus()
         refreshChrome()
@@ -432,6 +477,8 @@ class BrowserActivityV2 : Activity() {
         currentUrl = INTERNAL_HOME
         addressField.clearFocus()
         hideKeyboard()
+        recordActiveLocation(INTERNAL_HOME)
+        recordActiveTitle(PageTitlePresentation.PRODUCT_TITLE)
         webView.loadDataWithBaseURL(START_BASE_URL, startHtml(), "text/html", "UTF-8", null)
         refreshChrome()
     }
@@ -528,6 +575,12 @@ class BrowserActivityV2 : Activity() {
             )
             addressField.setSelection(0)
         }
+        if (::tabCount.isInitialized) {
+            val activeIndex = tabSession.tabs.indexOfFirst { it.id == tabSession.activeTabId } + 1
+            tabCount.text = tabSession.tabs.size.toString()
+            tabCount.contentDescription =
+                "Tabs, ${tabSession.tabs.size} open. Active $activeIndex."
+        }
         updateNavigationButtons()
     }
 
@@ -595,6 +648,7 @@ class BrowserActivityV2 : Activity() {
             )
         }
 
+        addAction("Tabs (${tabSession.tabs.size})") { showTabTray() }
         addAction("Site information") { showSiteInformation() }
         addAction("Privacy & security") { showPrivacyAndSecurityStatus() }
         addAction("Find in page") { showFindInPage() }
@@ -632,6 +686,204 @@ class BrowserActivityV2 : Activity() {
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         dialog.window?.setGravity(Gravity.BOTTOM)
     }
+
+    private fun showTabTray() {
+        captureActiveTabFromCurrentPage()
+
+        val dialog = Dialog(this)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+        val sheet = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            contentDescription = "Tabs"
+        }
+        glaze.styleMenuSheet(sheet)
+
+        val title = TextView(this).apply { text = "Tabs" }
+        glaze.styleMenuTitle(title)
+        sheet.addView(title)
+
+        val subtitle = TextView(this).apply {
+            text = "${tabSession.tabs.size} of ${BrowserTabSessionPolicy.MAX_TABS} tabs • selecting a tab reloads its last stored page in this Development build"
+        }
+        glaze.styleMenuSubtitle(subtitle)
+        sheet.addView(subtitle)
+
+        val newTab = TextView(this).apply {
+            text = "＋  New tab"
+            setOnClickListener {
+                openLogicalTab()
+                dialog.dismiss()
+            }
+        }
+        glaze.styleMenuAction(newTab)
+        setTextActionEnabled(
+            newTab,
+            tabSession.tabs.size < BrowserTabSessionPolicy.MAX_TABS,
+        )
+        sheet.addView(newTab)
+
+        tabSession.tabs.forEachIndexed { index, tab ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            val select = TextView(this).apply {
+                val label = tab.title?.takeIf { it.isNotBlank() }
+                    ?: if (tab.url == INTERNAL_HOME) PageTitlePresentation.PRODUCT_TITLE
+                    else AddressPresentation.condensed(tab.url)
+                text = if (tab.id == tabSession.activeTabId) {
+                    "● ${index + 1}  $label"
+                } else {
+                    "${index + 1}  $label"
+                }
+                contentDescription =
+                    if (tab.id == tabSession.activeTabId) "Active tab ${index + 1}: $label"
+                    else "Open tab ${index + 1}: $label"
+                setOnClickListener {
+                    selectLogicalTab(tab.id)
+                    dialog.dismiss()
+                }
+            }
+            glaze.styleMenuAction(select)
+            row.addView(
+                select,
+                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f),
+            )
+
+            val close = TextView(this).apply {
+                text = "Close"
+                contentDescription = "Close tab ${index + 1}"
+                gravity = Gravity.CENTER
+                setOnClickListener {
+                    closeLogicalTab(tab.id)
+                    dialog.dismiss()
+                }
+            }
+            glaze.styleMenuAction(close)
+            setTextActionEnabled(close, tabSession.tabs.size > 1)
+            row.addView(
+                close,
+                LinearLayout.LayoutParams(dp(84), LinearLayout.LayoutParams.WRAP_CONTENT),
+            )
+            sheet.addView(row)
+        }
+
+        val scroll = ScrollView(this).apply {
+            isFillViewport = true
+            addView(
+                sheet,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        dialog.setContentView(scroll)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.show()
+        dialog.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        dialog.window?.setGravity(Gravity.BOTTOM)
+    }
+
+    private fun openLogicalTab() {
+        captureActiveTabFromCurrentPage()
+        val result = BrowserTabSessionPolicy.open(
+            tabSession,
+            BrowserLogicalTab(newTabId(), INTERNAL_HOME, PageTitlePresentation.PRODUCT_TITLE),
+        )
+        if (result is BrowserTabMutation.Updated) {
+            tabSession = result.state
+            persistTabSession()
+            showStartPage()
+        } else if (result == BrowserTabMutation.MaxTabsReached) {
+            Toast.makeText(
+                this,
+                "Browser supports up to ${BrowserTabSessionPolicy.MAX_TABS} tabs.",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    private fun selectLogicalTab(tabId: String) {
+        captureActiveTabFromCurrentPage()
+        val result = BrowserTabSessionPolicy.select(tabSession, tabId)
+        if (result is BrowserTabMutation.Updated) {
+            tabSession = result.state
+            persistTabSession()
+            navigateToLogicalTab(tabSession.activeTab)
+        }
+    }
+
+    private fun closeLogicalTab(tabId: String) {
+        captureActiveTabFromCurrentPage()
+        val result = BrowserTabSessionPolicy.close(tabSession, tabId)
+        if (result is BrowserTabMutation.Updated) {
+            tabSession = result.state
+            persistTabSession()
+            navigateToLogicalTab(tabSession.activeTab)
+        }
+    }
+
+    private fun navigateToLogicalTab(tab: BrowserLogicalTab) {
+        if (tab.url == INTERNAL_HOME || !NavigationResolver.isAllowedWebUrl(tab.url)) {
+            showStartPage()
+        } else {
+            navigateToUrl(tab.url)
+        }
+    }
+
+    private fun captureActiveTabFromCurrentPage() {
+        recordActiveLocation(currentUrl)
+        val title = when {
+            chromeOverrideTitle != null -> chromeOverrideTitle
+            currentUrl == INTERNAL_HOME -> PageTitlePresentation.PRODUCT_TITLE
+            ::webView.isInitialized -> PageTitlePresentation.safe(webView.title, currentUrl)
+            else -> null
+        }
+        recordActiveTitle(title)
+    }
+
+    private fun recordActiveLocation(url: String) {
+        val normalized = when {
+            url == INTERNAL_HOME -> INTERNAL_HOME
+            NavigationResolver.isAllowedWebUrl(url) -> url
+            else -> return
+        }
+        val result = BrowserTabSessionPolicy.updateLocation(
+            tabSession,
+            tabSession.activeTabId,
+            normalized,
+        )
+        if (result is BrowserTabMutation.Updated && result.state != tabSession) {
+            tabSession = result.state
+            persistTabSession()
+        }
+    }
+
+    private fun recordActiveTitle(title: String?) {
+        val result = BrowserTabSessionPolicy.updateTitle(
+            tabSession,
+            tabSession.activeTabId,
+            title,
+        )
+        if (result is BrowserTabMutation.Updated && result.state != tabSession) {
+            tabSession = result.state
+            persistTabSession()
+        }
+    }
+
+    private fun persistTabSession(): Boolean =
+        getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
+            .edit()
+            .putString(PREF_TAB_SESSION, BrowserTabSessionCodec.encode(tabSession))
+            .commit()
+
+    private fun newTabId(): String = "tab-${UUID.randomUUID()}"
 
     private fun showGuidanceSettings() {
         val dialog = Dialog(this)
@@ -1705,6 +1957,7 @@ class BrowserActivityV2 : Activity() {
         private const val START_BASE_URL = "https://start.goreecloud.local/"
         private const val PREFERENCES_NAME = "goreecloud_browser_preferences"
         private const val PREF_PAGE_TEXT_ZOOM = "page_text_zoom_percent"
+        private const val PREF_TAB_SESSION = "logical_tab_session_v1"
         private const val STATE_DESKTOP_SITE = "desktop_site_enabled"
         private const val STATE_PAGE_SCRIPTS = "page_scripts_enabled"
         private const val STATE_PAGE_IMAGES = "page_images_enabled"
