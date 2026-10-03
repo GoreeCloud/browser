@@ -36,7 +36,7 @@ class BrowserTabSessionStoreRuntimeTest {
         val restored = BrowserTabSessionStore(context).read()
         assertEquals(listOf("tab-a", "tab-b"), restored?.tabs?.map { it.id })
         assertEquals("https://example.com/path", restored?.activeTab?.url)
-        assertEquals(" Example ", restored?.activeTab?.title)
+        assertEquals("Example", restored?.activeTab?.title)
     }
 
     @Test
