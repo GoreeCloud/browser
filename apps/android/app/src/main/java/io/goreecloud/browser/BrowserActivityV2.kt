@@ -887,11 +887,17 @@ class BrowserActivityV2 : Activity() {
     }
 
     private fun updateNavigationButtons() {
-        if (::backButton.isInitialized) setEnabled(backButton, webView.canGoBack())
-        if (::forwardButton.isInitialized) setEnabled(forwardButton, webView.canGoForward())
+        val hasActiveWebView = ::webView.isInitialized
+        if (::backButton.isInitialized) {
+            setEnabled(backButton, hasActiveWebView && webView.canGoBack())
+        }
+        if (::forwardButton.isInitialized) {
+            setEnabled(forwardButton, hasActiveWebView && webView.canGoForward())
+        }
         if (::reloadButton.isInitialized) {
             reloadButton.setImageResource(if (loading) R.drawable.ic_stop else R.drawable.ic_reload)
             reloadButton.contentDescription = if (loading) "Stop loading" else "Reload"
+            setEnabled(reloadButton, hasActiveWebView)
         }
     }
 
