@@ -19,6 +19,7 @@
 ### Changed
 
 - Updated mandatory first-use guidance and the contextual Browser tip to explain the visible tab model and the bounded recovery/privacy boundary.
+- Updated Clear browsing data so its existing cache/history/form/SSL cleanup now applies to every currently live regular-tab WebView instead of only the selected tab; global cookies and HTML5 storage remain cleared once.
 - Added New tab and Close current tab actions to the Browser menu without changing WebView permission, Search, download, or external-provider authority.
 
 ### Acceptance boundary
