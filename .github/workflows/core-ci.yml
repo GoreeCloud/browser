@@ -291,19 +291,28 @@ jobs:
               browser_pid=$!
 
               window_id=""
-              for _ in $(seq 1 60); do
+              page_ready=0
+              for _ in $(seq 1 120); do
                 window_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
-                if [ -n "$window_id" ] && grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                if [ -n "$window_id" ] &&
+                   grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=$1" "$2"; then
+                  page_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
                   break
                 fi
                 sleep 0.25
               done
 
               test -n "$window_id"
-              xdotool mousemove --window "$window_id" 640 420
+              test "$page_ready" -eq 1
 
               cursor_ready=0
-              for _ in $(seq 1 40); do
+              for _ in $(seq 1 60); do
+                xdotool mousemove --window "$window_id" 639 420
+                xdotool mousemove --window "$window_id" 640 420
                 if grep -Fq "[GoreeCloud GTK] windowless-cursor-applied type=hand" "$2"; then
                   cursor_ready=1
                   break

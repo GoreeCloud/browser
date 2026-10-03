@@ -5,6 +5,27 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Android visible tabs and bounded regular-session recovery candidate
+
+### Added
+
+- Added a Glaze-native Android tab strip with accessible new/select/close controls and explicit selected-tab semantics.
+- Bound Browser-owned stable logical tab IDs to independent live WebView instances while attaching only the active WebView to the visible content host.
+- Added per-tab callback isolation so background loading/title events update their logical tab without replacing active Browser chrome.
+- Added a versioned device-local regular-session store for bounded tab IDs, Browser-approved HTTP(S)/start URLs, normalized titles, ordering, and active selection.
+- Added Activity recreation support that captures each live WebView state in Android saved-state Bundles while keeping Browser's persistent tab store free of DOM/form contents, credentials, private state, and engine memory dumps.
+- Added Android instrumentation for visible tab creation, one-active-WebView binding, Activity recreation, metadata persistence, corruption rejection, unsafe-location rejection, and title normalization.
+
+### Changed
+
+- Updated mandatory first-use guidance and the contextual Browser tip to explain the visible tab model and the bounded recovery/privacy boundary.
+- Updated Clear browsing data so its existing cache/history/form/SSL cleanup now applies to every currently live regular-tab WebView instead of only the selected tab; global cookies and HTML5 storage remain cleared once.
+- Added New tab and Close current tab actions to the Browser menu without changing WebView permission, Search, download, or external-provider authority.
+
+### Acceptance boundary
+
+This is a Development candidate. It does not establish crash/process-death recovery classification, transactional session journals/checkpoints, WebView memory-pressure discard/recreation, Private/Isolated Private non-durability, profiles/Webspaces, tab grouping/pinning/reordering, Sync/Everkeep integration, representative-device accessibility/performance, production signing, Release Candidate, Production Acceptance, Stable, Seal, or Anchor qualification.
+
 ## 2026-10-02 — Android logical tab-session model foundation
 
 ### Added
