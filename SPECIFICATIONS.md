@@ -22,7 +22,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.17
+- **Version:** v0.18
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -40,7 +40,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 
 This specification intentionally avoids embedding a volatile active-branch SHA or workflow-run snapshot in the metadata block. Exact candidate state must be verified from live GitHub before execution, and documentation-only changes must not inherit implementation validation by implication.
 
-Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciled the then-current PR #110 Linux Wayland rendering line and historical GLAZE UI V1.6 / 1.6.0 naming. Version v0.16 reconciled the current Android +android.12 artifact identity, protected-main authority model, and the post-PR #122 Linux Wayland interaction baseline while removing stale volatile PR/check snapshots from document control. Version v0.17 defines the bounded direct-keyboard continuation on top of the merged PR #123 cursor baseline without treating IME or representative native-Wayland acceptance as complete. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, Seal, or Anchor gates.
+Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciled the then-current PR #110 Linux Wayland rendering line and historical GLAZE UI V1.6 / 1.6.0 naming. Version v0.16 reconciled the current Android +android.12 artifact identity, protected-main authority model, and the post-PR #122 Linux Wayland interaction baseline while removing stale volatile PR/check snapshots from document control. Version v0.17 defined the bounded direct-keyboard continuation integrated through PR #125 without treating IME or representative native-Wayland acceptance as complete. Version v0.18 defines the bounded Android visible-tab and regular-session recovery continuation: stable logical tab IDs bind to independent transient WebViews, only one WebView is visibly attached, and persistent recovery remains a minimal normal-session projection rather than the full Section 18 journal/checkpoint architecture. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, Seal, or Anchor gates.
 
 ## 1. Project Definition
 
@@ -95,6 +95,7 @@ Current verified source behavior includes:
 - website permission and geolocation callbacks denied by default;
 - downloads blocked until the Wardveil release gate is integrated;
 - Browser-owned resumable first-use setup and optional contextual guidance stored only in device-local Browser preferences, with no account, provider, or synchronization authority;
+- Browser-owned visible Android tab strip backed by stable logical tab IDs and independent live WebViews, with exactly one WebView attached to the visible content host; a versioned device-local regular-session projection stores only bounded IDs, approved URLs, normalized titles, order, and active selection while rejecting malformed/unsafe recovery state;
 - current GLAZE UI V1.6 / 1.6.0 source mapping with Browser-local adoption still required.
 
 Current source-level defenses and contracts are Development evidence only. They do not establish rendered/native-device GLAZE acceptance, complete Privacy Shield or Wardveil integration, production signing, Release Candidate status, production approval, or Stable qualification.
@@ -151,7 +152,7 @@ Before Android Browser may be represented as production-approved or Stable, it m
 
 ## 10. Current Development Status and Evidence Boundary
 
-The authoritative Development source is protected `main` in `GoreeCloud/browser`; live GitHub is authoritative for the exact current commit, active candidate state, review threads, repository protection, and workflow results. The merged Linux interaction baseline through PR #123 includes native-X11/XWayland child rendering, software/windowless Wayland page pixels, pointer/wheel/focus forwarding, standard cursor propagation, and Browser-owned windowless context-menu presentation. This specification revision defines the next bounded software/windowless input tranche: direct GTK key presses/releases and printable character events for ordinary non-IME typing, while Browser-owned modifier shortcuts and IME composition remain distinct acceptance work. Integration or acceptance of that tranche must be determined from live GitHub evidence rather than inferred from this document.
+The authoritative Development source is protected `main` in `GoreeCloud/browser`; live GitHub is authoritative for the exact current commit, active candidate state, review threads, repository protection, and workflow results. The merged Linux interaction baseline through PR #125 includes native-X11/XWayland child rendering, software/windowless Wayland page pixels, pointer/wheel/focus forwarding, standard cursor propagation, Browser-owned windowless context-menu presentation, and bounded direct non-IME keyboard input. This specification revision defines the next bounded Android runtime tranche: visible multi-tab chrome, independent live WebView binding, and a minimal fail-closed regular-session recovery projection. Integration or acceptance of that Android tranche must be determined from live GitHub evidence rather than inferred from this document.
 
 The current Android package/version is `io.goreecloud.browser.beta`, versionName `0.1.0-beta.1+android.12`, versionCode `10012`. Linux/CEF-only changes do not promote or revalidate that Android artifact identity.
 
@@ -596,7 +597,7 @@ The implementation principle is: **no engine callback or file-release path may b
 
 ## 18. Tabs, Sessions, Profiles, and Webspaces Runtime Implementation Contract
 
-**Status:** Proposed implementation contract. Section 15 defines the target architecture; this section defines the implementation-facing runtime model and acceptance requirements. It does not claim a complete multi-tab, session-recovery, profile, or Webspaces runtime.
+**Status:** Partial Development implementation. Section 15 defines the target architecture; this section defines the implementation-facing runtime model and acceptance requirements. Android now implements stable logical tab identity, visible tab selection, independent live WebView binding, one exact visible attachment, and a minimal versioned regular-session URL/title/order/selection projection with fail-closed decoding. The full durable journal/checkpoint, crash/process-death classification, resource discard/recreation, profile/privacy-context, Webspaces, Sync/Everkeep, and representative-device model remains incomplete.
 
 ### 18.1 Runtime Ownership
 
