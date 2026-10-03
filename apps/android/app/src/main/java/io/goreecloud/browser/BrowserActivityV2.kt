@@ -26,12 +26,14 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.util.UUID
 
 /**
  * GoreeCloud Browser Android shell.
@@ -48,6 +50,8 @@ import android.widget.Toast
 class BrowserActivityV2 : Activity() {
     private lateinit var glaze: GlazeNativeStyle
     private lateinit var webView: WebView
+    private lateinit var webHost: FrameLayout
+    private lateinit var tabStrip: LinearLayout
     private lateinit var topChrome: LinearLayout
     private lateinit var addressField: EditText
     private lateinit var pageTitle: TextView
@@ -56,6 +60,9 @@ class BrowserActivityV2 : Activity() {
     private lateinit var reloadButton: ImageButton
     private lateinit var progressBar: ProgressBar
     private lateinit var firstUsePreferences: BrowserFirstUsePreferences
+    private lateinit var tabSessionStore: BrowserTabSessionStore
+    private lateinit var tabSessionState: BrowserTabSessionState
+    private val tabWebViews = LinkedHashMap<String, WebView>()
     private var contextualHintRow: LinearLayout? = null
 
     private var currentUrl: String = INTERNAL_HOME
@@ -74,6 +81,7 @@ class BrowserActivityV2 : Activity() {
         glaze = GlazeNativeStyle(this)
         glaze.applyWindow(this)
         firstUsePreferences = BrowserFirstUsePreferences(this)
+        tabSessionStore = BrowserTabSessionStore(this)
         pageTextZoomPercent = PageTextZoom.normalize(
             getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
                 .getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
@@ -82,14 +90,17 @@ class BrowserActivityV2 : Activity() {
         pageScriptsEnabled = savedInstanceState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
         pageImagesEnabled = savedInstanceState?.getBoolean(STATE_PAGE_IMAGES, true) ?: true
         buildBrowserSurface()
-        configureWebView()
+        restoreOrCreateTabSession(savedInstanceState)
 
-        if (savedInstanceState != null && webView.restoreState(savedInstanceState) != null) {
-            currentUrl = webView.url ?: INTERNAL_HOME
-            refreshChrome()
-        } else {
+        if (savedInstanceState == null) {
             val external = intent?.data?.toString().orEmpty()
-            if (NavigationResolver.isAllowedWebUrl(external)) navigate(external) else showStartPage()
+            if (NavigationResolver.isAllowedWebUrl(external)) {
+                navigate(external)
+            } else if (tabSessionState.tabs.size == 1 &&
+                tabSessionState.activeTab.url == INTERNAL_HOME
+            ) {
+                showStartPage()
+            }
         }
 
         renderContextualHint()
@@ -106,7 +117,12 @@ class BrowserActivityV2 : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        webView.saveState(outState)
+        tabWebViews.forEach { (tabId, view) ->
+            val state = Bundle()
+            view.saveState(state)
+            outState.putBundle(STATE_TAB_WEB_PREFIX + tabId, state)
+        }
+        persistTabSession(showFailure = false)
         outState.putBoolean(STATE_DESKTOP_SITE, desktopSiteEnabled)
         outState.putBoolean(STATE_PAGE_SCRIPTS, pageScriptsEnabled)
         outState.putBoolean(STATE_PAGE_IMAGES, pageImagesEnabled)
@@ -127,14 +143,8 @@ class BrowserActivityV2 : Activity() {
     }
 
     override fun onDestroy() {
-        if (::webView.isInitialized) {
-            webView.stopLoading()
-            webView.webChromeClient = null
-            webView.webViewClient = WebViewClient()
-            webView.loadUrl("about:blank")
-            webView.removeAllViews()
-            webView.destroy()
-        }
+        tabWebViews.values.toList().forEach(::destroyTabWebView)
+        tabWebViews.clear()
         super.onDestroy()
     }
 
@@ -177,6 +187,30 @@ class BrowserActivityV2 : Activity() {
             ),
         )
         topChrome.addView(identityRow)
+
+        tabStrip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        glaze.styleTabStrip(tabStrip)
+        val tabScroller = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            isFillViewport = false
+            contentDescription = "Open tabs"
+            addView(
+                tabStrip,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        topChrome.addView(
+            tabScroller,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
 
         val omnibox = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -232,10 +266,9 @@ class BrowserActivityV2 : Activity() {
         root.addView(topChrome)
 
         val content = FrameLayout(this)
-        webView = WebView(this)
-        glaze.styleWebContent(webView)
+        webHost = FrameLayout(this)
         content.addView(
-            webView,
+            webHost,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
