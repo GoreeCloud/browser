@@ -114,6 +114,8 @@ jobs:
           assert "windowless-frame-presented" in host
           assert "NativeSurfaceFrameSink" in surface
           assert "NativeSurfaceInputForwarder" in surface
+          assert "NativeKeyEvent" in surface
+          assert "send_key_event" in surface
           assert "NativeSurfaceCursorSink" in surface
           assert "NativeSurfaceContextMenuSink" in surface
           assert "windowless-cursor-applied" in host
@@ -123,6 +125,7 @@ jobs:
           assert "RunContextMenu" in client
           assert "SendMouseClickEvent" in runtime
           assert "SendMouseWheelEvent" in runtime
+          assert "SendKeyEvent" in runtime
           assert "SetAsWindowless" in runtime
           assert "cef.windowless_rendering = true" in scaffold
           assert "native Wayland embedding is not yet enabled" not in runner
@@ -381,6 +384,76 @@ jobs:
           fi
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during windowless input smoke" >&2
+            exit 1
+          fi
+
+      - name: Exercise CEF windowless direct keyboard input under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless-keyboard.log"
+          : > "${log_file}"
+          test_url='data:text/html,%3Cinput%20autofocus%20style%3D%22position%3Afixed%3Binset%3A0%3Bwidth%3A100%25%3Bheight%3A100%25%3Bfont-size%3A48px%22%20oninput%3D%22if%28this.value%3D%3D%3D%27wayland%27%29location.href%3D%27https%3A%2F%2Fexample.com%2F%23goreecloud-keyboard-ok%27%22%3E'
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
+              browser_pid=$!
+
+              window_id=""
+              for _ in $(seq 1 60); do
+                window_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
+                if [ -n "$window_id" ] && grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test -n "$window_id"
+
+              xdotool mousemove --window "$window_id" 640 420 click 1
+              sleep 0.25
+              xdotool type --clearmodifiers --delay 35 wayland
+
+              keyboard_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] windowless-key-event type=character" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-keyboard-ok" "$2"; then
+                  keyboard_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$keyboard_ready" -eq 1
+
+              kill "$browser_pid" 2>/dev/null || true
+              wait "$browser_pid" 2>/dev/null || true
+              exit 0
+            ' sh "${test_url}" "${log_file}"
+
+          cat "${log_file}"
+
+          grep -Fq "mode=windowless" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-key-event type=raw-key-down" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-key-event type=character" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-key-event type=key-up" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-keyboard-ok" "${log_file}"
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during windowless keyboard smoke" >&2
             exit 1
           fi
 
