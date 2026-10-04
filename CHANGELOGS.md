@@ -5,6 +5,25 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux CEF install-runtime staging
+
+### Added
+
+- Added a prefix-relocatable public Linux launcher and a private `libexec/goreecloud-browser` runtime containing the Browser binary, CEF subprocess, exact pinned CEF binary/resource payload, locales, and runtime branding.
+- Added `$ORIGIN` install RPATHs for the private Browser and subprocess so the colocated `libcef.so` resolves without development-tree library paths.
+- Added a Browser-owned writable Chromium/CEF user-data root separate from the immutable runtime payload. Installed launchers use an explicit override when provided, otherwise `XDG_DATA_HOME/goreecloud/browser/cef` or the standard `$HOME/.local/share` fallback; Development builds retain the existing runtime-tree fallback.
+- Aligned the GTK program identity with `io.goreecloud.Browser` before GTK initialization for Wayland desktop association.
+- Added Core CI source contracts plus a staged `cmake --install` runtime exercise that validates the private payload, models package-owned sandbox-helper permissions, launches through the public wrapper under Xvfb, requires CEF initialization and HTTPS 200, and proves profile data is written outside libexec.
+- Added `docs/LINUX_PACKAGING.md` as the Development packaging/runtime contract.
+
+### Physical Linux evidence
+
+The exact packaging branch was configured against Glaze V1.7 and the pinned CEF runtime on the authorized Zorin/GNOME Wayland owner device, built successfully, passed all 13 CTests, staged the complete install tree, resolved `libcef.so` from the private `$ORIGIN` runtime, and launched `https://example.com/` through the installed wrapper on the active Wayland session. The run completed CEF initialization, received HTTP 200, painted a materially non-uniform 1280×723 windowless frame, and placed persistent Chromium data under the isolated XDG data tree with no `profile-cache` under the private runtime.
+
+### Acceptance boundary
+
+This is Development install/runtime staging, not a production Linux package. Signed/reproducible package generation, production sandbox-helper ownership/mode, upgrade/uninstall preservation, package-manager integration, representative desktop-environment validation, production signing/distribution, Release Candidate, Stable, Seal, and Anchor remain open.
+
 ## 2026-10-04 — Glaze V1.7 consumer mapping and documentation governance
 
 ### Changed
