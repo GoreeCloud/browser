@@ -16,6 +16,7 @@
 #include "goreecloud/browser/cef_client.hpp"
 #include "goreecloud/browser/cef_media_probe_app.hpp"
 #include "include/cef_app.h"
+#include "include/base/cef_callback.h"
 #include "include/cef_browser.h"
 #include "include/cef_drag_data.h"
 #include "include/cef_request_context.h"
