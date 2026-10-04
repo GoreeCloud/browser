@@ -33,7 +33,7 @@ int main() {
   assert(attachable);
   auto* drop_forwarder =
       dynamic_cast<NativeSurfaceDropForwarder*>(view.get());
-  assert(drop_forwarder);
+  if (!drop_forwarder) return 1;
   NativeEngineSurface surface;
   surface.window_handle = 1;
   surface.width = 1280;
