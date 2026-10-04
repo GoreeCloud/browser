@@ -152,8 +152,8 @@ jobs:
           assert "ImeSetComposition" in runtime
           assert "ImeCommitText" in runtime
           assert "ImeCancelComposition" in runtime
-          assert "DragTargetDragEnter" in runtime
-          assert "DragTargetDragOver" in runtime
+          assert "DragTargetDragEnter" in client
+          assert "DragTargetDragOver" in client
           assert "DragTargetDrop" in client
           assert "UpdateDragCursor" in client
           assert "begin_windowless_drop" in runtime
