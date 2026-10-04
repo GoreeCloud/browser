@@ -18,18 +18,25 @@ struct NativeSurfaceFrame {
 
 // Receives engine-owned software frames synchronously. Implementations must copy
 // any pixels they need to retain after present_software_frame returns.
+struct NativePopupRect {
+  int x{0};
+  int y{0};
+  int width{0};
+  int height{0};
+};
+
 class NativeSurfaceFrameSink {
  public:
   virtual ~NativeSurfaceFrameSink() = default;
   virtual void present_software_frame(const NativeSurfaceFrame& frame) = 0;
 
   // Optional transient popup surface for windowless renderers (for example,
-  // engine-owned select/dropdown UI). Coordinates are relative to the view.
+  // engine-owned select/dropdown UI). Popup geometry is expressed in logical
+  // view coordinates while frame dimensions describe the engine pixel buffer.
   // Implementations must copy pixels synchronously and clear retained popup
   // state when clear_software_popup_frame() is called.
   virtual void present_software_popup_frame(const NativeSurfaceFrame& frame,
-                                            int x,
-                                            int y) {}
+                                            NativePopupRect rect) {}
   virtual void clear_software_popup_frame() {}
 };
 
