@@ -89,6 +89,32 @@ class NativeSurfaceInputForwarder {
   virtual void set_surface_focus(bool focused) = 0;
 };
 
+enum NativeDragOperation : std::uint32_t {
+  native_drag_none = 0,
+  native_drag_copy = 1U << 0,
+  native_drag_link = 1U << 1,
+};
+
+struct NativeDragData {
+  std::string text;
+  std::string link_url;
+};
+
+// Optional external drag-target bridge for software/windowless engine surfaces.
+// The Browser contract intentionally carries text and safe web-link data only;
+// local file names, file paths, and file contents are outside this boundary.
+class NativeSurfaceDragTargetForwarder {
+ public:
+  virtual ~NativeSurfaceDragTargetForwarder() = default;
+  virtual bool drag_target_enter(NativeDragData data,
+                                 const NativePointerEvent& event,
+                                 std::uint32_t allowed_operations) = 0;
+  virtual bool drag_target_over(const NativePointerEvent& event,
+                                std::uint32_t allowed_operations) = 0;
+  virtual void drag_target_leave() = 0;
+  virtual bool drag_target_drop(const NativePointerEvent& event) = 0;
+};
+
 // Optional text-composition bridge used by software/windowless engine
 // surfaces. The host owns platform IME integration while the engine adapter
 // owns translation into renderer-specific composition APIs.
