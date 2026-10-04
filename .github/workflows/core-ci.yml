@@ -128,6 +128,8 @@ jobs:
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
+          assert "GtkTabAction::move_left" in host
+          assert "GtkTabAction::move_right" in host
           assert "close_accessible" in host
           assert "set_accessible_name(close, close_accessible.c_str())" in host
           client = Path("include/goreecloud/browser/cef_client.hpp").read_text()
