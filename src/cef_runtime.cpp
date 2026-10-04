@@ -75,13 +75,17 @@ CefMouseEvent cef_mouse_event(const NativePointerEvent& event) {
   return mouse_event;
 }
 
-DragOperationsMask cef_drag_operations(std::uint32_t operations) {
-  auto mask = static_cast<DragOperationsMask>(DRAG_OPERATION_NONE);
+CefRenderHandler::DragOperationsMask cef_drag_operations(
+    std::uint32_t operations) {
+  auto mask = static_cast<CefRenderHandler::DragOperationsMask>(
+      DRAG_OPERATION_NONE);
   if (operations & native_drag_copy) {
-    mask = static_cast<DragOperationsMask>(mask | DRAG_OPERATION_COPY);
+    mask = static_cast<CefRenderHandler::DragOperationsMask>(
+        mask | DRAG_OPERATION_COPY);
   }
   if (operations & native_drag_link) {
-    mask = static_cast<DragOperationsMask>(mask | DRAG_OPERATION_LINK);
+    mask = static_cast<CefRenderHandler::DragOperationsMask>(
+        mask | DRAG_OPERATION_LINK);
   }
   return mask;
 }
