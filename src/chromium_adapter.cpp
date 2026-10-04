@@ -55,6 +55,7 @@ EngineMediaHitTest to_engine_hit_test(const RawMediaHitTest& raw) {
 class ChromiumEngineView final : public EngineView,
                                  public NativeSurfaceAttachable,
                                  public NativeSurfaceInputForwarder,
+                                 public NativeSurfaceDragTargetForwarder,
                                  public NativeSurfaceTextInputForwarder,
                                  public AsyncMediaHitTestProvider,
                                  public AsyncMediaPreviewProvider {
@@ -125,6 +126,28 @@ class ChromiumEngineView final : public EngineView,
 
   bool send_key_event(const NativeKeyEvent& event) override {
     return attached_ && runtime_view_->send_key_event(event);
+  }
+
+  bool drag_target_enter(NativeDragData data,
+                         const NativePointerEvent& event,
+                         std::uint32_t allowed_operations) override {
+    return attached_ &&
+           runtime_view_->drag_target_enter(
+               std::move(data), event, allowed_operations);
+  }
+
+  bool drag_target_over(const NativePointerEvent& event,
+                        std::uint32_t allowed_operations) override {
+    return attached_ &&
+           runtime_view_->drag_target_over(event, allowed_operations);
+  }
+
+  void drag_target_leave() override {
+    if (attached_) runtime_view_->drag_target_leave();
+  }
+
+  bool drag_target_drop(const NativePointerEvent& event) override {
+    return attached_ && runtime_view_->drag_target_drop(event);
   }
 
   bool set_text_composition(std::u16string text,
