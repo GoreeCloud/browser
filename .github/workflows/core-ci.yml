@@ -131,7 +131,9 @@ jobs:
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
           assert "windowless-drop-result" in host
-          assert "text/uri-list" in host
+          assert "gtk_drag_dest_add_text_targets" in host
+          assert "gtk_drag_dest_add_uri_targets" in host
+          assert "safe_web_drop_url" in host
           assert "file://" not in host
           client = Path("include/goreecloud/browser/cef_client.hpp").read_text()
           assert "apply_custom_cursor" in client
