@@ -773,6 +773,23 @@ jobs:
             (void)data;
             gtk_selection_data_set_text(selection, "goreecloud-drag-text", -1);
           }
+          static void on_drag_begin(GtkWidget* widget,
+                                    GdkDragContext* context,
+                                    gpointer data) {
+            (void)widget;
+            (void)context;
+            (void)data;
+            g_printerr("goreecloud-drag-source-begin\n");
+          }
+
+          static void on_drag_end(GtkWidget* widget,
+                                  GdkDragContext* context,
+                                  gpointer data) {
+            (void)widget;
+            (void)context;
+            (void)data;
+            g_printerr("goreecloud-drag-source-end\n");
+          }
 
           int main(int argc, char** argv) {
             gtk_init(&argc, &argv);
@@ -790,6 +807,10 @@ jobs:
                                 GDK_ACTION_COPY);
             g_signal_connect(label, "drag-data-get",
                              G_CALLBACK(on_drag_data_get), NULL);
+            g_signal_connect(label, "drag-begin",
+                             G_CALLBACK(on_drag_begin), NULL);
+            g_signal_connect(label, "drag-end",
+                             G_CALLBACK(on_drag_end), NULL);
             g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
             gtk_widget_show_all(window);
             gtk_main();
@@ -867,7 +888,18 @@ jobs:
 
               xdotool mousemove --window "$helper_window" 150 100
               xdotool mousedown 1
-              sleep 0.35
+              sleep 0.15
+              xdotool mousemove_relative --sync 20 0
+              sleep 0.25
+              source_drag_ready=0
+              for _ in $(seq 1 40); do
+                if grep -Fq "goreecloud-drag-source-begin" "$4"; then
+                  source_drag_ready=1
+                  break
+                fi
+                sleep 0.1
+              done
+              test "$source_drag_ready" -eq 1
               xdotool mousemove --sync --window "$browser_window" 410 360
               sleep 0.75
               xdotool mouseup 1
@@ -896,6 +928,7 @@ jobs:
           cat "${log_file}"
           cat "${helper_log}"
 
+          grep -Fq "goreecloud-drag-source-begin" "${helper_log}"
           grep -Fq "mode=windowless" "${log_file}"
           grep -Fq "[GoreeCloud CEF] windowless-drag-enter" "${log_file}"
           grep -Fq "[GoreeCloud GTK] windowless-drag-drop accepted kind=text" "${log_file}"
