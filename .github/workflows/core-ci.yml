@@ -468,6 +468,14 @@ jobs:
             <option>GoreeCloud Four</option>
             <option>GoreeCloud Five</option>
           </select>
+          <script>
+          const picker = document.getElementById("picker");
+          picker.addEventListener("change", () => {
+            if (picker.value === "GoreeCloud Two") {
+              location.href = "https://example.com/#goreecloud-popup-select-ok";
+            }
+          });
+          </script>
           """
           print("data:text/html," + urllib.parse.quote(html, safe=""))
           PY
@@ -508,16 +516,21 @@ jobs:
               done
               test "$popup_ready" -eq 1
 
-              xdotool key --clearmodifiers Escape
-              popup_hidden=0
-              for _ in $(seq 1 40); do
-                if grep -Fq "[GoreeCloud CEF] windowless-popup-hidden" "$2"; then
-                  popup_hidden=1
+              xdotool key --clearmodifiers Down
+              xdotool key --clearmodifiers Return
+              popup_selection_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] windowless-popup-hidden" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-popup-select-ok" "$2"; then
+                  popup_selection_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
                   break
                 fi
                 sleep 0.25
               done
-              test "$popup_hidden" -eq 1
+              test "$popup_selection_ready" -eq 1
 
               kill "$browser_pid" 2>/dev/null || true
               wait "$browser_pid" 2>/dev/null || true
@@ -532,6 +545,7 @@ jobs:
           grep -Fq "[GoreeCloud CEF] windowless-popup-frame" "${log_file}"
           grep -Fq "[GoreeCloud GTK] windowless-popup-frame-presented" "${log_file}"
           grep -Fq "[GoreeCloud CEF] windowless-popup-hidden" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-popup-select-ok" "${log_file}"
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during popup smoke" >&2
             exit 1
