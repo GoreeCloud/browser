@@ -826,30 +826,38 @@ jobs:
             gtk_window_set_default_size(GTK_WINDOW(window), 240, 140);
             gtk_window_move(GTK_WINDOW(window), 20, 180);
 
+            // Use a windowed event box as the drag source. GtkLabel is a
+            // no-window widget, which makes synthetic pointer-driven drag
+            // threshold exercise unreliable under Xvfb/XTEST.
+            GtkWidget* source = gtk_event_box_new();
             GtkWidget* label = gtk_label_new(
                 strcmp(mode, "file") == 0 ? "Blocked file URI" : "Allowed text");
-            gtk_container_add(GTK_CONTAINER(window), label);
+            gtk_widget_set_hexpand(source, TRUE);
+            gtk_widget_set_vexpand(source, TRUE);
+            gtk_container_add(GTK_CONTAINER(source), label);
+            gtk_container_add(GTK_CONTAINER(window), source);
 
-            gtk_drag_source_set(label, GDK_BUTTON1_MASK, NULL, 0, GDK_ACTION_COPY);
+            gtk_drag_source_set(source, GDK_BUTTON1_MASK, NULL, 0, GDK_ACTION_COPY);
             GtkTargetList* targets = gtk_target_list_new(NULL, 0);
             if (strcmp(mode, "file") == 0) {
               gtk_target_list_add_uri_targets(targets, 0);
             } else {
               gtk_target_list_add_text_targets(targets, 0);
             }
-            gtk_drag_source_set_target_list(label, targets);
+            gtk_drag_source_set_target_list(source, targets);
             gtk_target_list_unref(targets);
 
-            g_signal_connect(label, "drag-begin",
+            g_signal_connect(source, "drag-begin",
                              G_CALLBACK(on_drag_begin), NULL);
-            g_signal_connect(label, "drag-data-get",
+            g_signal_connect(source, "drag-data-get",
                              G_CALLBACK(on_drag_data_get), NULL);
-            g_signal_connect(label, "drag-end",
+            g_signal_connect(source, "drag-end",
                              G_CALLBACK(on_drag_end), NULL);
             g_signal_connect(window, "destroy",
                              G_CALLBACK(gtk_main_quit), NULL);
 
             gtk_widget_show_all(window);
+            g_printerr("source-ready mode=%s\n", mode);
             gtk_main();
             return 0;
           }
