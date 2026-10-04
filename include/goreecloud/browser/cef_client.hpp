@@ -333,11 +333,16 @@ class GoreeCloudCefClient final : public CefClient,
 
     if (type == PET_POPUP && popup_visible && popup_rect.width > 0 &&
         popup_rect.height > 0) {
-      sink->present_software_popup_frame(frame, popup_rect.x, popup_rect.y);
+      sink->present_software_popup_frame(
+          frame, NativePopupRect{.x = popup_rect.x,
+                                 .y = popup_rect.y,
+                                 .width = popup_rect.width,
+                                 .height = popup_rect.height});
       if (runtime_diagnostics_enabled()) {
-        std::cerr << "[GoreeCloud CEF] windowless-popup-frame size="
-                  << width << "x" << height << " x=" << popup_rect.x
-                  << " y=" << popup_rect.y << std::endl;
+        std::cerr << "[GoreeCloud CEF] windowless-popup-frame pixels="
+                  << width << "x" << height << " rect=" << popup_rect.x
+                  << "," << popup_rect.y << " " << popup_rect.width << "x"
+                  << popup_rect.height << std::endl;
       }
     }
   }
