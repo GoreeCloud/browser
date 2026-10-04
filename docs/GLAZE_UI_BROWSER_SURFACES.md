@@ -1,6 +1,6 @@
 # GoreeCloud Browser — Glaze UI Surface Model
 
-This document maps current Official Stable GLAZE UI V1.6 / 1.6.0 into Browser-owned product surfaces. It is an implementation specification, not a claim that every surface has completed acceptance.
+This document maps current bounded Stable/Anchor Glaze V1.7 / 1.7.0 into Browser-owned product surfaces. V1.7.0 intentionally inherits the accepted V1.6.0 runtime behavior; retained V1.7 dev.47 and V1.7.1 Development behavior are excluded. This is an implementation specification, not a claim that every surface has completed acceptance.
 
 ## Browser chrome
 
@@ -68,12 +68,12 @@ Safe areas, system bars, window controls, virtual keyboards, display cutouts, fo
 
 ## Production acceptance
 
-Mapping Browser source to GLAZE UI V1.6 / 1.6.0 is not production acceptance. Representative Browser task flows must demonstrate current-Stable behavior across supported platforms, layout/input/accessibility modes, and relevant form-factor constraints before Browser can use that evidence for release qualification.
+Mapping Browser source to bounded Stable Glaze V1.7 / 1.7.0 is not production acceptance. Representative Browser task flows must demonstrate current-Stable behavior across supported platforms, layout/input/accessibility modes, and relevant form-factor constraints before Browser can use that evidence for release qualification.
 
 
 ## Linux desktop Development tranche
 
-The Linux GTK/X11 Development mapping uses the V1.6 material hierarchy to reorganize Browser chrome around a compact active-tab surface, a primary navigation capsule, bounded toolbar controls, a secondary Browser-tools popover, branded first-party internal surfaces, visible keyboard focus, and explicit Development-state presentation.
+The Linux GTK Development mapping retains the accepted V1.6 runtime material hierarchy under the bounded V1.7 consumer identity, organizing Browser chrome around a compact active-tab surface, a primary navigation capsule, bounded toolbar controls, a secondary Browser-tools popover, branded first-party internal surfaces, visible keyboard focus, and explicit Development-state presentation.
 
 The desktop mapping deliberately keeps Privacy Shield, Wardveil Security, Search, Identity, Sync, Vault, Manager, Policy, Observability, Everkeep, and other provider-owned truth fail-closed. Visual treatment does not imply that those runtime integrations are accepted.
 
