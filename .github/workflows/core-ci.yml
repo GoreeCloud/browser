@@ -570,6 +570,115 @@ jobs:
             exit 1
           fi
 
+      - name: Exercise GTK external text drop into CEF windowless page under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          test -x build-cef-render/goreecloud_browser_gtk_drop_source_smoke
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless-drop.log"
+          : > "${log_file}"
+          trap 'status=$?; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud CEF failure log ===" >&2; cat "${log_file}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+          test_url="$(python3 - <<'PY'
+          import urllib.parse
+
+          html = """
+          <div id="drop" style="position:fixed;inset:0;display:grid;place-items:center;
+              font-size:48px;background:#f6f6f6">Drop GoreeCloud text</div>
+          <script>
+          const drop = document.getElementById("drop");
+          drop.addEventListener("dragover", event => event.preventDefault());
+          drop.addEventListener("drop", event => {
+            event.preventDefault();
+            if (event.dataTransfer.getData("text/plain") === "goreecloud-drop") {
+              location.href = "https://example.com/#goreecloud-drop-ok";
+            }
+          });
+          </script>
+          """
+          print("data:text/html," + urllib.parse.quote(html, safe=""))
+          PY
+          )"
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1600x900x24" \
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
+              browser_pid=$!
+              build-cef-render/goreecloud_browser_gtk_drop_source_smoke &
+              source_pid=$!
+              cleanup() {
+                kill "$source_pid" "$browser_pid" 2>/dev/null || true
+                wait "$source_pid" 2>/dev/null || true
+                wait "$browser_pid" 2>/dev/null || true
+              }
+              trap cleanup EXIT
+
+              browser_id=""
+              source_id=""
+              for _ in $(seq 1 80); do
+                browser_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
+                source_id=$(xdotool search --onlyvisible --name "GoreeCloud Drag Source" 2>/dev/null | head -n1 || true)
+                if [ -n "$browser_id" ] && [ -n "$source_id" ] &&
+                   grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test -n "$browser_id"
+              test -n "$source_id"
+
+              xdotool windowmove "$browser_id" 300 0
+              xdotool windowsize "$browser_id" 1280 800
+              xdotool windowmove "$source_id" 20 300
+              xdotool windowsize "$source_id" 240 160
+              sleep 0.25
+
+              xdotool mousemove --window "$source_id" 100 80
+              xdotool mousedown 1
+              xdotool mousemove_relative --sync 20 0
+              sleep 0.30
+              xdotool mousemove --sync 900 500
+              sleep 0.80
+              xdotool mouseup 1
+
+              drop_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud GTK] windowless-drop-result kind=text accepted=yes" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] windowless-drop kind=text" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-drop-ok" "$2"; then
+                  drop_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$drop_ready" -eq 1
+              exit 0
+            ' sh "${test_url}" "${log_file}"
+
+          cat "${log_file}"
+          grep -Fq "mode=windowless" "${log_file}"
+          grep -Fq "[GoreeCloud GTK] windowless-drop-result kind=text accepted=yes" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-drop kind=text" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-drop-ok" "${log_file}"
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during external-drop smoke" >&2
+            exit 1
+          fi
       - name: Exercise CEF windowless direct keyboard and non-conflicting Control input under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
