@@ -5,6 +5,24 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux Wayland bounded external-drop candidate
+
+### Added
+
+- Added an engine-neutral external-drop contract for software/windowless Browser surfaces with payloads limited to copied text or a safe web link.
+- Added GTK native drop-target handling for text and URI-list sources, with copied text bounded to 1 MiB and URI input restricted to exactly one `http` or `https` URL up to 8 KiB.
+- Added CEF OSR translation that constructs Browser-validated drag data and performs DragEnter, DragOver, and Drop only after the host has copied and accepted the payload.
+- Added adapter smoke and Core CI contract assertions for the new drop boundary.
+- Added a real GTK drag-source runtime harness intended to verify file-URI rejection plus accepted external text delivery end to end.
+
+### Security boundary
+
+Local `file://` URIs, filenames, file paths, and file contents are intentionally not represented by the Browser-owned drop contract. This tranche therefore does not create new filesystem read authority through drag-and-drop.
+
+### Acceptance boundary
+
+The product source and exact-head physical-Linux build/CTest path are Development-valid, but end-to-end drag acceptance remains pending until the GTK/Xvfb drag harness passes on the current head. Representative native-Wayland drag/drop behavior, safe web-link drop runtime acceptance, live drag-hover feedback, outgoing page drags, file drops, accessibility, production approval, Stable, Seal, and Anchor remain open.
+
 ## 2026-10-03 — Linux windowless non-conflicting Alt shortcut forwarding
 
 ### Added
