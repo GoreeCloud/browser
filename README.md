@@ -68,13 +68,13 @@ Development builds may use explicitly Development-only capability paths where re
 
 Consumer validation does not create producer authority. Search, Index, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, Bookmarks, and other first-party systems and services retain independent contracts and lifecycle evidence.
 
-## Glaze UI requirement
+## Glaze requirement
 
-The current Official consumer target published by `GoreeCloud/glaze` is **GLAZE UI V1.6 / `1.6.0`**. The canonical shared lifecycle is **Anchor**; retained Stable naming is compatibility/release-channel vocabulary.
+The current Official consumer target published by `GoreeCloud/glaze` is **Glaze V1.7 / `1.7.0`**. The canonical shared lifecycle is **Anchor**; retained Stable naming is compatibility/release-channel vocabulary.
 
-Browser source maps the current V1.6 presentation contract and exact release/qualification anchors while retaining V1.5.1 only as the immediate known-good rollback baseline. Glaze UI remains presentation-only: it cannot infer authorization, consent, provider precedence, security/privacy truth, or automatic consequential execution.
+Glaze V1.7.0 is a bounded stabilization release whose public runtime inherits the already accepted V1.6.0 behavior. Browser source now pins the V1.7 release identity and qualification authority while retaining V1.6.0 as the immediate known-good rollback runtime. The mapping does not import the unverified V1.7 Development/Section 48 work that moved to V1.7.1.
 
-Browser remains **Glaze adoption-required / not accepted** until fresh Browser-local exact-revision rendered/native, accessibility, representative-device/form-factor/posture, performance, localization/RTL, rollback, workflow, and production acceptance evidence exists. Shared Glaze V1.6 Anchor qualification does not certify Browser.
+Browser remains **Glaze adoption-required / not accepted** until fresh Browser-local exact-revision rendered/native, accessibility, representative-device/form-factor/posture, performance, localization/RTL, rollback, workflow, and production acceptance evidence exists. Shared Glaze V1.7 Anchor qualification does not certify Browser.
 
 See [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md).
 
