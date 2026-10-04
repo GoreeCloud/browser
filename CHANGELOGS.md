@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Linux windowless non-conflicting Alt shortcut forwarding
+
+### Added
+
+- Forwarded Alt-modified key press/release events from the GTK software/windowless surface to page content when the combination is not owned by Browser chrome.
+- Preserved Browser-owned Alt+Left, Alt+Right, and Alt+Home navigation ahead of page forwarding.
+- Reused the existing command-modified key policy so Alt shortcuts do not synthesize printable character events.
+- Strengthened the pinned-CEF keyboard regression so page JavaScript must observe both Ctrl+E and Alt+E before ordinary typed text can satisfy the success condition.
+
+### Acceptance boundary
+
+This establishes a Development candidate for non-conflicting Alt page-shortcut forwarding in the pinned CEF/Xvfb environment. Super/Meta forwarding and representative native-Wayland shortcut acceptance remain open, along with production approval, Stable, Seal, and Anchor qualification.
+
 ## 2026-10-03 — Linux CEF runtime failure-log preservation
 
 ### Changed

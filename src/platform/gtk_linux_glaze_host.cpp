@@ -429,11 +429,18 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     const bool shift = (event.state & GDK_SHIFT_MASK) != 0;
     const bool alt = (event.state & GDK_MOD1_MASK) != 0;
 
-    // Keep system-style modifiers reserved until their Browser/page ownership
-    // contract is explicit. This tranche forwards only non-conflicting Control
-    // combinations after preserving the shortcuts owned by Browser chrome.
-    if (alt || (event.state & (GDK_SUPER_MASK | GDK_META_MASK))) return true;
+    // Preserve Browser-owned shortcuts while forwarding non-conflicting page
+    // commands. Super/Meta stay reserved until the engine-neutral modifier
+    // contract represents them explicitly.
+    if (event.state & (GDK_SUPER_MASK | GDK_META_MASK)) return true;
     if (event.keyval == GDK_KEY_F5 || event.keyval == GDK_KEY_F6) return true;
+
+    if (alt && (event.keyval == GDK_KEY_Left ||
+                event.keyval == GDK_KEY_Right ||
+                event.keyval == GDK_KEY_Home)) {
+      return true;
+    }
+
     if (!control) return false;
 
     if (event.keyval == GDK_KEY_l || event.keyval == GDK_KEY_k ||

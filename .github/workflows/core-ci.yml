@@ -588,15 +588,22 @@ jobs:
           <script>
           const editor = document.getElementById("editor");
           let controlShortcutSeen = false;
+          let altShortcutSeen = false;
           editor.addEventListener("keydown", event => {
             if (event.ctrlKey && !event.altKey && !event.metaKey &&
                 event.key.toLowerCase() === "e") {
               controlShortcutSeen = true;
               event.preventDefault();
             }
+            if (event.altKey && !event.ctrlKey && !event.metaKey &&
+                event.key.toLowerCase() === "e") {
+              altShortcutSeen = true;
+              event.preventDefault();
+            }
           });
           editor.addEventListener("input", () => {
-            if (controlShortcutSeen && editor.value === "wayland") {
+            if (controlShortcutSeen && altShortcutSeen &&
+                editor.value === "wayland") {
               location.href = "https://example.com/#goreecloud-keyboard-ok";
             }
           });
@@ -627,6 +634,8 @@ jobs:
               xdotool mousemove --window "$window_id" 640 420 click 1
               sleep 0.25
               xdotool key --clearmodifiers ctrl+e
+              sleep 0.25
+              xdotool key --clearmodifiers alt+e
               sleep 0.25
               xdotool type --clearmodifiers --delay 35 wayland
 
