@@ -21,6 +21,7 @@
 #if GOREECLOUD_ENABLE_CEF
 #include "include/cef_client.h"
 #include "include/cef_context_menu_handler.h"
+#include "include/cef_drag_data.h"
 #include "include/cef_process_message.h"
 #include "include/cef_render_handler.h"
 #include "include/wrapper/cef_helpers.h"
@@ -87,6 +88,39 @@ class GoreeCloudCefClient final : public CefClient,
     if (sink) sink->clear_software_popup_frame();
   }
 
+  bool begin_windowless_drop(
+      CefRefPtr<CefDragData> drag_data,
+      const CefMouseEvent& event,
+      CefBrowserHost::DragOperationsMask allowed_ops) {
+    CEF_REQUIRE_UI_THREAD();
+    if (!browser_ || !drag_data || allowed_ops == DRAG_OPERATION_NONE) {
+      return false;
+    }
+
+    auto host = browser_->GetHost();
+    if (!host) return false;
+
+    if (pending_drop_active_) {
+      host->DragTargetDragLeave();
+      pending_drop_active_ = false;
+      pending_drop_allowed_ops_ = DRAG_OPERATION_NONE;
+    }
+
+    pending_drop_event_ = event;
+    pending_drop_allowed_ops_ = allowed_ops;
+    pending_drop_active_ = true;
+
+    host->DragTargetDragEnter(drag_data, event, allowed_ops);
+    host->DragTargetDragOver(event, allowed_ops);
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drop-awaiting-acceptance"
+                << " x=" << event.x << " y=" << event.y
+                << " allowed=" << static_cast<int>(allowed_ops) << std::endl;
+    }
+    return true;
+  }
+
   void GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect) override {
     CEF_REQUIRE_UI_THREAD();
     std::scoped_lock lock(render_mutex_);
@@ -102,6 +136,58 @@ class GoreeCloudCefClient final : public CefClient,
         CefRect(0, 0, std::max(1, view_width_), std::max(1, view_height_));
     screen_info.available_rect = screen_info.rect;
     return true;
+  }
+
+  void UpdateDragCursor(CefRefPtr<CefBrowser> browser,
+                        DragOperation operation) override {
+    CEF_REQUIRE_UI_THREAD();
+    if (!pending_drop_active_ || !browser_ || !browser ||
+        !browser_->IsSame(browser)) {
+      return;
+    }
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drop-cursor operation="
+                << static_cast<int>(operation) << std::endl;
+    }
+
+    if (operation == DRAG_OPERATION_NONE) {
+      return;
+    }
+
+    const auto allowed = static_cast<int>(pending_drop_allowed_ops_);
+    const auto accepted = static_cast<int>(operation);
+    auto host = browser_->GetHost();
+    if (!host) {
+      pending_drop_active_ = false;
+      pending_drop_allowed_ops_ = DRAG_OPERATION_NONE;
+      return;
+    }
+
+    if ((allowed & accepted) == 0) {
+      host->DragTargetDragLeave();
+      pending_drop_active_ = false;
+      pending_drop_allowed_ops_ = DRAG_OPERATION_NONE;
+      if (runtime_diagnostics_enabled()) {
+        std::cerr << "[GoreeCloud CEF] windowless-drop-rejected operation="
+                  << accepted << std::endl;
+      }
+      return;
+    }
+
+    const CefMouseEvent event = pending_drop_event_;
+    pending_drop_active_ = false;
+    pending_drop_allowed_ops_ = DRAG_OPERATION_NONE;
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drop-accepted operation="
+                << accepted << std::endl;
+    }
+    host->DragTargetDrop(event);
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drop-complete"
+                << " x=" << event.x << " y=" << event.y << std::endl;
+    }
   }
 
   bool OnCursorChange(CefRefPtr<CefBrowser>,
@@ -854,6 +940,10 @@ class GoreeCloudCefClient final : public CefClient,
   NativeSurfaceContextMenuSink* context_menu_sink_{nullptr};
   CefRect popup_rect_;
   bool popup_visible_{false};
+  CefMouseEvent pending_drop_event_;
+  CefBrowserHost::DragOperationsMask pending_drop_allowed_ops_{
+      DRAG_OPERATION_NONE};
+  bool pending_drop_active_{false};
   int view_width_{1};
   int view_height_{1};
   float scale_factor_{1.0F};
