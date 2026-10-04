@@ -1649,7 +1649,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     gtk_box_pack_start(GTK_BOX(tab_strip), spacer, TRUE, TRUE, 0);
 
     stage_badge = gtk_label_new(
-        private_window ? "Private • Development" : "Development • Glaze 1.6");
+        private_window ? "Private • Development" : "Development • Glaze 1.7");
     add_style_class(stage_badge, "gc-stage-badge");
     gtk_box_pack_end(GTK_BOX(tab_strip), stage_badge, FALSE, FALSE, 0);
   }

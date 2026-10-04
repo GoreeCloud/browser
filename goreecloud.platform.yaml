@@ -51,12 +51,12 @@ platform_systems:
     notes: Browser has source-level normal-session recovery/checkpoint boundaries and excludes Private and Isolated Private state before persistence, but accepted Everkeep backup, durable protected recovery storage, restore execution, migration, rollback, and production continuity acceptance remain incomplete.
   glaze_ui:
     result: applicable-blocked
-    version: '1.6.0'
+    version: '1.7.0'
     evidence:
       - README.md
       - SPECIFICATIONS.md
       - docs/GLAZE_UI_ADOPTION.md
-    notes: Browser source maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source a7180679ea851389e0f3004515f9a25f420e716d and carries a repository-local Linux desktop presentation tranche. Glaze remains applicable-blocked because rendered/native visual, accessibility, large-text, Reduced Transparency/Contrast/Motion, localization/RTL, adaptive/form-factor, representative-device, performance, rollback, Human Visual Excellence, renderer-integrated, release, and production acceptance remain incomplete.
+    notes: Browser source maps to the current Glaze V1.7 / 1.7.0 bounded Anchor release identity at 1a5756daed2294155be2e9972b24f580f6222b7b while inheriting the accepted V1.6.0 runtime behavior at a7180679ea851389e0f3004515f9a25f420e716d. Glaze remains applicable-blocked because fresh Browser-local rendered/native visual, accessibility, large-text, Reduced Transparency/Contrast/Motion, localization/RTL, adaptive/form-factor, representative-device, performance, rollback, Human Visual Excellence, renderer-integrated, release, and production acceptance remain incomplete.
   mesh:
     result: applicable-blocked
     version: null
@@ -133,10 +133,10 @@ external_dependencies:
 
 compatibility:
   platform_contract: '0.4'
-  glaze_ui_required: '1.6.0'
+  glaze_ui_required: '1.7.0'
   requires:
     - goreecloud-platform-contract==0.4
-    - glaze-ui==1.6.0
+    - glaze-ui==1.7.0
   provides:
     - browser-engine-layer
     - browser-native-shell-beta
@@ -160,7 +160,7 @@ conformance:
     - Producer-authoritative Privacy Shield runtime integration, authenticated Search requester transport, and complete Browser privacy acceptance are incomplete.
     - Authenticated Wardveil Security runtime download verification, scanner health, quarantine evidence, and production security acceptance are incomplete.
     - Everkeep protected durable backup, clean-environment restore, migration, rollback, and production continuity acceptance are incomplete.
-    - Browser source maps to current Official Stable GLAZE UI V1.6 / 1.6.0, but Browser-local rendered/native, accessibility, large-text, Reduced Transparency/Contrast/Motion, localization/RTL, adaptive/form-factor, representative-device, performance, rollback, Human Visual Excellence, renderer-integrated, release, and production acceptance remain incomplete.
+    - Browser source maps to current Glaze V1.7 / 1.7.0 bounded Anchor identity with inherited V1.6.0 runtime behavior, but fresh Browser-local rendered/native, accessibility, large-text, Reduced Transparency/Contrast/Motion, localization/RTL, adaptive/form-factor, representative-device, performance, rollback, Human Visual Excellence, renderer-integrated, release, and production acceptance remain incomplete.
     - GoreeCloud Mesh registration, discovery, transport, dependency/event integration, and runtime acceptance are incomplete.
     - GoreeCloud Identity profile, session, authorization, synchronization identity, device authorization, requester/service identity, direct-service authentication, and runtime acceptance are incomplete.
     - GoreeCloud Policy decision, enforcement-coordination, explanation, freshness, and policy-evidence runtime acceptance are incomplete.

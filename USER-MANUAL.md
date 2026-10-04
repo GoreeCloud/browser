@@ -138,9 +138,9 @@ Browser preferences such as Page text size and Android app permissions are prese
 
 When the omnibox is being edited, Android Back first leaves omnibox editing and dismisses the software keyboard. Otherwise, Browser Back navigates web history when history is available; if not, Android handles leaving the activity.
 
-## Glaze UI on Android
+## Glaze on Android
 
-The Android beta maps Browser-owned chrome to the current **Glaze UI V1.6 / 1.6.0 Anchor** presentation contract using native Android controls. Browser acceptance still depends on Browser-specific implementation and evidence; the Glaze Anchor baseline does not by itself promote Browser lifecycle status.
+The Android beta maps Browser-owned chrome to the current **Glaze V1.7 / 1.7.0 Anchor** contract using native Android controls. V1.7.0 is a bounded release that inherits the accepted V1.6.0 runtime behavior. Browser acceptance still depends on Browser-specific implementation and evidence; the shared Glaze Anchor does not by itself promote Browser lifecycle status.
 
 Browser remains migration-required/not accepted until repository-local rendered/native visual, accessibility, representative-device/posture, large-text, RTL/localization, reduced-effects, performance, rollback, workflow, and production evidence is accepted. Glaze presentation never creates Browser authorization, privacy/security truth, provider precedence, or execution authority.
 
@@ -193,7 +193,7 @@ The Android beta does not yet claim:
 
 - production signing or managed beta signing continuity;
 - production or Stable readiness;
-- complete Glaze UI V1.6 native-device acceptance;
+- complete Glaze V1.7 native-device acceptance;
 - complete Wardveil Security runtime acceptance;
 - complete Privacy Shield runtime acceptance;
 - Everkeep backup/recovery acceptance;

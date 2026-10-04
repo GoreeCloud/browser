@@ -89,15 +89,15 @@ inline constexpr std::array kGlazeAcceptanceRequirements{
 
 inline constexpr bool kGlazeAcceptanceRequiredForProduction = true;
 
-static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.6.0"});
+static_assert(kCurrentGlazeUiStableVersion == std::string_view{"1.7.0"});
 static_assert(kCurrentGlazeUiStableRevision ==
-              std::string_view{"a7180679ea851389e0f3004515f9a25f420e716d"});
+              std::string_view{"1a5756daed2294155be2e9972b24f580f6222b7b"});
 static_assert(kCurrentGlazeUiQualificationSourceAnchor ==
-              std::string_view{"c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"});
+              std::string_view{"7c4ded83d7a8725165bb6a55dfb175667cc9589e"});
 static_assert(kCurrentGlazeUiQualificationIntegrationRevision ==
-              std::string_view{"354f5759385c28596fcfec26a3ad525e89fb1c35"});
+              std::string_view{"1a5756daed2294155be2e9972b24f580f6222b7b"});
 static_assert(kGlazeUiOpticalBaselineVersion == std::string_view{"1.4.1"});
-static_assert(kGlazeUiImmediateRollbackVersion == std::string_view{"1.5.1"});
+static_assert(kGlazeUiImmediateRollbackVersion == std::string_view{"1.6.0"});
 static_assert(kGlazeAcceptanceRequiredForProduction);
 
 }  // namespace goreecloud::browser
