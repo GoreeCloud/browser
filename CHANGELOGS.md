@@ -1,5 +1,15 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-04 — Representative Linux CEF runtime evidence
+
+- Built exact Browser source `16d02d80292fea225308b07ff69d947286dbb193` / tree `59a60318a3dd30c6f3d07d39d22f0d062b5fa4a4` on the owner's Zorin OS 17.3 x86_64 laptop using pinned CEF `152.0.6+g708dc14+chromium-152.0.7977.83`.
+- Recorded exact Browser artifact SHA-256 `29016e07b63ad4e02f847e725f7f6d53f9377729c2e30970bfb78994707b0ab0`, subprocess SHA-256 `36cd547c0c69361f3238e053dd9ad36d090e0231058141587129057c85c11af7`, and `libcef.so` SHA-256 `9575a379b967d8efb42e763aaecebbb39665b3c233016b3f8a5efc47ae89ca2f`.
+- The exact render-capable build completed and passed all 13 repository CTest smoke tests.
+- On the representative GNOME/Zorin Wayland session, normal and isolated-private startup paths initialized the exact CEF runtime, presented nonuniform Browser-owned 1280×880 frames, and completed `https://example.com/` with HTTP 200.
+- Preserved observed sandbox-helper, VAAPI, and NSS diagnostics rather than converting the successful page load into broad security/privacy acceptance.
+- A deterministic cookie probe did not demonstrate durable normal-cookie persistence across the externally timed lifecycle; because the process was timeout-terminated rather than gracefully shut down, this is retained as an unresolved lifecycle/isolation gap rather than a defect claim.
+- Added an explicit Privacy Shield FR-013 dimension gap map. Browser remains Development and not production approved.
+
 **Record type:** Repository change history  
 **Repository:** `GoreeCloud/browser`  
 **Lifecycle:** Development / non-Stable  

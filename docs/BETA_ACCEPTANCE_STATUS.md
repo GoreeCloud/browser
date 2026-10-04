@@ -26,13 +26,14 @@ This record separates completed source/native-shell, CI renderer-start, and engi
 - Exact-head Ubuntu 22.04 Core CI compiles the pinned CEF/Chromium + GTK/X11 candidate, verifies the runtime payload, launches it under Xvfb + D-Bus with the Chromium sandbox preserved, verifies that a Chromium renderer subprocess starts, and requires the main frame to complete `https://example.com/` with HTTP 200.
 - The runtime smoke keeps the initial Browser URL out of inherited CEF subprocess positional arguments and exercises the current browser/renderer process-role integration.
 - The Flatpak manifest remains a Development packaging scaffold and does not yet constitute accepted CEF runtime packaging.
+- Representative Zorin OS 17.3 / Wayland machine evidence now exists for exact source `16d02d80292fea225308b07ff69d947286dbb193`: the pinned CEF build passed 13/13 repository CTest smoke tests, exact artifact SHA-256 is `29016e07b63ad4e02f847e725f7f6d53f9377729c2e30970bfb78994707b0ab0`, and both normal and isolated-private startup paths produced Browser-owned nonuniform 1280×880 frames and completed `https://example.com/` with HTTP 200. This is machine-observed Development evidence, not human visual or privacy acceptance.
 
 ## Not yet accepted as a render-capable desktop beta
 
 The following still require direct representative runtime evidence:
 
-- Visible CEF/Chromium web-content pixels inside the GoreeCloud GTK shell on representative desktop hardware.
-- Visible HTTPS page pixels and ordinary web interaction inside the GoreeCloud GTK child surface on the owner-device test path. Engine-level `https://example.com/` load completion is already CI-verified.
+- Human visual confirmation of the machine-observed CEF/Chromium page pixels inside the GoreeCloud GTK shell on representative desktop hardware, including visual correctness rather than frame-delivery alone.
+- Representative ordinary web interaction against the exact owner-device CEF artifact beyond the now-verified machine-observed HTTPS page frame/load.
 - Real Back, Forward, Refresh/Stop, loading/title/address updates, and renderer navigation callbacks against actual pages.
 - Multi-tab engine-view lifetime and Browser tab behavior against the real renderer, including ordering/reordering and lifecycle stress.
 - TLS/certificate/security-state presentation and fail-closed error behavior.
