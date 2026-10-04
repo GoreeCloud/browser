@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux Wayland popup geometry correctness candidate
+
+### Changed
+
+- Separated logical popup view geometry from CEF popup pixel-buffer dimensions so GTK no longer relies on a one-to-one logical-to-pixel assumption.
+- Moved popup compositing out of the main software-frame pixel transform and into logical GTK widget coordinates, scaling the popup pixel buffer to its engine-reported logical rectangle.
+- Added view-bound popup placement clamping without mutating CEF's original logical origin.
+- Added pointer motion, enter, leave, button, and wheel remapping back into CEF's original popup coordinate space only while a displayed popup is shifted.
+- Added Core CI source-contract assertions for the geometry/remapping boundary while preserving the already-integrated popup-selection runtime regression.
+
+### Acceptance boundary
+
+Development correctness candidate only. Representative native-Wayland behavior across physical displays, scale factors, popup types, input methods, accessibility services, sustained performance, production approval, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-03 — Linux windowless non-conflicting Alt shortcut forwarding
 
 ### Added
