@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux Wayland IME candidate-position geometry
+
+### Added
+
+- Added an engine-neutral text-input geometry sink for software/windowless Browser surfaces.
+- Mapped CEF `OnImeCompositionRangeChanged` selection-end caret position and view-coordinate character bounds into a bounded logical cursor rectangle.
+- Routed that rectangle into GTK `gtk_im_context_set_cursor_location` so native IME candidate UI has Browser content geometry without exposing CEF types to GTK.
+- Added Core CI source-contract assertions for the CEF callback, Browser-owned geometry contract, GTK cursor-location call, and diagnostics.
+
+### Acceptance boundary
+
+This is Development source/compile coverage only. Representative IBus, Fcitx, XIM, compositor-specific candidate-window placement, surrounding-text/delete-surrounding behavior, accessibility, production approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-04 — Glaze V1.7 consumer mapping and documentation governance
 
 ### Changed
