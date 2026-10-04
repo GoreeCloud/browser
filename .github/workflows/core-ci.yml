@@ -117,6 +117,10 @@ jobs:
           assert "present_software_popup_frame" in surface
           assert "clear_software_popup_frame" in surface
           assert "NativeSurfaceInputForwarder" in surface
+          assert "NativeSurfaceDragTargetForwarder" in surface
+          assert "NativeDragData" in surface
+          assert "native_drag_copy" in surface
+          assert "native_drag_link" in surface
           assert "NativeKeyEvent" in surface
           assert "send_key_event" in surface
           assert "NativeSurfaceTextInputForwarder" in surface
@@ -128,6 +132,8 @@ jobs:
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
+          assert "gtk_drag_dest_set" in host
+          assert "windowless-drag-drop" in host
           client = Path("include/goreecloud/browser/cef_client.hpp").read_text()
           assert "apply_custom_cursor" in client
           assert "OnCursorChange" in client
@@ -138,6 +144,9 @@ jobs:
           assert "SendMouseClickEvent" in runtime
           assert "SendMouseWheelEvent" in runtime
           assert "SendKeyEvent" in runtime
+          assert "DragTargetDragEnter" in runtime
+          assert "DragTargetDragOver" in runtime
+          assert "DragTargetDrop" in runtime
           assert "ImeSetComposition" in runtime
           assert "ImeCommitText" in runtime
           assert "ImeCancelComposition" in runtime
@@ -732,6 +741,170 @@ jobs:
             exit 1
           fi
 
+      - name: Exercise CEF windowless external text drop under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+          GOREECLOUD_BROWSER_DISABLE_GTK_IME: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          helper_source="${RUNNER_TEMP}/goreecloud-drag-source.c"
+          helper_binary="${RUNNER_TEMP}/goreecloud-drag-source"
+          cat > "${helper_source}" <<'C'
+          #include <gtk/gtk.h>
+
+          static void on_drag_data_get(GtkWidget* widget,
+                                       GdkDragContext* context,
+                                       GtkSelectionData* selection,
+                                       guint info,
+                                       guint time,
+                                       gpointer data) {
+            (void)widget;
+            (void)context;
+            (void)info;
+            (void)time;
+            (void)data;
+            gtk_selection_data_set_text(selection, "goreecloud-drag-text", -1);
+          }
+
+          int main(int argc, char** argv) {
+            gtk_init(&argc, &argv);
+            GtkWidget* window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+            gtk_window_set_title(GTK_WINDOW(window), "GoreeCloud Drag Source");
+            gtk_window_set_default_size(GTK_WINDOW(window), 300, 200);
+            GtkWidget* label = gtk_label_new("Drag GoreeCloud text");
+            gtk_widget_set_size_request(label, 280, 180);
+            gtk_container_add(GTK_CONTAINER(window), label);
+            GtkTargetEntry targets[] = {
+                {"text/plain;charset=utf-8", 0, 1},
+                {"text/plain", 0, 1},
+            };
+            gtk_drag_source_set(label, GDK_BUTTON1_MASK, targets, 2,
+                                GDK_ACTION_COPY);
+            g_signal_connect(label, "drag-data-get",
+                             G_CALLBACK(on_drag_data_get), NULL);
+            g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+            gtk_widget_show_all(window);
+            gtk_main();
+            return 0;
+          }
+          C
+          cc -Wall -Wextra -Werror "${helper_source}" -o "${helper_binary}" \
+            $(pkg-config --cflags --libs gtk+-3.0)
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless-drag.log"
+          helper_log="${RUNNER_TEMP}/goreecloud-gtk-drag-source.log"
+          : > "${log_file}"
+          : > "${helper_log}"
+          trap 'status=$?; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud CEF failure log ===" >&2; cat "${log_file}" >&2 || true; echo "=== GTK drag source log ===" >&2; cat "${helper_log}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+
+          test_url="$(python3 - <<'PY'
+          import urllib.parse
+
+          html = """
+          <div id="drop" style="position:fixed;inset:0;display:flex;
+              align-items:center;justify-content:center;font-size:48px;
+              background:#f5f5f5">Drop GoreeCloud text here</div>
+          <script>
+          const drop = document.getElementById("drop");
+          drop.addEventListener("dragover", event => event.preventDefault());
+          drop.addEventListener("drop", event => {
+            event.preventDefault();
+            if (event.dataTransfer.getData("text/plain") === "goreecloud-drag-text") {
+              location.href = "https://example.com/#goreecloud-drag-drop-ok";
+            }
+          });
+          </script>
+          """
+          print("data:text/html," + urllib.parse.quote(html, safe=""))
+          PY
+          )"
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
+              browser_pid=$!
+              "$3" >"$4" 2>&1 &
+              helper_pid=$!
+
+              cleanup() {
+                kill "$helper_pid" "$browser_pid" 2>/dev/null || true
+                wait "$helper_pid" 2>/dev/null || true
+                wait "$browser_pid" 2>/dev/null || true
+              }
+              trap cleanup EXIT
+
+              browser_window=""
+              helper_window=""
+              for _ in $(seq 1 80); do
+                browser_window=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
+                helper_window=$(xdotool search --onlyvisible --name "GoreeCloud Drag Source" 2>/dev/null | head -n1 || true)
+                if [ -n "$browser_window" ] && [ -n "$helper_window" ] &&
+                   grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test -n "$browser_window"
+              test -n "$helper_window"
+
+              xdotool windowsize "$browser_window" 820 680
+              xdotool windowmove "$browser_window" 430 70
+              xdotool windowsize "$helper_window" 300 200
+              xdotool windowmove "$helper_window" 40 250
+              xdotool windowraise "$helper_window"
+              sleep 0.5
+
+              xdotool mousemove --window "$helper_window" 150 100
+              xdotool mousedown 1
+              sleep 0.35
+              xdotool mousemove --sync --window "$browser_window" 410 360
+              sleep 0.75
+              xdotool mouseup 1
+
+              drag_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] windowless-drag-enter" "$2" &&
+                   grep -Fq "[GoreeCloud GTK] windowless-drag-drop accepted kind=text" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] windowless-drag-drop" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-drag-drop-ok" "$2"; then
+                  drag_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$drag_ready" -eq 1
+
+              trap - EXIT
+              cleanup
+              exit 0
+            ' sh "${test_url}" "${log_file}" "${helper_binary}" "${helper_log}"
+
+          cat "${log_file}"
+          cat "${helper_log}"
+
+          grep -Fq "mode=windowless" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-drag-enter" "${log_file}"
+          grep -Fq "[GoreeCloud GTK] windowless-drag-drop accepted kind=text" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-drag-drop" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-drag-drop-ok" "${log_file}"
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during windowless drag smoke" >&2
+            exit 1
+          fi
       - name: Exercise CEF windowless GTK IME commit under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
