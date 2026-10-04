@@ -122,6 +122,12 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
       case GtkTabAction::previous:
         (void)window->activate_previous_tab();
         break;
+      case GtkTabAction::move_left:
+        (void)window->move_active_tab_left();
+        break;
+      case GtkTabAction::move_right:
+        (void)window->move_active_tab_right();
+        break;
     }
     present_active_tab();
   });
