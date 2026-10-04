@@ -425,11 +425,29 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   }
 
   static bool defer_key_to_browser_chrome(const GdkEventKey& event) {
-    if (event.state &
-        (GDK_CONTROL_MASK | GDK_MOD1_MASK | GDK_SUPER_MASK | GDK_META_MASK)) {
+    const bool control = (event.state & GDK_CONTROL_MASK) != 0;
+    const bool shift = (event.state & GDK_SHIFT_MASK) != 0;
+    const bool alt = (event.state & GDK_MOD1_MASK) != 0;
+
+    // Keep system-style modifiers reserved until their Browser/page ownership
+    // contract is explicit. This tranche forwards only non-conflicting Control
+    // combinations after preserving the shortcuts owned by Browser chrome.
+    if (alt || (event.state & (GDK_SUPER_MASK | GDK_META_MASK))) return true;
+    if (event.keyval == GDK_KEY_F5 || event.keyval == GDK_KEY_F6) return true;
+    if (!control) return false;
+
+    if (event.keyval == GDK_KEY_l || event.keyval == GDK_KEY_k ||
+        event.keyval == GDK_KEY_r || event.keyval == GDK_KEY_Tab ||
+        event.keyval == GDK_KEY_Page_Down ||
+        event.keyval == GDK_KEY_ISO_Left_Tab ||
+        event.keyval == GDK_KEY_Page_Up) {
       return true;
     }
-    return event.keyval == GDK_KEY_F5 || event.keyval == GDK_KEY_F6;
+    if (!shift &&
+        (event.keyval == GDK_KEY_t || event.keyval == GDK_KEY_w)) {
+      return true;
+    }
+    return false;
   }
 
   NativeSurfaceInputForwarder* software_input_forwarder() {
@@ -662,6 +680,8 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     const int vkey = virtual_key_code(event->keyval);
     const auto modifiers = input_modifiers(event->state);
     const auto character = direct_character(event->keyval);
+    const bool command_modified =
+        (modifiers & (native_modifier_control | native_modifier_alt)) != 0;
     bool handled = false;
 
     if (event->type == GDK_KEY_PRESS) {
@@ -675,7 +695,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
                            .character = character,
                            .unmodified_character = character});
       }
-      if (character != 0) {
+      if (character != 0 && !command_modified) {
         handled |= forwarder->send_key_event(
             NativeKeyEvent{.type = NativeKeyEventType::character,
                            .virtual_key_code = vkey,
