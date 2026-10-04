@@ -1,0 +1,4 @@
+Privacy Shield candidate: privacy-shield-2.0.0-seal.2
+Source revision: 9b938bb1ded71e8545da7abd7bedfdb0294857ef
+Runtime authority: GoreeCloud/browser
+Production approved: no
