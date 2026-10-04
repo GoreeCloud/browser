@@ -300,9 +300,29 @@ int main() {
   WindowController window(*normal_context, false, &tab_manager, "window-smoke");
 
   auto& first = window.new_tab(std::string{kNewTabUrl});
-  tab_manager.register_tab({first.id(), window.window_id(), "workspace-main"});
+  tab_manager.register_tab(ManagedTabState{
+      .tab_id = first.id(),
+      .window_id = window.window_id(),
+      .workspace_id = "workspace-main",
+      .group_id = std::nullopt,
+      .split_id = std::nullopt,
+      .pinned = false,
+      .protection = TabProtection::normal,
+      .sleep_policy = TabSleepPolicy::automatic,
+      .resources = {},
+  });
   auto& second = window.new_tab("https://example.com/");
-  tab_manager.register_tab({second.id(), window.window_id(), "workspace-main"});
+  tab_manager.register_tab(ManagedTabState{
+      .tab_id = second.id(),
+      .window_id = window.window_id(),
+      .workspace_id = "workspace-main",
+      .group_id = std::nullopt,
+      .split_id = std::nullopt,
+      .pinned = false,
+      .protection = TabProtection::normal,
+      .sleep_policy = TabSleepPolicy::automatic,
+      .resources = {},
+  });
 
   if (window.tab_count() != 2 || window.tab_views().size() != 2) return 1;
   BrowserChromeShell smoke_chrome(window);
