@@ -5,6 +5,18 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Linux CEF runtime failure-log preservation
+
+### Changed
+
+- Added fail-only EXIT traps to all six Core CI CEF runtime exercises so Browser diagnostics are emitted even when an inner runtime assertion exits before the normal log-printing path.
+- Covered sandboxed runtime startup plus windowless page/input, popup, direct keyboard/Control, clipboard, and GTK IME exercises.
+- Preserved successful-run output behavior while improving first-failure evidence for transient or interaction-specific regressions.
+
+### Acceptance boundary
+
+This is CI diagnostics hardening only. It does not change Browser runtime behavior, make a previously failing interaction acceptable, or replace exact-head reruns and representative-device validation.
+
 ## 2026-10-03 — Linux windowless clipboard shortcut regression
 
 ### Added
