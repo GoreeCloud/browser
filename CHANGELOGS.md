@@ -15,6 +15,21 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux windowless popup logical geometry on packaged runtime
+
+### Changed
+
+- Separated popup logical view geometry from the CEF popup pixel-buffer dimensions in the Browser-owned software-surface contract.
+- Clamped displayed popup rectangles into the visible GTK content area without mutating the engine-owned logical origin.
+- Scaled popup pixels into the logical rectangle instead of assuming one popup pixel equals one logical GTK unit.
+- Remapped pointer coordinates from a clamped displayed popup back into CEF view coordinates so selection remains aligned when the popup is displaced to stay visible.
+- Preserved the existing popup lifecycle, hide/detach cleanup, current pinned-CEF selection regression, and packaged runtime/app-identity behavior.
+
+### Acceptance boundary
+
+This is a Development restack candidate pending fresh exact-head validation on the packaged-runtime baseline. Representative native-Wayland placement, high-DPI/scale-factor rendering, pointer selection across real display scales, native-widget interoperability, accessibility, performance, production approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-04 — Release-active Browser runtime smoke checks
 
 ### Changed
