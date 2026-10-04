@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Current-main representative Zorin Wayland refresh
+
+### Verified
+
+- Built exact main `c4954fde301c49b1ff91596996ced0a7fec5ad7d` on the authorized Zorin/GNOME Wayland owner device against the repository-pinned CEF `152.0.6+g708dc14+chromium-152.0.7977.83` runtime using reduced build parallelism; all 13 local CTest targets passed.
+- Launched the exact build with GTK forced onto the active `wayland-0` session and Browser runtime diagnostics enabled.
+- Verified CEF page creation in `mode=windowless`, successful HTTP 200 completion for `https://example.com/`, and a materially non-uniform 1280×880 GTK software frame.
+- Preserved the sandbox boundary: the launcher reported the local bundled helper was not setuid and explicitly refused to disable Chromium sandboxing; CEF initialized and rendered without a Browser sandbox-bypass flag.
+
+### Acceptance boundary
+
+This refresh strengthens representative Development evidence for the software-rendered Linux Wayland path on one owner device. It does not establish broad distro/compositor/GPU coverage, accessibility, sustained performance, production packaging/signing, production approval, Stable, Seal, or Anchor qualification.
+
 ## 2026-10-03 — Linux CEF runtime failure-log preservation
 
 ### Changed
