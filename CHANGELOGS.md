@@ -15,6 +15,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux popup logical geometry on drop-capable packaged runtime
+
+### Changed
+
+- Restacked logical popup geometry onto the integrated external-drop and self-contained CEF runtime baseline.
+- Kept popup logical view geometry separate from pixel-buffer dimensions, clamped displayed rectangles into the visible GTK content area, scaled popup pixels into logical bounds, and remapped pointer coordinates back into CEF view coordinates when clamping displaces the popup.
+- Preserved external-drop source/validation, packaged-runtime launch behavior, popup lifecycle cleanup, and the existing popup selection regression.
+
+### Acceptance boundary
+
+Development restack candidate pending fresh exact-head validation. Representative native-Wayland placement, high-DPI/scale-factor rendering, pointer selection across real display scales, native-widget interoperability, accessibility, sustained performance, production approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-04 — Linux bounded external-drop restack on packaged runtime
 
 ### Added
