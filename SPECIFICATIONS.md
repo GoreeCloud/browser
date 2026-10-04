@@ -1,7 +1,7 @@
 ---
 title: "GoreeCloud Browser — Project Specification"
 document_owner: "LaDamian Goree"
-version: "v0.15"
+version: "v0.18"
 document_status: "Under Review"
 project_status: "Active Development / nonconformant"
 classification: "Internal"
@@ -11,7 +11,7 @@ repository: "GoreeCloud/browser"
 authoritative_record: true
 canonical_path: "SPECIFICATIONS.md"
 created: "2026-08-29"
-last_updated: "2026-09-29"
+last_updated: "2026-10-04"
 supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown migration"
 ---
 
@@ -22,7 +22,7 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 ## Document Metadata
 
 - **Document Owner:** LaDamian Goree
-- **Version:** v0.17
+- **Version:** v0.18
 - **Document Status:** Under Review
 - **Project Status:** Active Development / nonconformant
 - **Classification:** Internal
@@ -34,13 +34,13 @@ supersedes: "Project Specification — Browser.docx v0.9 after verified Markdown
 - **Android versionCode:** `10012`
 - **Android Support Floor:** API 26
 - **Android Target API:** 35
-- **Current Glaze Official/Anchor Authority:** V1.6 / `1.6.0`
+- **Current Glaze Official/Anchor Authority:** bounded Stable V1.7 / `1.7.0`, lifecycle integration anchor `1a5756daed2294155be2e9972b24f580f6222b7b`, inheriting accepted V1.6.0 runtime source `a7180679ea851389e0f3004515f9a25f420e716d`
 - **Development Source Authority:** protected `main`; live GitHub controls the exact current head, active pull requests, and workflow evidence
 - **Validation Authority:** exact-head GitHub workflow evidence plus protected-merge/readback; issue #33 remains the controlling Browser stabilization record
 
 This specification intentionally avoids embedding a volatile active-branch SHA or workflow-run snapshot in the metadata block. Exact candidate state must be verified from live GitHub before execution, and documentation-only changes must not inherit implementation validation by implication.
 
-Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciled the then-current PR #110 Linux Wayland rendering line and historical GLAZE UI V1.6 / 1.6.0 naming. Version v0.16 reconciled the current Android +android.12 artifact identity, protected-main authority model, and the post-PR #122 Linux Wayland interaction baseline while removing stale volatile PR/check snapshots from document control. Version v0.17 defines the bounded direct-keyboard continuation on top of the merged PR #123 cursor baseline without treating IME or representative native-Wayland acceptance as complete. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, Seal, or Anchor gates.
+Version v0.12 reconciled the nine-system Platform Contract 0.4 model, the then-current Glaze target, Android +android.6 artifact identity, and exact-head Android build-provenance requirement. Version v0.13 added the first platform-neutral PermissionBroker implementation slice and its source-level acceptance boundary. Version v0.15 reconciled the then-current PR #110 Linux Wayland rendering line and historical GLAZE UI V1.6 / 1.6.0 naming. Version v0.16 reconciled the current Android +android.12 artifact identity, protected-main authority model, and the post-PR #122 Linux Wayland interaction baseline while removing stale volatile PR/check snapshots from document control. Version v0.17 defined the bounded direct-keyboard continuation on top of the merged PR #123 cursor baseline without treating IME or representative native-Wayland acceptance as complete. Version v0.18 advances the required Glaze consumer identity to bounded Stable V1.7 / 1.7.0 while preserving the accepted V1.6.0 runtime foundation and excluding retained V1.7 dev.47/V1.7.1 Development behavior. These are Development control/implementation updates and do not themselves satisfy representative-device, production, Release Candidate, Stable, Seal, or Anchor gates.
 
 ## 1. Project Definition
 
@@ -95,7 +95,7 @@ Current verified source behavior includes:
 - website permission and geolocation callbacks denied by default;
 - downloads blocked until the Wardveil release gate is integrated;
 - Browser-owned resumable first-use setup and optional contextual guidance stored only in device-local Browser preferences, with no account, provider, or synchronization authority;
-- current GLAZE UI V1.6 / 1.6.0 source mapping with Browser-local adoption still required.
+- current bounded Stable Glaze V1.7 / 1.7.0 consumer identity with inherited V1.6.0 runtime and fresh Browser-local adoption/acceptance still required.
 
 Current source-level defenses and contracts are Development evidence only. They do not establish rendered/native-device GLAZE acceptance, complete Privacy Shield or Wardveil integration, production signing, Release Candidate status, production approval, or Stable qualification.
 
@@ -124,7 +124,7 @@ Privacy and security state must be truthful. Browser UI must not display an allo
 The current Browser Development line does not establish:
 
 - production or Stable readiness;
-- rendered/native-device GLAZE UI V1.6 / 1.6.0 acceptance;
+- rendered/native-device bounded Stable Glaze V1.7 / 1.7.0 acceptance, with prior V1.6 evidence retained only as inherited runtime provenance;
 - production GoreeCloud Identity, Vault, Sync, Everkeep, DNS, Network, or Mesh integration;
 - complete private-browsing runtime isolation and Close & Forget acceptance;
 - production Wardveil download verification, quarantine, or release;
@@ -139,7 +139,7 @@ The current Browser Development line does not establish:
 Before Android Browser may be represented as production-approved or Stable, it must complete and verify at least:
 
 1. Controlled production signing and key-recovery operations.
-2. Exact-revision GLAZE UI V1.6 / 1.6.0 rendered/native visual, accessibility, localization/RTL, large-text, reduced-effects, adaptive/form-factor, performance, rollback, and Human Visual Excellence acceptance.
+2. Exact-revision bounded Stable Glaze V1.7 / 1.7.0 adoption plus rendered/native visual, accessibility, localization/RTL, large-text, reduced-effects, adaptive/form-factor, performance, rollback, and Human Visual Excellence acceptance; V1.7.1 Development behavior remains outside this Stable tranche.
 3. Authenticated Browser-to-Wardveil download scanning, disposition, quarantine, and release evidence.
 4. Privacy Shield runtime authorization, consent, minimization, filtering, retention, and evidence integration where applicable.
 5. Private and Isolated Private request-context/storage isolation with Close & Forget evidence.
