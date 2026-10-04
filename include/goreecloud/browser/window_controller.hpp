@@ -89,6 +89,51 @@ class WindowController {
     return true;
   }
 
+  [[nodiscard]] bool reorder_tab(std::string_view id, std::size_t new_index) {
+    if (new_index >= tabs_.size()) return false;
+    const auto it = std::find_if(tabs_.begin(), tabs_.end(), [id](const auto& tab) {
+      return tab->id() == id;
+    });
+    if (it == tabs_.end()) return false;
+
+    const auto old_index =
+        static_cast<std::size_t>(std::distance(tabs_.begin(), it));
+    if (old_index == new_index) return true;
+
+    const std::string active_id =
+        active_tab() ? active_tab()->id() : std::string{};
+    auto moved = std::move(*it);
+    tabs_.erase(it);
+    tabs_.insert(tabs_.begin() + static_cast<std::ptrdiff_t>(new_index),
+                 std::move(moved));
+
+    if (!active_id.empty()) {
+      for (std::size_t index = 0; index < tabs_.size(); ++index) {
+        if (tabs_[index]->id() == active_id) {
+          active_index_ = index;
+          break;
+        }
+      }
+    }
+    return true;
+  }
+
+  [[nodiscard]] bool move_active_tab_left() {
+    if (!active_index_.has_value() || *active_index_ == 0 ||
+        *active_index_ >= tabs_.size()) {
+      return false;
+    }
+    return reorder_tab(tabs_[*active_index_]->id(), *active_index_ - 1);
+  }
+
+  [[nodiscard]] bool move_active_tab_right() {
+    if (!active_index_.has_value() || *active_index_ >= tabs_.size() ||
+        *active_index_ + 1 >= tabs_.size()) {
+      return false;
+    }
+    return reorder_tab(tabs_[*active_index_]->id(), *active_index_ + 1);
+  }
+
   [[nodiscard]] bool select_tab(std::string_view id, bool additive) {
     if (!contains_tab(id)) return false;
     if (!additive) selected_tab_ids_.clear();

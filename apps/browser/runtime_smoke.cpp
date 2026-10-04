@@ -295,12 +295,33 @@ int main() {
   auto& second = window.new_tab("https://example.com/");
   tab_manager.register_tab({second.id(), window.window_id(), "workspace-main"});
 
-  assert(window.tab_count() == 2);
-  assert(window.tab_views().size() == 2);
+  if (window.tab_count() != 2 || window.tab_views().size() != 2) return 1;
   BrowserChromeShell smoke_chrome(window);
   const auto initial_chrome = smoke_chrome.snapshot();
-  assert(initial_chrome.tabs.size() == 2);
-  assert(initial_chrome.tabs.back().active);
+  if (initial_chrome.tabs.size() != 2 || !initial_chrome.tabs.back().active) {
+    return 1;
+  }
+
+  if (!window.move_active_tab_left()) return 1;
+  const auto reordered_left = window.tab_ids();
+  if (reordered_left.size() != 2 ||
+      reordered_left[0] != second.id() ||
+      reordered_left[1] != first.id() ||
+      !window.active_tab() ||
+      window.active_tab()->id() != second.id()) {
+    return 1;
+  }
+
+  if (!window.move_active_tab_right()) return 1;
+  const auto reordered_right = window.tab_ids();
+  if (reordered_right.size() != 2 ||
+      reordered_right[0] != first.id() ||
+      reordered_right[1] != second.id() ||
+      !window.active_tab() ||
+      window.active_tab()->id() != second.id()) {
+    return 1;
+  }
+
   assert(window.activate_previous_tab());
   assert(window.active_tab() && window.active_tab()->id() == first.id());
   assert(window.activate_next_tab());

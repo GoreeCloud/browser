@@ -243,6 +243,16 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       self->tab_action_handler(GtkTabAction::close, self->active_tab_id);
       return TRUE;
     }
+    if (control && shift && self->tab_action_handler &&
+        event->keyval == GDK_KEY_Page_Up) {
+      self->tab_action_handler(GtkTabAction::move_left, {});
+      return TRUE;
+    }
+    if (control && shift && self->tab_action_handler &&
+        event->keyval == GDK_KEY_Page_Down) {
+      self->tab_action_handler(GtkTabAction::move_right, {});
+      return TRUE;
+    }
     if (control &&
         (event->keyval == GDK_KEY_Tab || event->keyval == GDK_KEY_Page_Down) &&
         self->tab_action_handler) {
