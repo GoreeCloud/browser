@@ -56,6 +56,28 @@ struct NativePointerEvent {
   std::uint32_t modifiers{native_modifier_none};
 };
 
+enum class NativeDropOperation {
+  copy,
+  link,
+};
+
+struct NativeDropData {
+  std::string text;
+  std::string link_url;
+  std::string link_title;
+};
+
+// Optional external-drop bridge for software/windowless engine surfaces.
+// The host must validate and copy payloads before crossing this boundary.
+// File paths and file contents are intentionally not represented here.
+class NativeSurfaceDropForwarder {
+ public:
+  virtual ~NativeSurfaceDropForwarder() = default;
+  virtual bool drop_data(NativeDropData data,
+                         const NativePointerEvent& event,
+                         NativeDropOperation operation) = 0;
+};
+
 enum class NativeKeyEventType {
   raw_key_down,
   key_up,
