@@ -903,10 +903,13 @@ jobs:
               done
               test -n "$browser_window"
 
+              drag_source_path="$3"
+              helper_log_path="$4"
+
               drag_once() {
                 mode="$1"
-                : > "$4"
-                "$3" "$mode" >"$4" 2>&1 &
+                : > "$helper_log_path"
+                "$drag_source_path" "$mode" >"$helper_log_path" 2>&1 &
                 source_pid=$!
                 source_window=""
                 for _ in $(seq 1 60); do
@@ -928,7 +931,7 @@ jobs:
 
                 drag_started=0
                 for _ in $(seq 1 40); do
-                  if grep -Fq "drag-begin mode=$mode" "$4"; then
+                  if grep -Fq "drag-begin mode=$mode" "$helper_log_path"; then
                     drag_started=1
                     break
                   fi
@@ -946,7 +949,7 @@ jobs:
 
                 data_requested=0
                 for _ in $(seq 1 30); do
-                  if grep -Fq "drag-data-get mode=$mode" "$4"; then
+                  if grep -Fq "drag-data-get mode=$mode" "$helper_log_path"; then
                     data_requested=1
                     break
                   fi
