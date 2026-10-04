@@ -1,0 +1,40 @@
+#!/bin/sh
+set -eu
+
+runtime_dir="@GOREECLOUD_BROWSER_INSTALL_RUNTIME_DIR@"
+cef_dir="${runtime_dir}/runtime"
+
+if [ ! -x "${runtime_dir}/goreecloud-browser" ]; then
+  echo "GoreeCloud Browser private executable is missing: ${runtime_dir}/goreecloud-browser" >&2
+  exit 1
+fi
+if [ ! -x "${runtime_dir}/goreecloud-browser-subprocess" ]; then
+  echo "GoreeCloud Browser CEF subprocess is missing: ${runtime_dir}/goreecloud-browser-subprocess" >&2
+  exit 1
+fi
+if [ ! -f "${cef_dir}/libcef.so" ]; then
+  echo "GoreeCloud Browser CEF runtime is missing: ${cef_dir}/libcef.so" >&2
+  exit 1
+fi
+
+if [ -n "${GOREECLOUD_BROWSER_USER_DATA_ROOT:-}" ]; then
+  user_data_root="${GOREECLOUD_BROWSER_USER_DATA_ROOT}"
+elif [ -n "${XDG_DATA_HOME:-}" ]; then
+  user_data_root="${XDG_DATA_HOME}/goreecloud/browser/cef"
+elif [ -n "${HOME:-}" ]; then
+  user_data_root="${HOME}/.local/share/goreecloud/browser/cef"
+else
+  echo "GoreeCloud Browser needs XDG_DATA_HOME or HOME for persistent profile data." >&2
+  exit 1
+fi
+
+mkdir -p "${user_data_root}"
+
+export GOREECLOUD_BROWSER_RUNTIME_ROOT="${cef_dir}"
+export GOREECLOUD_BROWSER_SUBPROCESS="${runtime_dir}/goreecloud-browser-subprocess"
+export GOREECLOUD_BROWSER_RESOURCES="${cef_dir}"
+export GOREECLOUD_BROWSER_LOCALES="${cef_dir}/locales"
+export GOREECLOUD_BROWSER_USER_DATA_ROOT="${user_data_root}"
+
+cd "${runtime_dir}"
+exec "${runtime_dir}/goreecloud-browser" "$@"
