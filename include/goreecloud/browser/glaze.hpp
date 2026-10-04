@@ -6,19 +6,19 @@
 namespace goreecloud::browser {
 
 inline constexpr std::string_view kGlazeUiPolicy = "latest-approved-stable";
-inline constexpr std::string_view kCurrentGlazeUiStableVersion = "1.6.0";
+inline constexpr std::string_view kCurrentGlazeUiStableVersion = "1.7.0";
 inline constexpr std::string_view kCurrentGlazeUiStableRevision =
-    "a7180679ea851389e0f3004515f9a25f420e716d";
+    "1a5756daed2294155be2e9972b24f580f6222b7b";
 inline constexpr std::string_view kCurrentGlazeUiReviewedImplementationAnchor =
-    "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a";
+    "a7180679ea851389e0f3004515f9a25f420e716d";
 inline constexpr std::string_view kCurrentGlazeUiQualificationSourceAnchor =
-    "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a";
+    "7c4ded83d7a8725165bb6a55dfb175667cc9589e";
 inline constexpr std::string_view kCurrentGlazeUiQualificationIntegrationRevision =
-    "354f5759385c28596fcfec26a3ad525e89fb1c35";
+    "1a5756daed2294155be2e9972b24f580f6222b7b";
 inline constexpr std::string_view kGlazeUiOpticalBaselineVersion = "1.4.1";
 inline constexpr std::string_view kGlazeUiOpticalBaselineRevision =
     "4fab9da0fad2e5c974e0e66ec88632c61745751c";
-inline constexpr std::string_view kGlazeUiImmediateRollbackVersion = "1.5.1";
+inline constexpr std::string_view kGlazeUiImmediateRollbackVersion = "1.6.0";
 
 enum class GlazeSurface {
   canvas,
@@ -70,8 +70,8 @@ struct GlazeCapabilities {
   bool live_surfaces{true};
   bool navigation_capsule{true};
 
-  // V1.6 source mapping retains the accepted V1.5 presentation-resolution
-  // authority boundaries while Browser-local V1.6 acceptance remains open.
+  // V1.7 source mapping inherits the accepted V1.6 Stable runtime and
+  // authority boundaries while Browser-local V1.7 acceptance remains open.
   // These capabilities describe presentation only; none create authority.
   bool semantic_context_normalization{true};
   bool capability_state_with_provenance{true};
@@ -82,7 +82,7 @@ struct GlazeCapabilities {
   bool explicit_unavailable_explanations{true};
   bool privacy_safe_diagnostics{true};
 
-  // V1.6 Browser-adoption invariants. These describe presentation behavior
+  // V1.7 Browser-adoption invariants inherit V1.6 runtime behavior. These describe presentation behavior
   // only and do not grant Browser or Glaze any provider-owned authority.
   bool complete_component_states{true};
   bool large_text_reflow{true};
@@ -94,7 +94,7 @@ struct GlazeCapabilities {
   bool bounded_visual_complexity{true};
   bool power_aware_effect_reduction{true};
 
-  // Inherited authority invariants remain mandatory under the V1.6 mapping.
+  // Inherited authority invariants remain mandatory under the V1.7 mapping.
   bool infer_authorization{false};
   bool infer_provider_precedence{false};
   bool automatic_consequential_execution{false};
@@ -145,7 +145,7 @@ static_assert(!kBrowserGlazeCapabilities.automatic_consequential_execution);
 static_assert(!kBrowserGlazeCapabilities.automatic_fallback_execution);
 
 // Browser-owned user-facing surfaces target the current consumer-eligible
-// GLAZE UI V1.6 / 1.6.0 release. Canonical GoreeCloud lifecycle is Anchor;
+// Glaze V1.7 / 1.7.0 release. Canonical GoreeCloud lifecycle is Anchor;
 // retained "Stable" naming is compatibility terminology for the consumer
 // release channel. Exact source and qualification revisions are pinned so CI
 // and acceptance evidence cannot silently drift. Browser-local acceptance
