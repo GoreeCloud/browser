@@ -122,12 +122,23 @@ enum class NativeCursorType {
   grabbing,
 };
 
+struct NativeCustomCursor {
+  std::vector<std::uint8_t> bgra;
+  int width{0};
+  int height{0};
+  int hotspot_x{0};
+  int hotspot_y{0};
+  float scale_factor{1.0F};
+};
+
 // Optional cursor bridge for software/windowless engine surfaces. Native
-// child-window surfaces retain platform/engine cursor handling.
+// child-window surfaces retain platform/engine cursor handling. Custom cursor
+// bytes are copied into Browser-owned storage before this interface is called.
 class NativeSurfaceCursorSink {
  public:
   virtual ~NativeSurfaceCursorSink() = default;
   virtual void apply_native_cursor(NativeCursorType cursor) = 0;
+  virtual void apply_custom_cursor(NativeCustomCursor cursor) = 0;
 };
 
 enum class NativeContextMenuItemType {

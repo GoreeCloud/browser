@@ -5,6 +5,42 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Linux Wayland GTK IME composition bridge
+
+### Added
+
+- Added an engine-independent text-input contract for software/windowless Browser surfaces with explicit preedit composition, committed text, and cancellation.
+- Added GTK `GtkIMMulticontext` integration for software-rendered surfaces, including focus lifecycle, UTF-8 to UTF-16 preedit conversion, GTK character-offset to UTF-16 selection translation, commit handling, and reset/cancel cleanup.
+- Added CEF OSR translation through `ImeSetComposition`, `ImeCommitText`, and `ImeCancelComposition`.
+- Added a forced-windowless Xvfb runtime smoke that leaves GTK IME enabled and requires both GTK and CEF commit diagnostics plus DOM-driven navigation to the fixed success marker.
+
+### Changed
+
+- Preserved Browser-owned Ctrl/Alt/Super/Meta and F5/F6 shortcut ownership ahead of page/IME forwarding.
+- Preserved the native X11/XWayland child-window input path unchanged and kept the direct-keyboard regression independent by disabling GTK IME in that specific lane.
+
+### Acceptance boundary
+
+The GTK composition/commit plumbing is integrated Development source and passed exact-head pre-merge Linux, security, and extension validation. It does not establish representative native-Wayland IME behavior, IBus/Fcitx/XIM interoperability, language-specific candidate-window placement, surrounding-text/delete-surrounding support, dead-key/non-BMP/international acceptance across locales, accessibility, sustained performance, production approval, Stable, Seal, or Anchor qualification.
+
+## 2026-10-03 — Linux Wayland bounded custom cursor support
+
+### Added
+
+- Extended the engine-independent software-surface cursor contract with Browser-owned custom cursor bitmap data, dimensions, hotspot, and reported scale metadata.
+- Bound CEF custom cursor dimensions to 512 by 512, copied transient CEF BGRA bytes before returning from the engine callback, clamped hotspots to the accepted bitmap, and rejected missing, invalid, or oversized buffers instead of retaining borrowed engine memory.
+- Added GTK custom cursor presentation by converting the copied BGRA bitmap to RGBA and constructing a native cursor at the validated hotspot.
+- Extended the forced-windowless CEF runtime lane with a real CSS custom-cursor region followed by the standard hand-cursor, pointer/wheel/navigation, and Browser-owned context-menu checks.
+
+### Changed
+
+- Restacked only the still-valid custom-cursor behavior from stale PR #124 onto the IME-integrated current-main lineage instead of replaying its stale ancestry.
+- Preserved native X11/XWayland child-window cursor handling unchanged. The reported CEF custom-cursor scale factor is bounded and retained for diagnostics; representative high-DPI rendering acceptance remains open.
+
+### Acceptance boundary
+
+This is Development source and test coverage, not representative native-Wayland or high-DPI cursor acceptance. Broader popup behavior, drag-and-drop, clipboard, accessibility, sustained interaction performance, accelerated rendering, production approval, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-02 — Android logical tab-session model foundation
 
 ### Added
