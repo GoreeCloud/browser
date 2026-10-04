@@ -117,6 +117,8 @@ jobs:
           assert "present_software_popup_frame" in surface
           assert "clear_software_popup_frame" in surface
           assert "NativeSurfaceInputForwarder" in surface
+          assert "NativeSurfaceDropForwarder" in surface
+          assert "NativeDropData" in surface
           assert "NativeKeyEvent" in surface
           assert "send_key_event" in surface
           assert "NativeSurfaceTextInputForwarder" in surface
@@ -128,6 +130,9 @@ jobs:
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
+          assert "windowless-drop-result" in host
+          assert "text/uri-list" in host
+          assert "file://" not in host
           client = Path("include/goreecloud/browser/cef_client.hpp").read_text()
           assert "apply_custom_cursor" in client
           assert "OnCursorChange" in client
@@ -141,6 +146,9 @@ jobs:
           assert "ImeSetComposition" in runtime
           assert "ImeCommitText" in runtime
           assert "ImeCancelComposition" in runtime
+          assert "DragTargetDragEnter" in runtime
+          assert "DragTargetDragOver" in runtime
+          assert "DragTargetDrop" in runtime
           assert "SetAsWindowless" in runtime
           assert "cef.windowless_rendering = true" in scaffold
           assert "native Wayland embedding is not yet enabled" not in runner
