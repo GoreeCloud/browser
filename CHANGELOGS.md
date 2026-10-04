@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Linux Wayland non-conflicting Control shortcut forwarding
+
+### Added
+
+- Added selective software-surface routing for Control-modified page shortcuts that are not owned by Browser chrome.
+- Preserved Browser-owned location/search focus, new/close tab, tab cycling, refresh, F5/F6, and the existing reserved Alt/Super/Meta boundary ahead of page forwarding.
+- Suppressed printable CEF character events while Control is held so a forwarded shortcut does not also insert its printable key into editable page content.
+- Extended the forced-windowless direct-keyboard runtime lane so the page must observe an unowned Ctrl+E keydown before ordinary `wayland` typing can trigger the fixed success navigation; accidental `e` insertion or shortcut capture fails the test.
+
+### Acceptance boundary
+
+This establishes Development source and automated Xvfb evidence for one non-conflicting Control-modified page shortcut while preserving current Browser-owned shortcuts. It does not establish representative native-Wayland shortcut behavior, clipboard copy/paste semantics, Alt/Super/Meta page forwarding, international/dead-key acceptance, accessibility, sustained performance, production approval, Stable, Seal, or Anchor qualification.
+
 ## 2026-10-03 — Linux Wayland GTK IME composition bridge
 
 ### Added
