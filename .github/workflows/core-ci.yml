@@ -371,24 +371,14 @@ jobs:
 
               xdotool click 5
               sleep 0.25
-              xdotool click 1
 
-              navigation_ready=0
-              for _ in $(seq 1 120); do
-                if grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "$2" &&
-                   grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "$2" &&
-                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$2"; then
-                  navigation_ready=1
-                  break
-                fi
-                if ! kill -0 "$browser_pid" 2>/dev/null; then
-                  break
-                fi
-                sleep 0.25
-              done
-              test "$navigation_ready" -eq 1
-
-              xdotool mousemove --window "$window_id" 960 420 click 3
+              # Exercise the Browser-owned OSR context-menu bridge on the
+              # deterministic data-page link before network navigation. Doing
+              # this after navigation introduced a timing race where CEF could
+              # receive the right-click while the newly loaded page was still
+              # settling, causing the menu assertion to fail and the private
+              # dbus-run-session to tear down underneath the live renderer.
+              xdotool click 3
 
               menu_ready=0
               for _ in $(seq 1 40); do
@@ -414,6 +404,24 @@ jobs:
                 sleep 0.25
               done
               test "$menu_closed" -eq 1
+
+              sleep 0.25
+              xdotool click 1
+
+              navigation_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] windowless-pointer-wheel" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] windowless-pointer-button" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$2"; then
+                  navigation_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$navigation_ready" -eq 1
 
               kill "$browser_pid" 2>/dev/null || true
               wait "$browser_pid" 2>/dev/null || true
