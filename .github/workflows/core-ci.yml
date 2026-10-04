@@ -921,7 +921,7 @@ jobs:
                 xdotool mousemove --window "$source_window" 100 70
                 xdotool mousedown 1
 
-                # Cross GTK's drag threshold while still inside the source
+                # Cross the GTK drag threshold while still inside the source
                 # widget so the source sees motion before the pointer enters
                 # the Browser window.
                 xdotool mousemove_relative --sync -- 24 0
