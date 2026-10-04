@@ -90,7 +90,7 @@ Private launch examples:
 
 ## Beta runtime boundary
 
-CEF/Chromium source integration does not by itself satisfy the render-capable beta gate. Development evidence now covers HTTPS page rendering on both the native child and software-rendered Wayland paths, including representative Wayland page pixels. Interaction completeness, navigation behavior, private-context isolation, cleanup, sandbox/site isolation, accessibility, performance, packaging, and sustained desktop operation remain separate acceptance work. See `docs/BETA_0_1.md`.
+CEF/Chromium source integration does not by itself satisfy the render-capable beta gate. Development evidence now covers HTTPS page rendering on both the native child and software-rendered Wayland paths. Fresh owner-device evidence at exact Browser source `27e1b8a9ecea3feb184425a72cdf8fd6eb9ea89b` verified automatic windowless selection in an active Zorin OS 17.3 Wayland session, HTTP 200 completion for `https://example.com/`, and a materially non-uniform 1280×723 GTK software frame. See `docs/LINUX_WAYLAND_OWNER_DEVICE_EVIDENCE_2026-10-03.md`. Human visual acceptance, representative interaction, private-context isolation/cleanup, packaged sandbox/site isolation, accessibility, performance, packaging, and sustained desktop operation remain separate acceptance work. See `docs/BETA_0_1.md`.
 
 ## Security requirements
 
