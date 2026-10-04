@@ -5,6 +5,24 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Linux Wayland OSR popup painting candidate
+
+### Added
+
+- Added an engine-independent popup-surface bridge for software/windowless renderer visibility, view-coordinate geometry, and popup-frame delivery.
+- Added CEF OSR forwarding for `OnPopupShow`, `OnPopupSize`, and `PET_POPUP` paint buffers without exposing CEF types to the GTK host.
+- Added GTK popup compositing over the software-rendered page, including view-bound placement clamping and pointer-coordinate remapping when a popup is repositioned.
+- Added a forced-windowless CEF runtime exercise that opens an HTML select popup, requires CEF popup visibility/geometry plus a non-uniform GTK popup frame, chooses an option, and requires navigation to the fixed popup success marker.
+
+### Changed
+
+- Preserved the native X11/XWayland child-window popup path unchanged; the Browser-owned popup sink is attached only to software/windowless surfaces.
+- Preserved the newly integrated non-conflicting Control-shortcut path while restacking this popup work onto authoritative main `d6d9c09027542ea3a06c1219edce7dee2a28b501`.
+
+### Acceptance boundary
+
+This remains a Development candidate until fresh exact-head Core CI, security/evidence, and extension-signature validation passes. Automated Xvfb popup evidence does not establish representative native-Wayland placement, pointer selection across repositioned popups, all popup widget types, accessibility, sustained performance, production approval, Stable, Seal, or Anchor qualification.
+
 ## 2026-10-03 — Linux Wayland non-conflicting Control shortcut forwarding
 
 ### Added
