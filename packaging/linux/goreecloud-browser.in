@@ -1,7 +1,9 @@
 #!/bin/sh
 set -eu
 
-runtime_dir="@GOREECLOUD_BROWSER_INSTALL_RUNTIME_DIR@"
+launcher_path="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
+launcher_dir="$(CDPATH= cd -- "$(dirname -- "${launcher_path}")" && pwd)"
+runtime_dir="$(CDPATH= cd -- "${launcher_dir}/@GOREECLOUD_BROWSER_INSTALL_RUNTIME_FROM_BINDIR@" && pwd)"
 cef_dir="${runtime_dir}/runtime"
 
 if [ ! -x "${runtime_dir}/goreecloud-browser" ]; then
