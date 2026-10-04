@@ -56,6 +56,7 @@ class ChromiumEngineView final : public EngineView,
                                  public NativeSurfaceAttachable,
                                  public NativeSurfaceInputForwarder,
                                  public NativeSurfaceTextInputForwarder,
+                                 public NativeSurfaceDropForwarder,
                                  public AsyncMediaHitTestProvider,
                                  public AsyncMediaPreviewProvider {
  public:
@@ -125,6 +126,13 @@ class ChromiumEngineView final : public EngineView,
 
   bool send_key_event(const NativeKeyEvent& event) override {
     return attached_ && runtime_view_->send_key_event(event);
+  }
+
+  bool drop_data(NativeDropData data,
+                 const NativePointerEvent& event,
+                 NativeDropOperation operation) override {
+    return attached_ &&
+           runtime_view_->drop_data(std::move(data), event, operation);
   }
 
   bool set_text_composition(std::u16string text,
