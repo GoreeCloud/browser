@@ -17,6 +17,7 @@
 #include "goreecloud/browser/cef_media_probe_app.hpp"
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
+#include "include/cef_drag_data.h"
 #include "include/cef_request_context.h"
 #endif
 
@@ -72,6 +73,17 @@ CefMouseEvent cef_mouse_event(const NativePointerEvent& event) {
   mouse_event.y = event.y;
   mouse_event.modifiers = cef_mouse_modifiers(event.modifiers);
   return mouse_event;
+}
+
+DragOperationsMask cef_drag_operations(std::uint32_t operations) {
+  auto mask = static_cast<DragOperationsMask>(DRAG_OPERATION_NONE);
+  if (operations & native_drag_copy) {
+    mask = static_cast<DragOperationsMask>(mask | DRAG_OPERATION_COPY);
+  }
+  if (operations & native_drag_link) {
+    mask = static_cast<DragOperationsMask>(mask | DRAG_OPERATION_LINK);
+  }
+  return mask;
 }
 
 CefKeyEvent cef_key_event(const NativeKeyEvent& event) {
@@ -218,6 +230,60 @@ class CefRuntimeView final : public ChromiumRuntimeView {
                 << " vkey=" << event.virtual_key_code
                 << " native=" << event.native_key_code
                 << " character=" << event.character << std::endl;
+    }
+    return true;
+  }
+
+  bool drag_target_enter(NativeDragData data,
+                         const NativePointerEvent& event,
+                         std::uint32_t allowed_operations) override {
+    if (!windowless_browser() ||
+        (data.text.empty() && data.link_url.empty())) {
+      return false;
+    }
+
+    auto drag_data = CefDragData::Create();
+    if (!drag_data) return false;
+    if (!data.text.empty()) drag_data->SetFragmentText(data.text);
+    if (!data.link_url.empty()) drag_data->SetLinkURL(data.link_url);
+    drag_data->ResetFileContents();
+    drag_data->ClearFilenames();
+
+    client_->browser()->GetHost()->DragTargetDragEnter(
+        drag_data, cef_mouse_event(event),
+        cef_drag_operations(allowed_operations));
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drag-enter x=" << event.x
+                << " y=" << event.y
+                << " text=" << (!data.text.empty() ? "yes" : "no")
+                << " link=" << (!data.link_url.empty() ? "yes" : "no")
+                << std::endl;
+    }
+    return true;
+  }
+
+  bool drag_target_over(const NativePointerEvent& event,
+                        std::uint32_t allowed_operations) override {
+    if (!windowless_browser()) return false;
+    client_->browser()->GetHost()->DragTargetDragOver(
+        cef_mouse_event(event), cef_drag_operations(allowed_operations));
+    return true;
+  }
+
+  void drag_target_leave() override {
+    if (!windowless_browser()) return;
+    client_->browser()->GetHost()->DragTargetDragLeave();
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drag-leave" << std::endl;
+    }
+  }
+
+  bool drag_target_drop(const NativePointerEvent& event) override {
+    if (!windowless_browser()) return false;
+    client_->browser()->GetHost()->DragTargetDrop(cef_mouse_event(event));
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drag-drop x=" << event.x
+                << " y=" << event.y << std::endl;
     }
     return true;
   }
