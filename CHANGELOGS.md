@@ -15,6 +15,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux bounded external-drop restack on packaged runtime
+
+### Added
+
+- Restacked the Browser-owned external-drop contract onto the self-contained Linux CEF install-runtime baseline.
+- Retained copied text up to 1 MiB and exactly one `http`/`https` URI up to 8 KiB, with local file URIs, paths, filenames, file contents, and multi-URI payloads intentionally outside the contract.
+- Retained GTK drop-target integration and CEF OSR drag entry/over/drop completion only after renderer acceptance.
+- Retained the real GTK drag-source Core CI exercise requiring file-URI rejection plus page-observed text-drop completion.
+
+### Acceptance boundary
+
+This is a Development restack candidate pending fresh exact-head Core, security, evidence, extension-signature, and post-integration validation on the packaged-runtime baseline. Representative native-Wayland drag/drop, accepted web-link runtime evidence, live hover feedback, outgoing page drags, file-drop support/policy, accessibility, production approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-04 — Release-active Browser runtime smoke checks
 
 ### Changed

@@ -477,6 +477,100 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     return dynamic_cast<NativeSurfaceTextInputForwarder*>(attached_view);
   }
 
+  NativeSurfaceDropForwarder* software_drop_forwarder() {
+    if (!software_surface_attached || !attached_view) return nullptr;
+    return dynamic_cast<NativeSurfaceDropForwarder*>(attached_view);
+  }
+
+  static bool safe_web_drop_url(std::string_view value) {
+    if (value.empty() || value.size() > 8192U) return false;
+    const std::string owned{value};
+    gchar* scheme = g_uri_parse_scheme(owned.c_str());
+    if (!scheme) return false;
+    const bool safe = g_ascii_strcasecmp(scheme, "http") == 0 ||
+                      g_ascii_strcasecmp(scheme, "https") == 0;
+    g_free(scheme);
+    return safe;
+  }
+
+  static gboolean on_content_drag_drop(GtkWidget* widget,
+                                       GdkDragContext* context,
+                                       gint,
+                                       gint,
+                                       guint time,
+                                       gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (!self || !self->software_drop_forwarder() || !widget || !context) {
+      return FALSE;
+    }
+    const GdkAtom target = gtk_drag_dest_find_target(widget, context, nullptr);
+    if (target == GDK_NONE) return FALSE;
+    gtk_drag_get_data(widget, context, target, time);
+    return TRUE;
+  }
+
+  static void on_content_drag_data_received(GtkWidget* widget,
+                                            GdkDragContext* context,
+                                            gint x,
+                                            gint y,
+                                            GtkSelectionData* selection_data,
+                                            guint,
+                                            guint time,
+                                            gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    bool accepted = false;
+    const char* kind = "rejected";
+
+    if (self && widget && context && selection_data) {
+      if (auto* forwarder = self->software_drop_forwarder()) {
+        NativeDropData drop;
+        NativeDropOperation operation = NativeDropOperation::copy;
+
+        gchar** uris = gtk_selection_data_get_uris(selection_data);
+        if (uris) {
+          if (uris[0] && !uris[1]) {
+            const std::string uri{uris[0]};
+            if (safe_web_drop_url(uri)) {
+              drop.link_url = uri;
+              operation = NativeDropOperation::link;
+              kind = "link";
+            }
+          }
+          g_strfreev(uris);
+        } else {
+          guchar* text = gtk_selection_data_get_text(selection_data);
+          if (text) {
+            const std::string value{
+                reinterpret_cast<const char*>(text)};
+            if (!value.empty() && value.size() <= 1024U * 1024U) {
+              drop.text = value;
+              operation = NativeDropOperation::copy;
+              kind = "text";
+            }
+            g_free(text);
+          }
+        }
+
+        if (!drop.text.empty() || !drop.link_url.empty()) {
+          gtk_widget_grab_focus(widget);
+          accepted = forwarder->drop_data(
+              std::move(drop),
+              NativePointerEvent{.x = x,
+                                 .y = y,
+                                 .modifiers = native_modifier_none},
+              operation);
+        }
+      }
+    }
+
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-drop-result kind=" << kind
+                << " accepted=" << (accepted ? "yes" : "no")
+                << " x=" << x << " y=" << y << std::endl;
+    }
+    if (context) gtk_drag_finish(context, accepted ? TRUE : FALSE, FALSE, time);
+  }
+
   static std::optional<std::u16string> utf8_to_utf16(const char* text,
                                                       gssize length = -1) {
     if (!text) return std::u16string{};
@@ -1620,6 +1714,19 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
                      G_CALLBACK(on_content_focus), this);
     g_signal_connect(content_area, "focus-out-event",
                      G_CALLBACK(on_content_focus), this);
+
+    gtk_drag_dest_set(
+        content_area,
+        static_cast<GtkDestDefaults>(GTK_DEST_DEFAULT_MOTION |
+                                     GTK_DEST_DEFAULT_HIGHLIGHT),
+        nullptr, 0,
+        static_cast<GdkDragAction>(GDK_ACTION_COPY | GDK_ACTION_LINK));
+    gtk_drag_dest_add_text_targets(content_area);
+    gtk_drag_dest_add_uri_targets(content_area);
+    g_signal_connect(content_area, "drag-drop",
+                     G_CALLBACK(on_content_drag_drop), this);
+    g_signal_connect(content_area, "drag-data-received",
+                     G_CALLBACK(on_content_drag_data_received), this);
 
     build_internal_surface();
     build_panel_surface();
