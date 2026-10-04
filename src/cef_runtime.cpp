@@ -313,7 +313,8 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     if (windowless) {
       client_->configure_windowless_surface(
           surface.frame_sink, surface.cursor_sink, surface.context_menu_sink,
-          surface.width, surface.height, surface.scale_factor);
+          surface.text_input_geometry_sink, surface.width, surface.height,
+          surface.scale_factor);
     } else {
       client_->clear_windowless_surface();
     }
@@ -381,7 +382,8 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     if (client_ && surface.window_handle == 0 && surface.frame_sink) {
       client_->configure_windowless_surface(
           surface.frame_sink, surface.cursor_sink, surface.context_menu_sink,
-          surface.width, surface.height, surface.scale_factor);
+          surface.text_input_geometry_sink, surface.width, surface.height,
+          surface.scale_factor);
     }
     if (client_ && client_->browser()) client_->browser()->GetHost()->WasResized();
   }
