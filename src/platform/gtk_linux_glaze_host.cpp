@@ -1636,6 +1636,10 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
 
   bool create() {
     if (created) return true;
+
+    // Match the installed desktop/AppStream identity so Wayland compositors
+    // can associate Browser windows with io.goreecloud.Browser.desktop.
+    g_set_prgname("io.goreecloud.Browser");
     if (!gtk_init_check(nullptr, nullptr)) return false;
     auto* display = gdk_display_get_default();
     if (!display) return false;
