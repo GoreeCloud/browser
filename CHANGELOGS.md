@@ -5,6 +5,17 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux tab-close accessibility labels
+
+### Changed
+
+- Replaced the generic `Close Tab` accessibility name on tab close buttons with a tab-specific label derived from the current tab title, while retaining `Close Tab` as the fallback when no title is available.
+- Added a Core CI source-contract assertion so future Linux chrome changes cannot silently regress the per-tab accessible label.
+
+### Acceptance boundary
+
+This improves Browser-owned tab-chrome semantics but does not establish full ATK/AT-SPI, screen-reader, keyboard-navigation, high-contrast, large-text, or representative accessibility acceptance.
+
 ## 2026-10-03 — Linux windowless non-conflicting Alt shortcut forwarding
 
 ### Added

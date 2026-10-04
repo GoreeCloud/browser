@@ -1696,7 +1696,9 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       set_button_icon(close, "×", "window-close-symbolic");
       gtk_widget_set_size_request(close, 34, 34);
       add_style_class(close, "gc-tab-close");
-      set_accessible_name(close, "Close Tab");
+      const std::string close_accessible =
+          tab.title.empty() ? "Close Tab" : "Close " + tab.title + " tab";
+      set_accessible_name(close, close_accessible.c_str());
       g_object_set_data_full(G_OBJECT(close), "gc-tab-id",
                              g_strdup(tab.id.c_str()), g_free);
       g_signal_connect(close, "clicked", G_CALLBACK(on_tab_close_clicked), this);
