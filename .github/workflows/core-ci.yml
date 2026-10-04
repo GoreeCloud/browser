@@ -117,7 +117,10 @@ jobs:
           assert "GOREECLOUD_BROWSER_FORCE_WINDOWLESS" in host
           assert "windowless-frame-presented" in host
           assert "windowless-popup-frame-presented" in host
+          assert "clamp_popup_rect" in host
+          assert "software_popup_rect.x - displayed.x" in host
           assert "NativeSurfaceFrameSink" in surface
+          assert "NativePopupRect" in surface
           assert "present_software_popup_frame" in surface
           assert "clear_software_popup_frame" in surface
           assert "NativeSurfaceInputForwarder" in surface
