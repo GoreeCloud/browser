@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux keyboard tab reordering foundation
+
+### Added
+
+- Added engine-independent tab reordering to `WindowController` while preserving the active tab by stable tab identity.
+- Added bounded move-left and move-right operations for the active tab with no wrap at the strip boundaries.
+- Added GTK tab actions and Ctrl+Shift+PageUp / Ctrl+Shift+PageDown shortcuts that route through the existing Browser-owned tab-action boundary.
+- Strengthened the core runtime smoke to prove two-tab ordering changes in both directions while the same active tab remains active.
+
+### Acceptance boundary
+
+This establishes Development model and keyboard-shortcut support for tab reordering. Representative GTK runtime shortcut interaction, pointer/drag tab-strip reordering, persistence of reordered session state, accessibility behavior during reordering, and the full render-capable Beta multi-tab gate remain open.
+
 ## 2026-10-03 — Linux windowless non-conflicting Alt shortcut forwarding
 
 ### Added
