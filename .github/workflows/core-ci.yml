@@ -113,7 +113,10 @@ jobs:
           assert "GOREECLOUD_BROWSER_FORCE_WINDOWLESS" in host
           assert "windowless-frame-presented" in host
           assert "windowless-popup-frame-presented" in host
+          assert "clamp_popup_rect" in host
+          assert "software_popup_rect.x - displayed.x" in host
           assert "NativeSurfaceFrameSink" in surface
+          assert "NativePopupRect" in surface
           assert "present_software_popup_frame" in surface
           assert "clear_software_popup_frame" in surface
           assert "NativeSurfaceInputForwarder" in surface
@@ -460,13 +463,14 @@ jobs:
           import urllib.parse
 
           html = """
-          <select id="picker" style="position:fixed;left:15%;top:15%;
-              width:70%;height:70%;font-size:48px">
-            <option>GoreeCloud One</option>
-            <option>GoreeCloud Two</option>
-            <option>GoreeCloud Three</option>
-            <option>GoreeCloud Four</option>
-            <option>GoreeCloud Five</option>
+          <select id="picker" autofocus style="position:fixed;left:15%;top:15%;
+              width:70%;height:70%;font-size:48px"
+              onchange="if(this.value==='two')location.href='https://example.com/#goreecloud-popup-ok'">
+            <option value="one" selected>GoreeCloud One</option>
+            <option value="two">GoreeCloud Two</option>
+            <option value="three">GoreeCloud Three</option>
+            <option value="four">GoreeCloud Four</option>
+            <option value="five">GoreeCloud Five</option>
           </select>
           """
           print("data:text/html," + urllib.parse.quote(html, safe=""))
@@ -508,16 +512,21 @@ jobs:
               done
               test "$popup_ready" -eq 1
 
-              xdotool key --clearmodifiers Escape
-              popup_hidden=0
-              for _ in $(seq 1 40); do
-                if grep -Fq "[GoreeCloud CEF] windowless-popup-hidden" "$2"; then
-                  popup_hidden=1
+              xdotool key --clearmodifiers Down Return
+
+              popup_selection_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] windowless-popup-hidden" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-popup-ok" "$2"; then
+                  popup_selection_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
                   break
                 fi
                 sleep 0.25
               done
-              test "$popup_hidden" -eq 1
+              test "$popup_selection_ready" -eq 1
 
               kill "$browser_pid" 2>/dev/null || true
               wait "$browser_pid" 2>/dev/null || true
@@ -532,6 +541,7 @@ jobs:
           grep -Fq "[GoreeCloud CEF] windowless-popup-frame" "${log_file}"
           grep -Fq "[GoreeCloud GTK] windowless-popup-frame-presented" "${log_file}"
           grep -Fq "[GoreeCloud CEF] windowless-popup-hidden" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-popup-ok" "${log_file}"
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during popup smoke" >&2
             exit 1
