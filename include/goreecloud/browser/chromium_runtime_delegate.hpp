@@ -61,6 +61,25 @@ class ChromiumRuntimeView {
     (void)event;
     return false;
   }
+  virtual bool drag_target_enter(NativeDragData data,
+                                 const NativePointerEvent& event,
+                                 std::uint32_t allowed_operations) {
+    (void)data;
+    (void)event;
+    (void)allowed_operations;
+    return false;
+  }
+  virtual bool drag_target_over(const NativePointerEvent& event,
+                                std::uint32_t allowed_operations) {
+    (void)event;
+    (void)allowed_operations;
+    return false;
+  }
+  virtual void drag_target_leave() {}
+  virtual bool drag_target_drop(const NativePointerEvent& event) {
+    (void)event;
+    return false;
+  }
   virtual bool set_text_composition(const std::u16string& text,
                                     int selection_start,
                                     int selection_end) {
