@@ -635,6 +635,98 @@ jobs:
             exit 1
           fi
 
+      - name: Exercise CEF windowless clipboard shortcuts under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+          GOREECLOUD_BROWSER_DISABLE_GTK_IME: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless-clipboard.log"
+          : > "${log_file}"
+          test_url="$(python3 - <<'PY'
+          import urllib.parse
+
+          html = """
+          <input id="source" autofocus value="goreecloud"
+            style="position:fixed;left:0;top:0;width:100%;height:45%;font-size:48px">
+          <input id="target"
+            style="position:fixed;left:0;bottom:0;width:100%;height:45%;font-size:48px">
+          <script>
+          const target = document.getElementById("target");
+          target.addEventListener("input", () => {
+            if (target.value === "goreecloud") {
+              location.href = "https://example.com/#goreecloud-clipboard-ok";
+            }
+          });
+          </script>
+          """
+          print("data:text/html," + urllib.parse.quote(html, safe=""))
+          PY
+          )"
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
+              browser_pid=$!
+
+              window_id=""
+              for _ in $(seq 1 60); do
+                window_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
+                if [ -n "$window_id" ] && grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test -n "$window_id"
+
+              xdotool mousemove --window "$window_id" 640 300 click 1
+              sleep 0.25
+              xdotool key --clearmodifiers ctrl+a
+              xdotool key --clearmodifiers ctrl+c
+              xdotool key --clearmodifiers Tab
+              sleep 0.25
+              xdotool key --clearmodifiers ctrl+v
+
+              clipboard_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-clipboard-ok" "$2"; then
+                  clipboard_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$clipboard_ready" -eq 1
+
+              kill "$browser_pid" 2>/dev/null || true
+              wait "$browser_pid" 2>/dev/null || true
+              exit 0
+            ' sh "${test_url}" "${log_file}"
+
+          cat "${log_file}"
+
+          grep -Fq "mode=windowless" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-key-event type=raw-key-down" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-key-event type=key-up" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-clipboard-ok" "${log_file}"
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during clipboard smoke" >&2
+            exit 1
+          fi
+
       - name: Exercise CEF windowless GTK IME commit under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
