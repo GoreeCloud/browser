@@ -5,6 +5,18 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Linux windowless clipboard shortcut regression
+
+### Added
+
+- Added a pinned-CEF Xvfb runtime regression for ordinary page clipboard shortcuts using the already-integrated non-conflicting Control-key forwarding.
+- The exercise selects `goreecloud` in a source field with Ctrl+A, copies it with Ctrl+C, moves page focus with Tab, pastes with Ctrl+V, and requires the target field DOM to observe the exact value before navigating to a fixed success marker.
+- The first diagnostic run failed in the pre-existing custom-cursor/pointer/context-menu prerequisite before reaching clipboard; a targeted rerun passed that prerequisite, direct keyboard/Control, the clipboard exercise, and GTK IME on the unchanged exact head.
+
+### Acceptance boundary
+
+This establishes Development automated evidence for copy/paste in the pinned CEF/Xvfb environment. It does not establish representative native-Wayland clipboard-manager interoperability, primary-selection behavior, private-context cleanup, accessibility, production approval, Stable, Seal, or Anchor qualification.
+
 ## 2026-10-03 — Linux Wayland windowless popup surface candidate
 
 ### Added
@@ -21,7 +33,7 @@ CEF remains authoritative for popup lifecycle, rectangle, and pixels. Browser ow
 
 ### Acceptance boundary
 
-This is a Development popup-surface candidate pending fresh exact-head validation and guarded integration. It does not establish representative native-Wayland popup placement, selection, dismissal, native-widget interoperability, accessibility, sustained performance, accelerated rendering, production approval, Stable, Seal, or Anchor qualification.
+The popup-surface source is integrated Development behavior and passed exact-head Core CI plus post-merge main validation. It does not establish representative native-Wayland popup placement, selection, dismissal, native-widget interoperability, accessibility, sustained performance, accelerated rendering, production approval, Stable, Seal, or Anchor qualification.
 
 ## 2026-10-03 — Linux Wayland non-conflicting Control shortcut forwarding
 
