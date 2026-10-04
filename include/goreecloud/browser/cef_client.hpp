@@ -74,10 +74,17 @@ class GoreeCloudCefClient final : public CefClient,
   }
 
   void clear_windowless_surface() {
-    std::scoped_lock lock(render_mutex_);
-    frame_sink_ = nullptr;
-    cursor_sink_ = nullptr;
-    context_menu_sink_ = nullptr;
+    NativeSurfaceFrameSink* sink = nullptr;
+    {
+      std::scoped_lock lock(render_mutex_);
+      sink = frame_sink_;
+      frame_sink_ = nullptr;
+      cursor_sink_ = nullptr;
+      context_menu_sink_ = nullptr;
+      popup_visible_ = false;
+      popup_rect_ = CefRect();
+    }
+    if (sink) sink->clear_software_popup_frame();
   }
 
   void GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect) override {
@@ -173,6 +180,37 @@ class GoreeCloudCefClient final : public CefClient,
     return true;
   }
 
+  void OnPopupShow(CefRefPtr<CefBrowser>, bool show) override {
+    CEF_REQUIRE_UI_THREAD();
+
+    NativeSurfaceFrameSink* sink = nullptr;
+    {
+      std::scoped_lock lock(render_mutex_);
+      sink = frame_sink_;
+      popup_visible_ = show;
+      if (!show) popup_rect_ = CefRect();
+    }
+    if (!show && sink) sink->clear_software_popup_frame();
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-popup-"
+                << (show ? "shown" : "hidden") << std::endl;
+    }
+  }
+
+  void OnPopupSize(CefRefPtr<CefBrowser>, const CefRect& rect) override {
+    CEF_REQUIRE_UI_THREAD();
+    {
+      std::scoped_lock lock(render_mutex_);
+      popup_rect_ = rect;
+    }
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-popup-size x=" << rect.x
+                << " y=" << rect.y << " width=" << rect.width
+                << " height=" << rect.height << std::endl;
+    }
+  }
+
   void OnPaint(CefRefPtr<CefBrowser>,
                PaintElementType type,
                const RectList&,
@@ -180,23 +218,42 @@ class GoreeCloudCefClient final : public CefClient,
                int width,
                int height) override {
     CEF_REQUIRE_UI_THREAD();
-    if (type != PET_VIEW || !buffer || width <= 0 || height <= 0) return;
+    if (!buffer || width <= 0 || height <= 0) return;
 
     NativeSurfaceFrameSink* sink = nullptr;
     float scale_factor = 1.0F;
+    CefRect popup_rect;
+    bool popup_visible = false;
     {
       std::scoped_lock lock(render_mutex_);
       sink = frame_sink_;
       scale_factor = scale_factor_;
+      popup_rect = popup_rect_;
+      popup_visible = popup_visible_;
     }
     if (!sink) return;
 
-    sink->present_software_frame(
-        NativeSurfaceFrame{.bgra = static_cast<const std::uint8_t*>(buffer),
-                           .width = width,
-                           .height = height,
-                           .stride = width * 4,
-                           .scale_factor = scale_factor});
+    const NativeSurfaceFrame frame{
+        .bgra = static_cast<const std::uint8_t*>(buffer),
+        .width = width,
+        .height = height,
+        .stride = width * 4,
+        .scale_factor = scale_factor};
+
+    if (type == PET_VIEW) {
+      sink->present_software_frame(frame);
+      return;
+    }
+
+    if (type == PET_POPUP && popup_visible && popup_rect.width > 0 &&
+        popup_rect.height > 0) {
+      sink->present_software_popup_frame(frame, popup_rect.x, popup_rect.y);
+      if (runtime_diagnostics_enabled()) {
+        std::cerr << "[GoreeCloud CEF] windowless-popup-frame size="
+                  << width << "x" << height << " x=" << popup_rect.x
+                  << " y=" << popup_rect.y << std::endl;
+      }
+    }
   }
 
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override {
@@ -795,6 +852,8 @@ class GoreeCloudCefClient final : public CefClient,
   NativeSurfaceFrameSink* frame_sink_{nullptr};
   NativeSurfaceCursorSink* cursor_sink_{nullptr};
   NativeSurfaceContextMenuSink* context_menu_sink_{nullptr};
+  CefRect popup_rect_;
+  bool popup_visible_{false};
   int view_width_{1};
   int view_height_{1};
   float scale_factor_{1.0F};
