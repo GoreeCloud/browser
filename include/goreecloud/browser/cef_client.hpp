@@ -61,6 +61,7 @@ class GoreeCloudCefClient final : public CefClient,
       NativeSurfaceFrameSink* sink,
       NativeSurfaceCursorSink* cursor_sink,
       NativeSurfaceContextMenuSink* context_menu_sink,
+      NativeSurfaceTextInputGeometrySink* text_input_geometry_sink,
       int width,
       int height,
       float scale_factor) {
@@ -68,6 +69,7 @@ class GoreeCloudCefClient final : public CefClient,
     frame_sink_ = sink;
     cursor_sink_ = cursor_sink;
     context_menu_sink_ = context_menu_sink;
+    text_input_geometry_sink_ = text_input_geometry_sink;
     view_width_ = std::max(1, width);
     view_height_ = std::max(1, height);
     scale_factor_ = std::max(0.25F, scale_factor);
@@ -81,6 +83,7 @@ class GoreeCloudCefClient final : public CefClient,
       frame_sink_ = nullptr;
       cursor_sink_ = nullptr;
       context_menu_sink_ = nullptr;
+      text_input_geometry_sink_ = nullptr;
       popup_visible_ = false;
       popup_rect_ = CefRect();
     }
@@ -102,6 +105,45 @@ class GoreeCloudCefClient final : public CefClient,
         CefRect(0, 0, std::max(1, view_width_), std::max(1, view_height_));
     screen_info.available_rect = screen_info.rect;
     return true;
+  }
+
+  void OnImeCompositionRangeChanged(
+      CefRefPtr<CefBrowser>,
+      const CefRange& selected_range,
+      const RectList& character_bounds) override {
+    CEF_REQUIRE_UI_THREAD();
+    if (character_bounds.empty()) return;
+
+    NativeSurfaceTextInputGeometrySink* sink = nullptr;
+    {
+      std::scoped_lock lock(render_mutex_);
+      sink = text_input_geometry_sink_;
+    }
+    if (!sink) return;
+
+    const auto caret_index = std::min<std::size_t>(
+        static_cast<std::size_t>(selected_range.to), character_bounds.size());
+    CefRect caret;
+    if (caret_index < character_bounds.size()) {
+      caret = character_bounds[caret_index];
+    } else {
+      caret = character_bounds.back();
+      caret.x += caret.width;
+      caret.width = 1;
+    }
+
+    NativeTextInputCursorRect rect{
+        .x = caret.x,
+        .y = caret.y,
+        .width = std::max(1, caret.width),
+        .height = std::max(1, caret.height)};
+    sink->update_text_input_cursor_rect(rect);
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-ime-cursor x=" << rect.x
+                << " y=" << rect.y << " width=" << rect.width
+                << " height=" << rect.height << std::endl;
+    }
   }
 
   bool OnCursorChange(CefRefPtr<CefBrowser>,
@@ -852,6 +894,7 @@ class GoreeCloudCefClient final : public CefClient,
   NativeSurfaceFrameSink* frame_sink_{nullptr};
   NativeSurfaceCursorSink* cursor_sink_{nullptr};
   NativeSurfaceContextMenuSink* context_menu_sink_{nullptr};
+  NativeSurfaceTextInputGeometrySink* text_input_geometry_sink_{nullptr};
   CefRect popup_rect_;
   bool popup_visible_{false};
   int view_width_{1};
