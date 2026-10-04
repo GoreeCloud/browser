@@ -3,34 +3,39 @@ title: "GoreeCloud Browser — Glaze UI Adoption"
 document_type: "Design System Adoption Record"
 status: "Development"
 version: "v1.1"
-last_updated: "2026-09-25"
+last_updated: "2026-10-04"
 ---
 
 # GoreeCloud Browser — Glaze UI Adoption
 
-GoreeCloud Browser tracks the current consumer-eligible Glaze UI release. Canonical GoreeCloud lifecycle for GLAZE UI V1.6 is **Anchor**; retained Stable naming is compatibility/release-channel vocabulary. Shared Glaze qualification does not automatically grant Browser acceptance.
+GoreeCloud Browser tracks the current consumer-eligible Glaze release. Canonical GoreeCloud lifecycle for bounded Stable Glaze V1.7 / 1.7.0 is **Anchor**. V1.7.0 intentionally inherits the accepted V1.6.0 runtime; retained V1.7 dev.47 and V1.7.1 Development behavior are outside this Stable consumer mapping. Shared Glaze qualification does not automatically grant Browser acceptance.
 
 ## Current baseline
 
-- Current consumer release: **GLAZE UI V1.6 / 1.6.0**
+- Current consumer baseline: **Glaze V1.7 / 1.7.0**
 - Canonical lifecycle: **Anchor**
 - Compatibility release-channel label: Stable
-- Release tag: `v1.6.0`
-- Canonical repository: `GoreeCloud/glaze-ui`
-- Exact accepted release source: `a7180679ea851389e0f3004515f9a25f420e716d`
-- Qualification source anchor: `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`
-- Qualification evidence integration: `354f5759385c28596fcfec26a3ad525e89fb1c35`
-- Published artifact SHA-256: `687268b5eb76917eccae9d935ffa1bead333d5dee50b6098e996a3f44cee50af`
+- Exact bounded-Stable lifecycle integration anchor: `1a5756daed2294155be2e9972b24f580f6222b7b`
+- Canonical repository: `GoreeCloud/glaze`
+- Published `v1.7.0` GitHub Release/tag: **not claimed by this Browser record**
+- Stable runtime behavior: inherited from **Glaze V1.6 / 1.6.0**
+- Inherited accepted runtime source: `a7180679ea851389e0f3004515f9a25f420e716d`
+- Inherited V1.6 reviewed implementation anchor: `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`
+- Inherited V1.6 qualification integration: `354f5759385c28596fcfec26a3ad525e89fb1c35`
+- Inherited published V1.6 artifact SHA-256: `687268b5eb76917eccae9d935ffa1bead333d5dee50b6098e996a3f44cee50af`
+- V1.7 dev.47 runtime included in Stable mapping: **No**
+- V1.7.1 Development behavior included: **No**
 - Browser policy: `latest-approved-stable`
 - Browser lifecycle: **Development / non-Stable**
-- Browser Glaze result after source migration: **applicable-blocked**
+- Browser Glaze result during migration/acceptance: **applicable-blocked**
 - Production eligibility from source mapping alone: **No**
+- Immediate shared rollback baseline: **Glaze V1.6 / 1.6.0**
 
-The previous Browser V1.5/V1.5.1 evidence remains historical provenance. Reviewed implementation anchor `ee1032a0822ab8e103f8afe48e5c1859fde65cc9`, V1.5.1 qualification source `5b59d0e36950d737dba35b58ae58058684e0831b`, and qualification integration revision `f7ef915f0aabea6cf92748018f2220a99e3a9c92` remain rollback and audit evidence; they do not establish current V1.6 Browser acceptance.
+The prior Browser V1.6 evidence remains inherited runtime and historical consumer provenance. It does not establish fresh V1.7 Browser consumer acceptance, and V1.7 lifecycle promotion does not rebind prior Browser-local rendered/device evidence to a changed Browser source revision.
 
 ## Current Browser source state
 
-Browser source maps its Glaze version/revision and qualification guards to exact V1.6 evidence. The Linux GTK/X11 host carries a Browser-owned V1.6 desktop presentation tranche, and the Android-native contract now targets the same V1.6 source/qualification anchors.
+Browser source is migrating its consumer identity to exact bounded Stable V1.7 lifecycle authority while deliberately retaining the accepted V1.6 runtime behavior and its reviewed qualification provenance. The Linux GTK host and Android-native mapping therefore preserve their accepted V1.6 presentation/authority behavior until fresh Browser-local V1.7 consumer evidence is accepted.
 
 That tranche includes:
 
@@ -59,15 +64,15 @@ Current Glaze adoption applies to Browser-owned application chrome, navigation/s
 
 Engine-critical warnings, certificate UI, operating-system permission dialogs, Developer Tools, and other platform/engine-owned surfaces may retain required native presentation when replacement would reduce security, accessibility, or compatibility.
 
-## V1.6 acceptance still required
+## V1.7 acceptance still required
 
-Browser may not claim accepted V1.6 conformance until repository-local evidence covers applicable target environments. Remaining work includes exact-source validation, rendered Linux and Android review, keyboard and assistive-technology behavior, large text, Reduced Motion, Reduced Transparency, Increased Contrast, closest supported Forced Colors behavior, localization/RTL, adaptive composition, representative-device testing, performance, sustained use, rollback, Human Visual Excellence, renderer-integrated desktop validation, release, signing, deployment, and production acceptance.
+Browser may not claim accepted V1.7 conformance until repository-local evidence covers applicable target environments. Remaining work includes exact-source validation, rendered Linux and Android review, keyboard and assistive-technology behavior, large text, Reduced Motion, Reduced Transparency, Increased Contrast, closest supported Forced Colors behavior, localization/RTL, adaptive composition, representative-device testing, performance, sustained use, rollback, Human Visual Excellence, renderer-integrated desktop validation, release, signing, deployment, and production acceptance.
 
 Until those gates pass, the platform manifest remains nonconformant and Glaze remains `applicable-blocked`.
 
 ## Rollback
 
-The immediate shared Stable rollback baseline for the V1.6 mapping is V1.5.1. Rollback provenance never makes the older baseline current.
+The immediate shared rollback baseline for bounded Stable V1.7 is V1.6 / 1.6.0. Rollback provenance does not make the older baseline the current consumer identity.
 
 ## Production rule
 
