@@ -24,6 +24,25 @@ class NativeSurfaceFrameSink {
   virtual void present_software_frame(const NativeSurfaceFrame& frame) = 0;
 };
 
+struct NativePopupRect {
+  int x{0};
+  int y{0};
+  int width{0};
+  int height{0};
+};
+
+// Optional popup-paint bridge for software/windowless engine surfaces.
+// Popup geometry is expressed in view coordinates while popup frame bytes are
+// engine-owned and must be copied synchronously by implementations that retain
+// them beyond present_popup_frame().
+class NativeSurfacePopupSink {
+ public:
+  virtual ~NativeSurfacePopupSink() = default;
+  virtual void set_popup_visible(bool visible) = 0;
+  virtual void set_popup_rect(NativePopupRect rect) = 0;
+  virtual void present_popup_frame(const NativeSurfaceFrame& frame) = 0;
+};
+
 enum class NativePointerButton {
   left,
   middle,
@@ -192,6 +211,7 @@ struct NativeEngineSurface {
   int height{0};
   float scale_factor{1.0F};
   NativeSurfaceFrameSink* frame_sink{nullptr};
+  NativeSurfacePopupSink* popup_sink{nullptr};
   NativeSurfaceCursorSink* cursor_sink{nullptr};
   NativeSurfaceContextMenuSink* context_menu_sink{nullptr};
 };
