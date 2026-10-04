@@ -12,7 +12,7 @@ Items here are planned, incomplete, blocked, or acceptance-gated. Their presence
 
 ## Current stabilization obligations
 
-- Complete Browser-specific acceptance for the current GLAZE UI V1.6 / 1.6.0 source mapping and Linux desktop presentation tranche: rendered review, accessibility, large text, localization/RTL, adaptive/form-factor/posture behavior, reduced effects, performance, rollback, Human Visual Excellence, and representative-device acceptance.
+- Complete fresh Browser-specific adoption and acceptance for bounded Stable Glaze V1.7 / 1.7.0 while preserving its inherited accepted V1.6.0 runtime: rendered review, accessibility, large text, localization/RTL, adaptive/form-factor/posture behavior, reduced effects, performance, rollback, Human Visual Excellence, and representative-device acceptance. Retained V1.7 dev.47 and V1.7.1 Development behavior remain outside this Stable adoption tranche.
 - Complete issue #33 representative physical-device usability, accessibility, performance, launcher rendering, and practical browser behavior against an exact candidate.
 - Complete Browser-owned multi-tab/session/profile state and process-death/OEM/WebView/network recovery acceptance.
 - Complete website-permission/geolocation UX plus Android runtime-permission mapping, live GoreeCloud Policy/Privacy Shield/Wardveil authority adapters, durable Normal-context decision storage, revocation/reset, private-context cleanup, and representative-device acceptance.
