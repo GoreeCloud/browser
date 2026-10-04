@@ -5,6 +5,24 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Linux Wayland windowless popup surface candidate
+
+### Added
+
+- Added engine-neutral transient popup-frame delivery for software/windowless Browser surfaces, with popup coordinates kept relative to the web view rather than exposing CEF types to GTK.
+- Added CEF OSR `OnPopupShow`, `OnPopupSize`, and `PET_POPUP` handling while preserving the existing `PET_VIEW` frame path.
+- Added GTK popup-frame copying and compositing over the main Browser software surface using the same view coordinate scale.
+- Added explicit popup cleanup on CEF hide, engine detach, and Browser-owned internal-surface transitions.
+- Added a forced-windowless Xvfb runtime smoke that opens an engine-owned HTML `select` popup and requires CEF show/size/paint diagnostics plus GTK popup-frame presentation before Escape dismissal.
+
+### Architecture boundary
+
+CEF remains authoritative for popup lifecycle, rectangle, and pixels. Browser owns only the engine-neutral transient surface handoff and GTK presentation. Native X11/XWayland child-window behavior is unchanged.
+
+### Acceptance boundary
+
+This is a Development popup-surface candidate pending fresh exact-head validation and guarded integration. It does not establish representative native-Wayland popup placement, selection, dismissal, native-widget interoperability, accessibility, sustained performance, accelerated rendering, production approval, Stable, Seal, or Anchor qualification.
+
 ## 2026-10-03 — Linux Wayland non-conflicting Control shortcut forwarding
 
 ### Added
