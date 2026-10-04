@@ -5,6 +5,19 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Release-active Browser runtime smoke checks
+
+### Changed
+
+- Replaced the runtime smoke's 96 dynamic `assert(...)` checks with fail-fast `GC_REQUIRE(...)` checks that remain active when `NDEBUG` is defined.
+- Added requirement diagnostics with the failed expression, source file, and line number.
+- Added a Core CI source contract that requires the Release-active guard and rejects future dynamic `assert(...)` use in `runtime_smoke.cpp`.
+
+### Acceptance boundary
+
+This strengthens automated Development verification only. It does not change Browser product behavior or establish production qualification.
+
+
 ## 2026-10-04 — Glaze V1.7 consumer mapping and documentation governance
 
 ### Changed
