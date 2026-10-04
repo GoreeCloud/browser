@@ -15,6 +15,24 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Linux bounded external-drop candidate on installed-runtime baseline
+
+### Added
+
+- Added an engine-neutral external-drop contract for software/windowless Browser surfaces with payloads limited to copied text or a safe web link.
+- Added GTK native drop-target handling for text and URI-list sources, with copied text bounded to 1 MiB and URI input restricted to exactly one `http` or `https` URL up to 8 KiB.
+- Added CEF OSR drag-target delivery that retains a pending Browser-validated drop until renderer `UpdateDragCursor` acceptance, then completes `DragTargetDrop`; this replaces the earlier next-loop timing guess.
+- Added Release-visible adapter smoke coverage, source-contract assertions, and a real GTK drag-source exercise requiring local-file URI rejection plus renderer-accepted text-drop delivery through the page DOM.
+- Restacked the tranche onto the self-contained Linux CEF install-runtime and Release-active smoke baseline.
+
+### Security boundary
+
+Local `file://` URIs, filenames, file paths, and file contents are intentionally not represented by the Browser-owned drop contract. This tranche does not create new filesystem read authority through drag-and-drop.
+
+### Acceptance boundary
+
+Development candidate only pending fresh exact-head validation on this installed-runtime restack. Representative native-Wayland drag/drop behavior, accepted web-link drop runtime evidence, live drag-hover feedback, outgoing page drags, file-drop support/policy, accessibility, production approval, Stable, Seal, and Anchor remain open.
+
 ## 2026-10-04 — Release-active Browser runtime smoke checks
 
 ### Changed
