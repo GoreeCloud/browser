@@ -1104,6 +1104,49 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     if (content_area) gtk_widget_queue_draw(content_area);
   }
 
+  void present_software_popup_frame(const NativeSurfaceFrame& frame,
+                                    int x,
+                                    int y) override {
+    if (!frame.bgra || frame.width <= 0 || frame.height <= 0 ||
+        frame.stride < frame.width * 4) {
+      return;
+    }
+
+    {
+      std::scoped_lock lock(software_frame_mutex);
+      software_popup_frame.assign(
+          frame.bgra,
+          frame.bgra + static_cast<std::size_t>(frame.stride) *
+                           static_cast<std::size_t>(frame.height));
+      software_popup_width = frame.width;
+      software_popup_height = frame.height;
+      software_popup_stride = frame.stride;
+      software_popup_x = x;
+      software_popup_y = y;
+    }
+
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-popup-frame-presented size="
+                << frame.width << "x" << frame.height
+                << " x=" << x << " y=" << y << std::endl;
+    }
+
+    if (content_area) gtk_widget_queue_draw(content_area);
+  }
+
+  void clear_software_popup_frame() override {
+    {
+      std::scoped_lock lock(software_frame_mutex);
+      software_popup_frame.clear();
+      software_popup_width = 0;
+      software_popup_height = 0;
+      software_popup_stride = 0;
+      software_popup_x = 0;
+      software_popup_y = 0;
+    }
+    if (content_area) gtk_widget_queue_draw(content_area);
+  }
+
   static bool frame_has_visual_content(const NativeSurfaceFrame& frame) {
     if (!frame.bgra || frame.width <= 0 || frame.height <= 0 ||
         frame.stride < frame.width * 4) {
@@ -1154,6 +1197,24 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     cairo_set_source_surface(cr, image, 0.0, 0.0);
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
     cairo_paint(cr);
+
+    if (!software_popup_frame.empty() && software_popup_width > 0 &&
+        software_popup_height > 0 && software_popup_stride > 0) {
+      auto* popup = cairo_image_surface_create_for_data(
+          software_popup_frame.data(), CAIRO_FORMAT_ARGB32,
+          software_popup_width, software_popup_height,
+          software_popup_stride);
+      if (cairo_surface_status(popup) == CAIRO_STATUS_SUCCESS) {
+        cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+        cairo_set_source_surface(
+            cr, popup,
+            static_cast<double>(software_popup_x),
+            static_cast<double>(software_popup_y));
+        cairo_paint(cr);
+      }
+      cairo_surface_destroy(popup);
+    }
+
     cairo_restore(cr);
     cairo_surface_destroy(image);
     return TRUE;
@@ -2121,6 +2182,12 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   int software_frame_width{0};
   int software_frame_height{0};
   int software_frame_stride{0};
+  std::vector<std::uint8_t> software_popup_frame;
+  int software_popup_width{0};
+  int software_popup_height{0};
+  int software_popup_stride{0};
+  int software_popup_x{0};
+  int software_popup_y{0};
   bool software_frame_diagnostic_emitted{false};
   guint media_hover_timer_id{0};
   std::string tab_signature;
@@ -2234,12 +2301,14 @@ void GtkLinuxGlazeWindowHost::detach_engine_view() {
   impl_->attached_view = nullptr;
   impl_->engine_surface_attached = false;
   impl_->software_surface_attached = false;
+  impl_->clear_software_popup_frame();
   impl_->reset_native_cursor();
 }
 
 void GtkLinuxGlazeWindowHost::show_internal_surface(
     std::string_view internal_url) {
   impl_->media_hover.invalidate();
+  impl_->clear_software_popup_frame();
   impl_->reset_native_cursor();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
   if (!impl_->content_stack || !impl_->internal_canvas) return;
