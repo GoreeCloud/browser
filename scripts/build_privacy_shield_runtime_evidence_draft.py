@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import platform
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -168,6 +169,7 @@ def main() -> None:
         "runtime_payload": payload,
     }
     (out / "artifact-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    shutil.copy2(binary, out / binary.name)
 
     if record["accepted_for_runtime"] or record["accepted_for_production"]:
         raise SystemExit("draft evidence must remain non-authorizing")
