@@ -6,7 +6,7 @@
 **Candidate versionCode:** `10007`  
 **Minimum Android:** 8.0 / API 26  
 **Target Android API:** 35  
-**Current GLAZE UI target:** V1.6 / `1.6.0`  
+**Current Glaze target:** V1.7 / `1.7.0` (bounded Stable identity; inherited V1.6.0 runtime)  
 **Canonical GLAZE UI lifecycle:** Anchor  
 **Current Platform Contract:** `0.4` / nine Integral Platform Systems  
 **Production approved:** No
@@ -15,7 +15,7 @@
 
 This target is a real installable GoreeCloud Browser Development beta. Android System WebView/Chromium is a bounded, replaceable rendering-engine dependency; GoreeCloud retains Browser product identity, chrome, navigation/search policy, privacy/security boundaries, state, and integration authority.
 
-The current Android source targets GLAZE UI V1.6 and keeps free-text remote Search fail-closed until the required authorization and authentication evidence exists. Source implementation, emulator execution, or a green APK workflow does not establish representative physical-device acceptance, production approval, or release maturity.
+The current Android source targets bounded Stable Glaze V1.7 / 1.7.0 while preserving the accepted V1.6.0 runtime behavior and keeps free-text remote Search fail-closed until the required authorization and authentication evidence exists. Source implementation, emulator execution, or a green APK workflow does not establish representative physical-device acceptance, production approval, or release maturity.
 
 ## Implemented beta behavior
 
@@ -46,19 +46,20 @@ The Android beta uses Browser-owned native chrome with a compact top omnibox, we
 
 GLAZE UI remains presentation-only. It cannot create authorization, consent, security/privacy truth, provider precedence, navigation authority, service availability, or automatic consequential execution.
 
-## GLAZE UI V1.6 source mapping
+## Glaze V1.7 bounded-Stable source mapping
 
 Current Browser source mapping:
 
-- Consumer release: GLAZE UI V1.6 / `1.6.0`.
+- Required consumer identity: Glaze V1.7 / `1.7.0`.
 - Canonical lifecycle: Anchor.
-- Accepted release source: `a7180679ea851389e0f3004515f9a25f420e716d`.
+- Bounded-Stable lifecycle integration anchor: `1a5756daed2294155be2e9972b24f580f6222b7b`.
+- Inherited accepted V1.6 runtime source: `a7180679ea851389e0f3004515f9a25f420e716d`.
 - Qualification source anchor: `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`.
 - Qualification evidence integration: `354f5759385c28596fcfec26a3ad525e89fb1c35`.
-- Immediate rollback baseline: `1.5.1`.
+- Immediate rollback baseline: Glaze V1.6 / `1.6.0`.
 - Inherited optical baseline: `1.4.1`.
 
-The Android-native Glaze contract targets V1.6 and retains fail-closed provider conflict/absence handling, accessibility precedence, privacy-safe diagnostics, explicit disabled-state presentation, bounded visual complexity, non-color semantic meaning, large-text reflow requirements, and no automatic consequential/fallback execution.
+The Android-native Glaze contract targets bounded Stable V1.7 identity while retaining the accepted V1.6 runtime behavior, fail-closed provider conflict/absence handling, accessibility precedence, privacy-safe diagnostics, explicit disabled-state presentation, bounded visual complexity, non-color semantic meaning, large-text reflow requirements, and no automatic consequential/fallback execution. Retained V1.7 dev.47 and V1.7.1 Development behavior are excluded.
 
 Central Glaze qualification does **not** certify Browser. Browser-specific rendered/native visual, TalkBack/screen-reader, large-text, RTL/localization, Reduced Motion, Reduced Transparency, Increased Contrast, representative device/posture, sustained performance, workflow, rollback, renderer-integrated, and production acceptance remain open.
 
