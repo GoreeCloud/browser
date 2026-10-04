@@ -14,6 +14,9 @@ struct ChromiumAdapterOptions {
   std::filesystem::path subprocess_path;
   std::filesystem::path resources_path;
   std::filesystem::path locales_path;
+  // Writable root for persistent Chromium/CEF profile and site data. Keep
+  // separate from the immutable runtime payload used by installed packages.
+  std::filesystem::path user_data_root;
   int process_argc{0};
   char** process_argv{nullptr};
   bool enable_gpu{true};
