@@ -5,6 +5,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Glaze V1.7 consumer mapping and documentation governance
+
+### Changed
+
+- Advanced Browser source identity guards and Android-native Glaze contract tests to the current bounded Glaze V1.7 / `1.7.0` Anchor release while preserving the accepted V1.6.0 runtime behavior as the inherited implementation and immediate rollback.
+- Pinned the V1.7 Stable-contract qualification source `7c4ded83d7a8725165bb6a55dfb175667cc9589e` and release integration revision `1a5756daed2294155be2e9972b24f580f6222b7b` without importing V1.7.1 Development-only behavior.
+- Updated Browser README, specification, feature inventories, Android beta/user documentation, and platform declaration to distinguish V1.7 source mapping from fresh Browser-local acceptance.
+- Corrected the Android beta documentation artifact identity to `0.1.0-beta.1+android.12` / versionCode `10012`.
+- Added canonical `docs/NOTES.md` and converted the stale root `NOTES.md` into a compatibility pointer.
+
+### Acceptance boundary
+
+This is Development source/contract/documentation migration. It does not establish Browser-local rendered/native Glaze V1.7 acceptance, representative-device accessibility or performance, production approval, Release Candidate, Stable, Seal, or Anchor product maturity.
+
 ## 2026-10-04 — Linux keyboard tab reordering foundation
 
 ### Added
