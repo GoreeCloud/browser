@@ -59,8 +59,16 @@ Changing the CEF pin requires a deliberate Browser dependency update:
 6. record the exact runtime/archive provenance and any compatibility changes;
 7. merge only after the exact Browser source candidate passes applicable checks.
 
+## Current owner-device Development evidence
+
+Exact Browser source `27e1b8a9ecea3feb184425a72cdf8fd6eb9ea89b` built successfully on the owner's Zorin OS 17.3 laptop using this exact pinned CEF archive and provenance record. All 13 configured CTest targets passed.
+
+In the active native Wayland session, normal GTK backend detection selected the Browser windowless CEF path without the Development-only force-windowless override. The Browser created a 1280×723 windowless page surface, completed `https://example.com/` with HTTP 200, and GTK reported a materially non-uniform software frame.
+
+The generated local `chrome-sandbox` helper was not configured root-owned/setuid on that device, so packaged Linux sandbox acceptance remains open. The Browser did not add `--no-sandbox` or weaken its sandbox requirement to obtain the runtime result. See `docs/LINUX_WAYLAND_OWNER_DEVICE_EVIDENCE_2026-10-03.md` for the exact source/environment boundary and open device diagnostics.
+
 An upstream version being newer does not automatically authorize a Browser dependency change.
 
 ## Non-claims
 
-This record does not claim that the current pinned CEF archive has already built or rendered successfully on the owner's laptop. It does not establish Browser Beta acceptance, production readiness, release signing, packaging acceptance, or Stable/Anchor product maturity.
+The current pinned CEF archive has exact-source Development build and native-Wayland page-render evidence on the owner's laptop as recorded above. This record still does not establish full render-capable Browser Beta acceptance, production readiness, packaged sandbox/site-isolation acceptance, release signing, representative interaction/accessibility/performance acceptance, or Stable/Seal/Anchor product maturity.
