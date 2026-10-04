@@ -107,6 +107,10 @@ jobs:
           scaffold = Path("src/chromium_runtime_scaffold.cpp").read_text()
           surface = Path("include/goreecloud/browser/native_engine_surface.hpp").read_text()
           runner = Path("include/goreecloud/browser/platform/gtk_linux_runner.hpp").read_text()
+          factory = Path("include/goreecloud/browser/runtime_engine_factory.hpp").read_text()
+          adapter = Path("include/goreecloud/browser/chromium_adapter.hpp").read_text()
+          cmake = Path("CMakeLists.txt").read_text()
+          launcher = Path("packaging/linux/goreecloud-browser.in").read_text()
 
           assert "if (!display || !GDK_IS_X11_DISPLAY(display)) return false;" not in host
           assert "if (!display) return false;" in host
@@ -128,6 +132,14 @@ jobs:
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
+          assert 'g_set_prgname("io.goreecloud.Browser")' in host
+          assert "GOREECLOUD_BROWSER_USER_DATA_ROOT" in factory
+          assert "user_data_root" in adapter
+          assert "options.user_data_root" in scaffold
+          assert "GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR" in cmake
+          assert 'INSTALL_RPATH "\\$ORIGIN"' in cmake
+          assert "GOREECLOUD_BROWSER_RUNTIME_ROOT" in launcher
+          assert "XDG_DATA_HOME" in launcher
           assert "GtkTabAction::move_left" in host
           assert "GtkTabAction::move_right" in host
           assert "close_accessible" in host
@@ -208,6 +220,88 @@ jobs:
           test -f build-cef-render/chrome_100_percent.pak
           test -f build-cef-render/v8_context_snapshot.bin
           test -f build-cef-render/assets/branding/goreecloud-browser.svg
+      - name: Stage and launch installed Linux CEF runtime
+        env:
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+        run: |
+          set -euo pipefail
+
+          stage="${RUNNER_TEMP}/goreecloud-install"
+          xdg_data="${RUNNER_TEMP}/goreecloud-install-xdg"
+          log_file="${RUNNER_TEMP}/goreecloud-installed-runtime.log"
+          rm -rf "${stage}" "${xdg_data}"
+          mkdir -p "${stage}" "${xdg_data}"
+
+          cmake --install build-cef-render --prefix "${stage}"
+
+          launcher="${stage}/bin/goreecloud-browser"
+          runtime="${stage}/libexec/goreecloud-browser"
+
+          test -x "${launcher}"
+          test -x "${runtime}/goreecloud-browser"
+          test -x "${runtime}/goreecloud-browser-subprocess"
+          test -f "${runtime}/libcef.so"
+          test -f "${runtime}/libEGL.so"
+          test -f "${runtime}/libGLESv2.so"
+          test -f "${runtime}/libvk_swiftshader.so"
+          test -f "${runtime}/libvulkan.so.1"
+          test -f "${runtime}/v8_context_snapshot.bin"
+          test -f "${runtime}/vk_swiftshader_icd.json"
+          test -f "${runtime}/icudtl.dat"
+          test -f "${runtime}/resources.pak"
+          test -f "${runtime}/chrome_100_percent.pak"
+          test -f "${runtime}/chrome_200_percent.pak"
+          test -d "${runtime}/locales"
+          test -f "${runtime}/assets/branding/goreecloud-browser.svg"
+          test ! -d "${runtime}/profile-cache"
+
+          # Model production sandbox ownership for the staged runtime.
+          sudo chown root:root "${runtime}/chrome-sandbox"
+          sudo chmod 4755 "${runtime}/chrome-sandbox"
+
+          : > "${log_file}"
+          trap 'status=$?; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud installed runtime failure log ===" >&2; cat "${log_file}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            env XDG_DATA_HOME="${xdg_data}" \
+            "${launcher}" https://example.com/ >"${log_file}" 2>&1 &
+          runtime_pid=$!
+
+          runtime_ready=0
+          for _ in $(seq 1 90); do
+            if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"; then
+              runtime_ready=1
+              break
+            fi
+            if ! kill -0 "${runtime_pid}" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          kill "${runtime_pid}" 2>/dev/null || true
+          wait "${runtime_pid}" 2>/dev/null || true
+
+          cat "${log_file}"
+
+          test "${runtime_ready}" -eq 1
+          grep -Fq "[GoreeCloud CEF] CefInitialize completed" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
+          test -d "${xdg_data}/goreecloud/browser/cef"
+          test ! -d "${runtime}/profile-cache"
+
+          if grep -Fq "GoreeCloud Browser refuses to initialize Chromium with the sandbox disabled" "${log_file}"; then
+            echo "Installed launcher disabled Chromium sandboxing" >&2
+            exit 1
+          fi
+          if grep -Fq "cache_path directory (profile) is not an absolute path" "${log_file}"; then
+            echo "Installed launcher produced a relative CEF profile path" >&2
+            exit 1
+          fi
+
       - name: Launch sandboxed CEF runtime under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
