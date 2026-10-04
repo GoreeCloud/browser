@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <iostream>
 #include <mutex>
+#include <limits>
 #include <optional>
 #include <thread>
 #include <stdexcept>
@@ -219,6 +220,54 @@ class CefRuntimeView final : public ChromiumRuntimeView {
                 << " character=" << event.character << std::endl;
     }
     return true;
+  }
+
+  bool set_text_composition(const std::u16string& text,
+                            int selection_start,
+                            int selection_end) override {
+    if (!windowless_browser() ||
+        text.size() > static_cast<std::size_t>(std::numeric_limits<int>::max())) {
+      return false;
+    }
+
+    const int text_length = static_cast<int>(text.size());
+    const int start =
+        selection_start < 0 ? 0 :
+        (selection_start > text_length ? text_length : selection_start);
+    const int end =
+        selection_end < start ? start :
+        (selection_end > text_length ? text_length : selection_end);
+
+    client_->browser()->GetHost()->ImeSetComposition(
+        CefString(text),
+        {},
+        CefRange::InvalidRange(),
+        CefRange(start, end));
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-ime-composition length="
+                << text.size() << " selection=" << start << ":" << end
+                << std::endl;
+    }
+    return true;
+  }
+
+  bool commit_text(const std::u16string& text) override {
+    if (!windowless_browser()) return false;
+    client_->browser()->GetHost()->ImeCommitText(
+        CefString(text), CefRange::InvalidRange(), 0);
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-ime-commit length="
+                << text.size() << std::endl;
+    }
+    return true;
+  }
+
+  void cancel_text_composition() override {
+    if (!windowless_browser()) return;
+    client_->browser()->GetHost()->ImeCancelComposition();
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-ime-cancel" << std::endl;
+    }
   }
 
   void set_surface_focus(bool focused) override {

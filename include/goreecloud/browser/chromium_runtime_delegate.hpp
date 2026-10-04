@@ -61,6 +61,19 @@ class ChromiumRuntimeView {
     (void)event;
     return false;
   }
+  virtual bool set_text_composition(const std::u16string& text,
+                                    int selection_start,
+                                    int selection_end) {
+    (void)text;
+    (void)selection_start;
+    (void)selection_end;
+    return false;
+  }
+  virtual bool commit_text(const std::u16string& text) {
+    (void)text;
+    return false;
+  }
+  virtual void cancel_text_composition() {}
   virtual void set_surface_focus(bool focused) { (void)focused; }
 
   // Optional asynchronous media probe. Runtime implementations that do not

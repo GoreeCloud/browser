@@ -437,6 +437,48 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     return dynamic_cast<NativeSurfaceInputForwarder*>(attached_view);
   }
 
+  NativeSurfaceTextInputForwarder* software_text_input_forwarder() {
+    if (!software_surface_attached || !attached_view) return nullptr;
+    return dynamic_cast<NativeSurfaceTextInputForwarder*>(attached_view);
+  }
+
+  static std::optional<std::u16string> utf8_to_utf16(const char* text,
+                                                      gssize length = -1) {
+    if (!text) return std::u16string{};
+    GError* error = nullptr;
+    glong items_written = 0;
+    gunichar2* converted =
+        g_utf8_to_utf16(text, length, nullptr, &items_written, &error);
+    if (!converted) {
+      if (error) g_error_free(error);
+      return std::nullopt;
+    }
+
+    std::u16string result;
+    result.reserve(static_cast<std::size_t>(items_written));
+    for (glong i = 0; i < items_written; ++i) {
+      result.push_back(static_cast<char16_t>(converted[i]));
+    }
+    g_free(converted);
+    if (error) g_error_free(error);
+    return result;
+  }
+
+  static int utf16_cursor_position(const char* text, int character_offset) {
+    if (!text || character_offset <= 0) return 0;
+    const char* cursor = g_utf8_offset_to_pointer(text, character_offset);
+    const auto prefix = utf8_to_utf16(text, cursor - text);
+    return prefix ? static_cast<int>(prefix->size()) : 0;
+  }
+
+  void reset_text_input() {
+    if (auto* forwarder = software_text_input_forwarder()) {
+      forwarder->cancel_text_composition();
+    }
+    ime_preedit_active = false;
+    if (im_context) gtk_im_context_reset(im_context);
+  }
+
   static NativePointerEvent pointer_event(double x, double y, guint state) {
     return NativePointerEvent{.x = static_cast<int>(x),
                               .y = static_cast<int>(y),
@@ -537,12 +579,84 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
                : FALSE;
   }
 
+  static void on_im_commit(GtkIMContext*, gchar* text, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (!self || !text || !*text) return;
+    const auto converted = utf8_to_utf16(text);
+    if (!converted) return;
+
+    if (auto* forwarder = self->software_text_input_forwarder()) {
+      if (forwarder->commit_text(*converted)) {
+        self->ime_preedit_active = false;
+        if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+          std::cerr << "[GoreeCloud GTK] windowless-ime-commit length="
+                    << converted->size() << std::endl;
+        }
+      }
+    }
+  }
+
+  static void on_im_preedit_changed(GtkIMContext* context, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (!self || !context) return;
+
+    gchar* text = nullptr;
+    PangoAttrList* attributes = nullptr;
+    gint cursor_position = 0;
+    gtk_im_context_get_preedit_string(
+        context, &text, &attributes, &cursor_position);
+
+    const auto converted = utf8_to_utf16(text ? text : "");
+    if (attributes) pango_attr_list_unref(attributes);
+    if (!converted) {
+      g_free(text);
+      return;
+    }
+
+    auto* forwarder = self->software_text_input_forwarder();
+    if (!forwarder) {
+      g_free(text);
+      return;
+    }
+
+    if (converted->empty()) {
+      if (self->ime_preedit_active) {
+        forwarder->cancel_text_composition();
+      }
+      self->ime_preedit_active = false;
+      g_free(text);
+      return;
+    }
+
+    const int selection =
+        utf16_cursor_position(text ? text : "", cursor_position);
+    if (forwarder->set_text_composition(*converted, selection, selection)) {
+      self->ime_preedit_active = true;
+      if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+        std::cerr << "[GoreeCloud GTK] windowless-ime-preedit length="
+                  << converted->size() << " cursor=" << selection << std::endl;
+      }
+    }
+    g_free(text);
+  }
+
+  static void on_im_preedit_end(GtkIMContext*, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (self) self->ime_preedit_active = false;
+  }
+
   static gboolean on_content_key(GtkWidget*, GdkEventKey* event,
                                   gpointer data) {
     auto* self = static_cast<Impl*>(data);
     auto* forwarder = self->software_input_forwarder();
     if (!forwarder || !event || defer_key_to_browser_chrome(*event)) {
       return FALSE;
+    }
+
+    if (self->im_context &&
+        !environment_flag_enabled("GOREECLOUD_BROWSER_DISABLE_GTK_IME") &&
+        gtk_im_context_filter_keypress(self->im_context, event)) {
+      return TRUE;
     }
 
     const int vkey = virtual_key_code(event->keyval);
@@ -585,11 +699,22 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     return handled ? TRUE : FALSE;
   }
 
-  static gboolean on_content_focus(GtkWidget*, GdkEventFocus* event,
+  static gboolean on_content_focus(GtkWidget* widget, GdkEventFocus* event,
                                    gpointer data) {
     auto* self = static_cast<Impl*>(data);
+    const bool focused = event && event->in;
     if (auto* forwarder = self->software_input_forwarder()) {
-      forwarder->set_surface_focus(event && event->in);
+      forwarder->set_surface_focus(focused);
+    }
+    if (self->im_context) {
+      if (focused) {
+        gtk_im_context_set_client_window(
+            self->im_context, widget ? gtk_widget_get_window(widget) : nullptr);
+        gtk_im_context_focus_in(self->im_context);
+      } else {
+        gtk_im_context_focus_out(self->im_context);
+        self->reset_text_input();
+      }
     }
     return FALSE;
   }
@@ -1285,6 +1410,14 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     gtk_box_pack_start(GTK_BOX(root), content_stack, TRUE, TRUE, 0);
 
     content_area = gtk_drawing_area_new();
+    im_context = gtk_im_multicontext_new();
+    gtk_im_context_set_use_preedit(im_context, TRUE);
+    g_signal_connect(im_context, "commit",
+                     G_CALLBACK(on_im_commit), this);
+    g_signal_connect(im_context, "preedit-changed",
+                     G_CALLBACK(on_im_preedit_changed), this);
+    g_signal_connect(im_context, "preedit-end",
+                     G_CALLBACK(on_im_preedit_end), this);
     gtk_widget_set_hexpand(content_area, TRUE);
     gtk_widget_set_vexpand(content_area, TRUE);
     gtk_stack_add_named(GTK_STACK(content_stack), content_area, "web");
@@ -1875,6 +2008,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   GtkWidget* overflow_popover{nullptr};
   GtkWidget* content_stack{nullptr};
   GtkWidget* content_area{nullptr};
+  GtkIMContext* im_context{nullptr};
   GtkWidget* active_context_popover{nullptr};
   std::optional<NativeCursorType> active_cursor;
   GtkWidget* internal_canvas{nullptr};
@@ -1912,6 +2046,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   bool close_requested{false};
   bool engine_surface_attached{false};
   bool software_surface_attached{false};
+  bool ime_preedit_active{false};
 };
 
 GtkLinuxGlazeWindowHost::GtkLinuxGlazeWindowHost()
@@ -1921,6 +2056,10 @@ GtkLinuxGlazeWindowHost::~GtkLinuxGlazeWindowHost() {
   if (!impl_) return;
   impl_->stop_media_hover_timer();
   detach_engine_view();
+  if (impl_->im_context) {
+    g_object_unref(impl_->im_context);
+    impl_->im_context = nullptr;
+  }
   if (impl_->css) {
     g_object_unref(impl_->css);
     impl_->css = nullptr;
@@ -1997,6 +2136,7 @@ void GtkLinuxGlazeWindowHost::attach_engine_view(EngineView& view) {
 void GtkLinuxGlazeWindowHost::detach_engine_view() {
   impl_->media_hover.invalidate();
   impl_->current_media_target.reset();
+  impl_->reset_text_input();
   if (impl_->content_area) hide_gtk_media_hover_popover(impl_->content_area);
   if (impl_->attached_view) {
     if (auto* attachable =
