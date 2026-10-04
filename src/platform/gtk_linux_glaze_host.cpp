@@ -36,6 +36,27 @@ bool environment_flag_enabled(const char* name) {
   return value && *value && std::string_view{value} != "0";
 }
 
+inline constexpr std::size_t kMaxExternalDragTextBytes = 64U * 1024U;
+inline constexpr std::size_t kMaxExternalDragUrlBytes = 8U * 1024U;
+
+enum GtkDragTargetInfo : guint {
+  kGtkDragTargetText = 1,
+  kGtkDragTargetUriList = 2,
+};
+
+bool safe_web_drag_url(std::string_view value) {
+  if (value.empty() || value.size() > kMaxExternalDragUrlBytes) return false;
+  constexpr std::string_view kHttp = "http://";
+  constexpr std::string_view kHttps = "https://";
+  const bool http =
+      value.size() >= kHttp.size() &&
+      g_ascii_strncasecmp(value.data(), kHttp.data(), kHttp.size()) == 0;
+  const bool https =
+      value.size() >= kHttps.size() &&
+      g_ascii_strncasecmp(value.data(), kHttps.data(), kHttps.size()) == 0;
+  return http || https;
+}
+
 void add_style_class(GtkWidget* widget, const char* class_name) {
   gtk_style_context_add_class(gtk_widget_get_style_context(widget), class_name);
 }
@@ -460,6 +481,37 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     return dynamic_cast<NativeSurfaceTextInputForwarder*>(attached_view);
   }
 
+  NativeSurfaceDragTargetForwarder* software_drag_target_forwarder() {
+    if (!software_surface_attached || !attached_view) return nullptr;
+    return dynamic_cast<NativeSurfaceDragTargetForwarder*>(attached_view);
+  }
+
+  static std::uint32_t native_drag_operations(GdkDragContext* context) {
+    if (!context) return native_drag_none;
+    const auto actions = gdk_drag_context_get_actions(context);
+    std::uint32_t operations = native_drag_none;
+    if (actions & GDK_ACTION_COPY) operations |= native_drag_copy;
+    if (actions & GDK_ACTION_LINK) operations |= native_drag_link;
+    return operations;
+  }
+
+  static GdkDragAction preferred_drag_action(
+      GdkDragContext* context, std::uint32_t operations) {
+    if (!context || operations == native_drag_none) {
+      return static_cast<GdkDragAction>(0);
+    }
+    const auto suggested = gdk_drag_context_get_suggested_action(context);
+    if (suggested == GDK_ACTION_LINK && (operations & native_drag_link)) {
+      return GDK_ACTION_LINK;
+    }
+    if (suggested == GDK_ACTION_COPY && (operations & native_drag_copy)) {
+      return GDK_ACTION_COPY;
+    }
+    if (operations & native_drag_copy) return GDK_ACTION_COPY;
+    if (operations & native_drag_link) return GDK_ACTION_LINK;
+    return static_cast<GdkDragAction>(0);
+  }
+
   static std::optional<std::u16string> utf8_to_utf16(const char* text,
                                                       gssize length = -1) {
     if (!text) return std::u16string{};
@@ -717,6 +769,125 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     }
 
     return handled ? TRUE : FALSE;
+  }
+
+  static gboolean on_content_drag_motion(GtkWidget* widget,
+                                            GdkDragContext* context,
+                                            gint,
+                                            gint,
+                                            guint time,
+                                            gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (!self || !self->software_drag_target_forwarder()) return FALSE;
+    if (gtk_drag_dest_find_target(widget, context, nullptr) == GDK_NONE) {
+      return FALSE;
+    }
+    const auto operations = native_drag_operations(context);
+    const auto action = preferred_drag_action(context, operations);
+    if (action == static_cast<GdkDragAction>(0)) return FALSE;
+    gdk_drag_status(context, action, time);
+    return TRUE;
+  }
+
+  static gboolean on_content_drag_drop(GtkWidget* widget,
+                                       GdkDragContext* context,
+                                       gint x,
+                                       gint y,
+                                       guint time,
+                                       gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (!self || !self->software_drag_target_forwarder()) return FALSE;
+
+    const auto target = gtk_drag_dest_find_target(widget, context, nullptr);
+    if (target == GDK_NONE) return FALSE;
+
+    self->drag_drop_pending = true;
+    self->drag_drop_x = x;
+    self->drag_drop_y = y;
+    gtk_drag_get_data(widget, context, target, time);
+    return TRUE;
+  }
+
+  static void on_content_drag_data_received(GtkWidget*,
+                                            GdkDragContext* context,
+                                            gint x,
+                                            gint y,
+                                            GtkSelectionData* selection,
+                                            guint info,
+                                            guint time,
+                                            gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (!self || !self->drag_drop_pending || !selection) return;
+    self->drag_drop_pending = false;
+
+    auto* forwarder = self->software_drag_target_forwarder();
+    if (!forwarder) {
+      gtk_drag_finish(context, FALSE, FALSE, time);
+      return;
+    }
+
+    NativeDragData drag_data;
+    std::uint32_t operations = native_drag_operations(context);
+    const char* kind = "rejected";
+
+    if (info == kGtkDragTargetText) {
+      gchar* text = reinterpret_cast<gchar*>(
+          gtk_selection_data_get_text(selection));
+      if (text) {
+        const std::string_view value{text};
+        if (!value.empty() && value.size() <= kMaxExternalDragTextBytes) {
+          drag_data.text.assign(value);
+          operations &= native_drag_copy;
+          kind = "text";
+        }
+        g_free(text);
+      }
+    } else if (info == kGtkDragTargetUriList) {
+      gchar** uris = gtk_selection_data_get_uris(selection);
+      if (uris) {
+        for (std::size_t i = 0; uris[i]; ++i) {
+          const std::string_view value{uris[i]};
+          if (safe_web_drag_url(value)) {
+            drag_data.link_url.assign(value);
+            kind = "web-link";
+            break;
+          }
+        }
+        g_strfreev(uris);
+      }
+      operations &= (native_drag_copy | native_drag_link);
+    }
+
+    bool handled = false;
+    if (operations != native_drag_none &&
+        (!drag_data.text.empty() || !drag_data.link_url.empty())) {
+      NativePointerEvent event{
+          .x = self->drag_drop_x,
+          .y = self->drag_drop_y,
+          .modifiers = native_modifier_none};
+      handled = forwarder->drag_target_enter(
+          std::move(drag_data), event, operations);
+      if (handled) {
+        handled = forwarder->drag_target_over(event, operations) &&
+                  forwarder->drag_target_drop(event);
+      }
+    }
+
+    gtk_drag_finish(context, handled ? TRUE : FALSE, FALSE, time);
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-drag-drop "
+                << (handled ? "accepted" : "rejected")
+                << " kind=" << kind
+                << " x=" << x << " y=" << y << std::endl;
+    }
+  }
+
+  static void on_content_drag_leave(GtkWidget*,
+                                    GdkDragContext*,
+                                    guint,
+                                    gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (self) self->drag_drop_pending = false;
   }
 
   static gboolean on_content_focus(GtkWidget* widget, GdkEventFocus* event,
@@ -1600,6 +1771,26 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     g_signal_connect(content_area, "focus-out-event",
                      G_CALLBACK(on_content_focus), this);
 
+    GtkTargetEntry drag_targets[] = {
+        {const_cast<gchar*>("text/plain;charset=utf-8"), 0,
+         kGtkDragTargetText},
+        {const_cast<gchar*>("UTF8_STRING"), 0, kGtkDragTargetText},
+        {const_cast<gchar*>("text/plain"), 0, kGtkDragTargetText},
+        {const_cast<gchar*>("text/uri-list"), 0, kGtkDragTargetUriList},
+    };
+    gtk_drag_dest_set(
+        content_area, GTK_DEST_DEFAULT_HIGHLIGHT,
+        drag_targets, static_cast<gint>(std::size(drag_targets)),
+        static_cast<GdkDragAction>(GDK_ACTION_COPY | GDK_ACTION_LINK));
+    g_signal_connect(content_area, "drag-motion",
+                     G_CALLBACK(on_content_drag_motion), this);
+    g_signal_connect(content_area, "drag-drop",
+                     G_CALLBACK(on_content_drag_drop), this);
+    g_signal_connect(content_area, "drag-data-received",
+                     G_CALLBACK(on_content_drag_data_received), this);
+    g_signal_connect(content_area, "drag-leave",
+                     G_CALLBACK(on_content_drag_leave), this);
+
     build_internal_surface();
     build_panel_surface();
 
@@ -2199,6 +2390,9 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   bool engine_surface_attached{false};
   bool software_surface_attached{false};
   bool ime_preedit_active{false};
+  bool drag_drop_pending{false};
+  int drag_drop_x{0};
+  int drag_drop_y{0};
 };
 
 GtkLinuxGlazeWindowHost::GtkLinuxGlazeWindowHost()
