@@ -213,6 +213,13 @@ if(GOREECLOUD_ENABLE_LINUX_GTK_HOST)
   )
   target_link_libraries(goreecloud_browser PRIVATE PkgConfig::GTK3)
   target_compile_definitions(goreecloud_browser PRIVATE GOREECLOUD_ENABLE_LINUX_GTK_HOST=1)
+
+  add_executable(goreecloud_browser_gtk_drop_source_smoke
+    apps/browser/gtk_drop_source_smoke.cpp)
+  target_link_libraries(goreecloud_browser_gtk_drop_source_smoke
+    PRIVATE PkgConfig::GTK3)
+  goreecloud_apply_warnings(goreecloud_browser_gtk_drop_source_smoke)
+
   add_custom_command(TARGET goreecloud_browser POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
             "$<TARGET_FILE_DIR:goreecloud_browser>/assets/branding"
