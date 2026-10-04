@@ -583,7 +583,7 @@ jobs:
             sudo chmod 4755 build-cef-render/chrome-sandbox
           fi
 
-          test -x build-cef-render/goreecloud_browser_gtk_drop_source_smoke
+          test -x build-cef-render/Release/goreecloud_browser_gtk_drop_source_smoke
 
           log_file="${RUNNER_TEMP}/goreecloud-cef-windowless-drop.log"
           : > "${log_file}"
@@ -616,7 +616,7 @@ jobs:
               set -e
               ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
               browser_pid=$!
-              build-cef-render/goreecloud_browser_gtk_drop_source_smoke &
+              build-cef-render/Release/goreecloud_browser_gtk_drop_source_smoke &
               source_pid=$!
               cleanup() {
                 kill "$source_pid" "$browser_pid" 2>/dev/null || true
