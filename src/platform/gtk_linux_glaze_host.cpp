@@ -945,6 +945,71 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     }
   }
 
+  void apply_custom_cursor(NativeCustomCursor cursor) override {
+    active_cursor.reset();
+    if (!content_area || !gtk_widget_get_realized(content_area)) return;
+
+    auto* window = gtk_widget_get_window(content_area);
+    if (!window) return;
+    auto* display = gdk_window_get_display(window);
+    if (!display) return;
+
+    const auto expected =
+        static_cast<std::size_t>(cursor.width) *
+        static_cast<std::size_t>(cursor.height) * 4U;
+    if (cursor.width <= 0 || cursor.height <= 0 ||
+        cursor.bgra.size() != expected) {
+      reset_native_cursor();
+      if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+        std::cerr << "[GoreeCloud GTK] windowless-custom-cursor-rejected size="
+                  << cursor.width << "x" << cursor.height << std::endl;
+      }
+      return;
+    }
+
+    auto* pixbuf = gdk_pixbuf_new(
+        GDK_COLORSPACE_RGB, TRUE, 8, cursor.width, cursor.height);
+    if (!pixbuf) {
+      reset_native_cursor();
+      return;
+    }
+
+    auto* pixels = gdk_pixbuf_get_pixels(pixbuf);
+    const int row_stride = gdk_pixbuf_get_rowstride(pixbuf);
+    for (int y = 0; y < cursor.height; ++y) {
+      auto* output_row = pixels + static_cast<std::size_t>(y) * row_stride;
+      const auto* input_row =
+          cursor.bgra.data() +
+          static_cast<std::size_t>(y) * cursor.width * 4U;
+      for (int x = 0; x < cursor.width; ++x) {
+        const auto* input = input_row + static_cast<std::size_t>(x) * 4U;
+        auto* output = output_row + static_cast<std::size_t>(x) * 4U;
+        output[0] = input[2];
+        output[1] = input[1];
+        output[2] = input[0];
+        output[3] = input[3];
+      }
+    }
+
+    auto* native_cursor = gdk_cursor_new_from_pixbuf(
+        display, pixbuf, cursor.hotspot_x, cursor.hotspot_y);
+    g_object_unref(pixbuf);
+    if (!native_cursor) {
+      reset_native_cursor();
+      return;
+    }
+
+    gdk_window_set_cursor(window, native_cursor);
+    g_object_unref(native_cursor);
+
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-custom-cursor-applied size="
+                << cursor.width << "x" << cursor.height
+                << " hotspot=" << cursor.hotspot_x << "," << cursor.hotspot_y
+                << " scale=" << cursor.scale_factor << std::endl;
+    }
+  }
+
   void show_native_context_menu(
       NativeContextMenuRequest request,
       NativeContextMenuSelectionCallback callback) override {
