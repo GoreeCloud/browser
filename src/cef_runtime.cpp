@@ -19,6 +19,7 @@
 #include "include/cef_browser.h"
 #include "include/cef_drag_data.h"
 #include "include/cef_request_context.h"
+#include "include/wrapper/cef_closure_task.h"
 #endif
 
 namespace goreecloud::browser {
@@ -261,14 +262,29 @@ class CefRuntimeView final : public ChromiumRuntimeView {
     auto host = client_->browser()->GetHost();
     host->DragTargetDragEnter(drag_data, mouse_event, allowed_ops);
     host->DragTargetDragOver(mouse_event, allowed_ops);
-    host->DragTargetDrop(mouse_event);
+
+    // Chromium expects target drag lifecycle messages over time. Posting Drop
+    // to the next CEF UI-loop turn gives renderer-side dragenter/dragover state
+    // a chance to settle before completion instead of collapsing all three
+    // events into one GTK callback.
+    const bool drop_queued = CefPostTask(
+        TID_UI,
+        base::BindOnce(
+            [](CefRefPtr<CefBrowserHost> drop_host, CefMouseEvent drop_event) {
+              if (drop_host) drop_host->DragTargetDrop(drop_event);
+            },
+            host, mouse_event));
+    if (!drop_queued) {
+      host->DragTargetDragLeave();
+      return false;
+    }
 
     if (cef_runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] windowless-drop kind="
                 << (has_link ? "link" : "text")
                 << " x=" << event.x << " y=" << event.y
                 << " bytes=" << (has_link ? data.link_url.size() : data.text.size())
-                << std::endl;
+                << " completion=queued" << std::endl;
     }
     return true;
   }
