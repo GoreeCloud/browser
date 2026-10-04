@@ -5,6 +5,27 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-03 — Fresh exact-main Linux Wayland owner-device evidence
+
+### Verified
+
+- Built exact Browser source `27e1b8a9ecea3feb184425a72cdf8fd6eb9ea89b` on the owner's Zorin OS 17.3 laptop against the repository-pinned CEF `152.0.6+g708dc14+chromium-152.0.7977.83` runtime; all 13 configured CTest targets passed.
+- Launched the exact source in the active GNOME/Zorin Wayland session with normal GTK backend selection and without the Development force-windowless override.
+- CEF created a 1280×723 windowless surface, completed `https://example.com/` with HTTP 200, and GTK reported a materially non-uniform software frame.
+- Preserved the Browser sandbox requirement; no `--no-sandbox` bypass was used.
+- Recorded the retained local runtime log identity as SHA-256 `6216b70d693f0fe467aece3e3f1c826033ada69692dc126ab770c29d468f3e66`.
+
+### Open observations
+
+- The local generated `chrome-sandbox` helper was not root-owned/setuid, so packaged sandbox acceptance remains open.
+- The device VAAPI version is below the current Chromium path's reported minimum.
+- Chromium emitted an NSS root-certificate loading diagnostic even though the tested HTTPS request completed successfully.
+- The bounded external timeout produced expected shutdown/zygote diagnostics; sustained-session and graceful-shutdown acceptance remain open.
+
+### Acceptance boundary
+
+This advances Development evidence for exact-source owner-device native-Wayland startup and page-frame delivery only. It does not establish human visual-quality acceptance, representative interaction/IME/popup/clipboard/drag-and-drop acceptance, accessibility, performance/power, packaged sandbox/site-isolation, private-context isolation, production approval, Stable, Seal, or Anchor qualification. See `docs/LINUX_WAYLAND_OWNER_DEVICE_EVIDENCE_2026-10-03.md`.
+
 ## 2026-10-03 — Linux CEF runtime failure-log preservation
 
 ### Changed
