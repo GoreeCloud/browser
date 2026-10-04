@@ -1,11 +1,11 @@
 package io.goreecloud.browser
 
 /**
- * Browser-owned Android-native mapping for GLAZE UI V1.6 / 1.6.0.
+ * Browser-owned Android-native mapping for Glaze V1.7 / 1.7.0.
  *
- * V1.6 retains the inherited optical and authority boundaries while adding
- * stronger component-state, accessibility, large-text, responsive-continuity,
- * localization, status-provenance, and bounded-complexity requirements. Glaze
+ * V1.7 is a bounded Stable/Anchor identity that inherits the accepted V1.6
+ * runtime behavior and authority boundaries; Browser-local V1.7 acceptance
+ * remains separate from this source mapping. Glaze
  * consumes authority truth supplied by the owning system; it never creates
  * authorization, permission, provider precedence, navigation authority, or
  * execution authority.
@@ -15,14 +15,14 @@ package io.goreecloud.browser
  * production acceptance remain separate gates.
  */
 object GlazeContract {
-    const val VERSION = "1.6.0"
-    const val STABLE_RELEASE_REVISION = "a7180679ea851389e0f3004515f9a25f420e716d"
-    const val REVIEWED_IMPLEMENTATION_ANCHOR = "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"
-    const val QUALIFICATION_SOURCE_ANCHOR = "c7509c79256b04b0aa67cb9dd0737d7588e0ae4a"
-    const val QUALIFICATION_INTEGRATION_REVISION = "354f5759385c28596fcfec26a3ad525e89fb1c35"
+    const val VERSION = "1.7.0"
+    const val STABLE_RELEASE_REVISION = "1a5756daed2294155be2e9972b24f580f6222b7b"
+    const val REVIEWED_IMPLEMENTATION_ANCHOR = "a7180679ea851389e0f3004515f9a25f420e716d"
+    const val QUALIFICATION_SOURCE_ANCHOR = "7c4ded83d7a8725165bb6a55dfb175667cc9589e"
+    const val QUALIFICATION_INTEGRATION_REVISION = "1a5756daed2294155be2e9972b24f580f6222b7b"
     const val OPTICAL_BASELINE_VERSION = "1.4.1"
     const val OPTICAL_BASELINE_REVISION = "4fab9da0fad2e5c974e0e66ec88632c61745751c"
-    const val IMMEDIATE_ROLLBACK_VERSION = "1.5.1"
+    const val IMMEDIATE_ROLLBACK_VERSION = "1.6.0"
 
     // Compatibility names retained for existing Browser source consumers.
     // ACCEPTED_VISUAL_SOURCE identifies the reviewed central Glaze implementation
