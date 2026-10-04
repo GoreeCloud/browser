@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <cassert>
+#include <iostream>
 #include <memory>
 #include <string>
 
@@ -23,6 +23,15 @@
 #include "goreecloud/browser/unified_search_bar.hpp"
 #include "goreecloud/browser/version.hpp"
 #include "goreecloud/browser/window_controller.hpp"
+
+#define GC_REQUIRE(condition)                                                   \
+  do {                                                                          \
+    if (!(condition)) {                                                         \
+      std::cerr << "runtime smoke requirement failed: " #condition             \
+                << " at " << __FILE__ << ":" << __LINE__ << std::endl;         \
+      return 1;                                                                 \
+    }                                                                           \
+  } while (false)
 
 int main() {
   using namespace goreecloud::browser;
@@ -61,15 +70,15 @@ int main() {
         .current = true,
         .production_accepted = false,
     });
-    assert(!service_capability_available(search_health, "search.query", "1"));
+    GC_REQUIRE(!service_capability_available(search_health, "search.query", "1"));
 
     search_health.capabilities.front().production_accepted = true;
-    assert(service_capability_available(search_health, "search.query", "1"));
-    assert(!service_capability_available(search_health, "search.query", "2"));
-    assert(!service_capability_available(search_health, "vault.secrets", "1"));
+    GC_REQUIRE(service_capability_available(search_health, "search.query", "1"));
+    GC_REQUIRE(!service_capability_available(search_health, "search.query", "2"));
+    GC_REQUIRE(!service_capability_available(search_health, "vault.secrets", "1"));
 
     search_health.capabilities.front().contract_version.clear();
-    assert(!service_capability_available(search_health, "search.query"));
+    GC_REQUIRE(!service_capability_available(search_health, "search.query"));
     search_health.capabilities.front().contract_version = "1";
 
     search_health.capabilities.push_back(CapabilityEvidence{
@@ -79,17 +88,17 @@ int main() {
         .current = true,
         .production_accepted = false,
     });
-    assert(!service_capability_available(search_health, "search.query", "1"));
+    GC_REQUIRE(!service_capability_available(search_health, "search.query", "1"));
     search_health.capabilities.pop_back();
 
     search_health.capabilities.front().current = false;
-    assert(!service_capability_available(search_health, "search.query", "1"));
+    GC_REQUIRE(!service_capability_available(search_health, "search.query", "1"));
     search_health.capabilities.front().current = true;
     search_health.capabilities.front().authoritative = false;
-    assert(!service_capability_available(search_health, "search.query", "1"));
+    GC_REQUIRE(!service_capability_available(search_health, "search.query", "1"));
     search_health.capabilities.front().authoritative = true;
     search_health.status = ServiceStatus::degraded;
-    assert(!service_capability_available(search_health, "search.query", "1"));
+    GC_REQUIRE(!service_capability_available(search_health, "search.query", "1"));
   }
 
   {
@@ -98,41 +107,41 @@ int main() {
     char url[] = "https://example.com/";
     char* argv[]{executable, private_flag, url};
     const auto launch = parse_browser_launch_request(3, argv);
-    assert(launch.private_window);
-    assert(!launch.isolated_private_window);
-    assert(launch.urls.size() == 1);
-    assert(launch.urls.front() == "https://example.com/");
+    GC_REQUIRE(launch.private_window);
+    GC_REQUIRE(!launch.isolated_private_window);
+    GC_REQUIRE(launch.urls.size() == 1);
+    GC_REQUIRE(launch.urls.front() == "https://example.com/");
   }
 
   ConfiguredGoreeCloudSearchRouter search_router("https://search.goreecloud.test/search");
   OmniboxController omnibox(search_router);
   const auto url_resolution = omnibox.resolve("example.com");
-  assert(url_resolution.intent == OmniboxIntent::direct_navigation);
-  assert(url_resolution.value == "https://example.com");
+  GC_REQUIRE(url_resolution.intent == OmniboxIntent::direct_navigation);
+  GC_REQUIRE(url_resolution.value == "https://example.com");
   const auto search_resolution = omnibox.resolve("goreecloud browser beta");
-  assert(search_resolution.intent == OmniboxIntent::goreecloud_search);
-  assert(search_resolution.value.find("https://search.goreecloud.test/search?q=") == 0);
+  GC_REQUIRE(search_resolution.intent == OmniboxIntent::goreecloud_search);
+  GC_REQUIRE(search_resolution.value.find("https://search.goreecloud.test/search?q=") == 0);
 
-  assert(browser_tab_title(kNewTabUrl, kNewTabUrl) == "New Tab");
-  assert(browser_tab_title(kHomeUrl, kHomeUrl) == "Home");
-  assert(browser_location_text(kNewTabUrl).empty());
-  assert(browser_location_text(kHomeUrl).empty());
-  assert(browser_location_text("https://example.com/") == "https://example.com/");
+  GC_REQUIRE(browser_tab_title(kNewTabUrl, kNewTabUrl) == "New Tab");
+  GC_REQUIRE(browser_tab_title(kHomeUrl, kHomeUrl) == "Home");
+  GC_REQUIRE(browser_location_text(kNewTabUrl).empty());
+  GC_REQUIRE(browser_location_text(kHomeUrl).empty());
+  GC_REQUIRE(browser_location_text("https://example.com/") == "https://example.com/");
 
   {
     const auto bookmarks_panel = browser_panel_presentation("bookmarks");
-    assert(bookmarks_panel.title == "Bookmarks");
-    assert(bookmarks_panel.eyebrow == "LIBRARY");
-    assert(bookmarks_panel.body.find("Local Bookmarks") != std::string::npos);
+    GC_REQUIRE(bookmarks_panel.title == "Bookmarks");
+    GC_REQUIRE(bookmarks_panel.eyebrow == "LIBRARY");
+    GC_REQUIRE(bookmarks_panel.body.find("Local Bookmarks") != std::string::npos);
 
     const auto downloads_panel = browser_panel_presentation(
         "Advanced Download Manager\nActive 0  Completed 0\nNo downloads.");
-    assert(downloads_panel.title == "Downloads");
-    assert(downloads_panel.body.find("No downloads.") != std::string::npos);
+    GC_REQUIRE(downloads_panel.title == "Downloads");
+    GC_REQUIRE(downloads_panel.body.find("No downloads.") != std::string::npos);
 
     const auto security_panel = browser_panel_presentation("wardveil-security");
-    assert(security_panel.title == "Security");
-    assert(security_panel.status.find("pending") != std::string::npos);
+    GC_REQUIRE(security_panel.title == "Security");
+    GC_REQUIRE(security_panel.status.find("pending") != std::string::npos);
   }
 
   {
@@ -153,43 +162,43 @@ int main() {
     hit.copyable = true;
 
     const auto normalized = MediaTargetDetector::normalize(hit);
-    assert(normalized);
-    assert(normalized->kind == MediaKind::image);
-    assert(normalized->media_url == hit.media_url);
-    assert(normalized->link_url == hit.link_url);
-    assert(normalized->can_download);
-    assert(normalized->can_copy);
+    GC_REQUIRE(normalized);
+    GC_REQUIRE(normalized->kind == MediaKind::image);
+    GC_REQUIRE(normalized->media_url == hit.media_url);
+    GC_REQUIRE(normalized->link_url == hit.link_url);
+    GC_REQUIRE(normalized->can_download);
+    GC_REQUIRE(normalized->can_copy);
 
     hit.drm_protected = true;
     hit.capturable_frame = true;
     const auto protected_target = MediaTargetDetector::normalize(hit);
-    assert(protected_target);
-    assert(protected_target->protected_media);
-    assert(!protected_target->can_download);
-    assert(!protected_target->can_capture_frame);
+    GC_REQUIRE(protected_target);
+    GC_REQUIRE(protected_target->protected_media);
+    GC_REQUIRE(!protected_target->can_download);
+    GC_REQUIRE(!protected_target->can_capture_frame);
   }
 
   {
     MediaProbeResultTracker tracker;
     const auto first_sequence = tracker.next_sequence();
     const auto second_sequence = tracker.next_sequence();
-    assert(second_sequence > first_sequence);
+    GC_REQUIRE(second_sequence > first_sequence);
 
     EngineMediaHitTest stale;
     stale.kind = EngineMediaElementKind::image;
     stale.media_url = "https://example.com/stale.jpg";
     const bool stale_accepted = tracker.accept(first_sequence, stale);
-    assert(!stale_accepted);
-    assert(!tracker.latest_result());
+    GC_REQUIRE(!stale_accepted);
+    GC_REQUIRE(!tracker.latest_result());
 
     EngineMediaHitTest current;
     current.kind = EngineMediaElementKind::image;
     current.media_url = "https://example.com/current.jpg";
     const bool current_accepted = tracker.accept(second_sequence, current);
-    assert(current_accepted);
-    assert(tracker.latest_result());
-    assert(tracker.latest_result()->media_url == current.media_url);
-    assert(tracker.latest_accepted() == second_sequence);
+    GC_REQUIRE(current_accepted);
+    GC_REQUIRE(tracker.latest_result());
+    GC_REQUIRE(tracker.latest_result()->media_url == current.media_url);
+    GC_REQUIRE(tracker.latest_accepted() == second_sequence);
   }
 
   {
@@ -204,20 +213,20 @@ int main() {
     policy.allow_remote_processing = false;
 
     const auto actions = MediaActionRegistry::actions_for(image, policy);
-    assert(std::find(actions.begin(), actions.end(), MediaAction::preview) != actions.end());
-    assert(std::find(actions.begin(), actions.end(), MediaAction::search) != actions.end());
-    assert(std::find(actions.begin(), actions.end(), MediaAction::open_link) != actions.end());
-    assert(std::find(actions.begin(), actions.end(), MediaAction::copy_media_url) != actions.end());
+    GC_REQUIRE(std::find(actions.begin(), actions.end(), MediaAction::preview) != actions.end());
+    GC_REQUIRE(std::find(actions.begin(), actions.end(), MediaAction::search) != actions.end());
+    GC_REQUIRE(std::find(actions.begin(), actions.end(), MediaAction::open_link) != actions.end());
+    GC_REQUIRE(std::find(actions.begin(), actions.end(), MediaAction::copy_media_url) != actions.end());
 
     const auto denied_remote = MediaProcessingPolicy::decide(
         MediaAction::search, MediaProcessingDestination::goreecloud_hosted, policy);
-    assert(!denied_remote.allowed);
+    GC_REQUIRE(!denied_remote.allowed);
 
     policy.allow_remote_processing = true;
     const auto allowed_remote = MediaProcessingPolicy::decide(
         MediaAction::search, MediaProcessingDestination::goreecloud_hosted, policy);
-    assert(allowed_remote.allowed);
-    assert(allowed_remote.disclosure_required);
+    GC_REQUIRE(allowed_remote.allowed);
+    GC_REQUIRE(allowed_remote.disclosure_required);
 
     const auto view_model = MediaHoverViewModelBuilder::build(
         image,
@@ -228,51 +237,51 @@ int main() {
         MediaSaveDestination::goreecloud_drive,
         "Privacy Shield: Remote processing allowed",
         "Wardveil: Secure resource");
-    assert(view_model.visible);
-    assert(view_model.reduced_motion);
-    assert(view_model.keyboard_focus_visible);
-    assert(view_model.quick_actions[0].label == "Preview");
-    assert(view_model.quick_actions[1].label == "Search");
-    assert(view_model.quick_actions[2].label == "Save");
-    assert(view_model.quick_actions[3].label == "More");
-    assert(view_model.destination.visible);
-    assert(view_model.destination.label.find("Synchronized") != std::string::npos);
-    assert(view_model.privacy.visible);
-    assert(view_model.security.visible);
+    GC_REQUIRE(view_model.visible);
+    GC_REQUIRE(view_model.reduced_motion);
+    GC_REQUIRE(view_model.keyboard_focus_visible);
+    GC_REQUIRE(view_model.quick_actions[0].label == "Preview");
+    GC_REQUIRE(view_model.quick_actions[1].label == "Search");
+    GC_REQUIRE(view_model.quick_actions[2].label == "Save");
+    GC_REQUIRE(view_model.quick_actions[3].label == "More");
+    GC_REQUIRE(view_model.destination.visible);
+    GC_REQUIRE(view_model.destination.label.find("Synchronized") != std::string::npos);
+    GC_REQUIRE(view_model.privacy.visible);
+    GC_REQUIRE(view_model.security.visible);
 
     image.protected_media = true;
     const auto protected_actions = MediaActionRegistry::actions_for(image, policy);
-    assert(std::find(protected_actions.begin(), protected_actions.end(),
+    GC_REQUIRE(std::find(protected_actions.begin(), protected_actions.end(),
                      MediaAction::download_media) == protected_actions.end());
 
-    assert(save_destination_label(MediaSaveDestination::local_device).find("Local") !=
+    GC_REQUIRE(save_destination_label(MediaSaveDestination::local_device).find("Local") !=
            std::string_view::npos);
-    assert(save_destination_label(MediaSaveDestination::goreecloud_drive).find("Synchronized") !=
+    GC_REQUIRE(save_destination_label(MediaSaveDestination::goreecloud_drive).find("Synchronized") !=
            std::string_view::npos);
 
     MediaHoverController hover;
     const bool keyboard_activated = hover.activate(
         image, MediaHoverActivation::keyboard_focus, policy, false);
-    assert(keyboard_activated);
-    assert(hover.visible());
+    GC_REQUIRE(keyboard_activated);
+    GC_REQUIRE(hover.visible());
     const auto placement = MediaHoverController::place(
         MediaRect{.x = 980, .y = 20, .width = 300, .height = 200},
         MediaViewport{.width = 1024, .height = 768},
         220,
         48);
-    assert(placement.visible);
-    assert(placement.x >= 8);
-    assert(placement.x + 220 <= 1024 - 8);
+    GC_REQUIRE(placement.visible);
+    GC_REQUIRE(placement.x >= 8);
+    GC_REQUIRE(placement.x + 220 <= 1024 - 8);
     hover.pointer_left_media(false);
-    assert(!hover.visible());
+    GC_REQUIRE(!hover.visible());
 
     policy.modifier_required = true;
     const bool unmodified = hover.activate(
         image, MediaHoverActivation::pointer_hover, policy, false);
     const bool modified = hover.activate(
         image, MediaHoverActivation::pointer_hover, policy, true);
-    assert(!unmodified);
-    assert(modified);
+    GC_REQUIRE(!unmodified);
+    GC_REQUIRE(modified);
   }
 
   DevelopmentEngine engine;
@@ -285,7 +294,7 @@ int main() {
   normal_options.persistent_storage = true;
 
   auto normal_context = engine.create_context(normal_options);
-  assert(normal_context);
+  GC_REQUIRE(normal_context);
 
   InMemoryAdvancedTabManager tab_manager;
   WindowController window(*normal_context, false, &tab_manager, "window-smoke");
@@ -322,29 +331,29 @@ int main() {
     return 1;
   }
 
-  assert(window.activate_previous_tab());
-  assert(window.active_tab() && window.active_tab()->id() == first.id());
-  assert(window.activate_next_tab());
-  assert(window.active_tab() && window.active_tab()->id() == second.id());
+  GC_REQUIRE(window.activate_previous_tab());
+  GC_REQUIRE(window.active_tab() && window.active_tab()->id() == first.id());
+  GC_REQUIRE(window.activate_next_tab());
+  GC_REQUIRE(window.active_tab() && window.active_tab()->id() == second.id());
   const bool selected_first = window.select_tab(first.id(), false);
   const bool selected_second = window.select_tab(second.id(), true);
   const bool pinned = window.pin_selected_tabs(true);
   const bool protected_tabs = window.protect_selected_tabs(true);
   const bool regular_close = window.close_tab(second.id());
   const bool explicit_close = window.close_tab(second.id(), true);
-  assert(selected_first);
-  assert(selected_second);
-  assert(pinned);
-  assert(protected_tabs);
-  assert(!regular_close);
-  assert(explicit_close);
-  assert(window.tab_count() == 1);
+  GC_REQUIRE(selected_first);
+  GC_REQUIRE(selected_second);
+  GC_REQUIRE(pinned);
+  GC_REQUIRE(protected_tabs);
+  GC_REQUIRE(!regular_close);
+  GC_REQUIRE(explicit_close);
+  GC_REQUIRE(window.tab_count() == 1);
 
   window.open_home();
-  assert(window.active_tab());
-  assert(window.active_tab()->engine_view().navigation_state().url == kHomeUrl);
+  GC_REQUIRE(window.active_tab());
+  GC_REQUIRE(window.active_tab()->engine_view().navigation_state().url == kHomeUrl);
   window.open_settings();
-  assert(window.active_tab()->engine_view().navigation_state().url == kSettingsUrl);
+  GC_REQUIRE(window.active_tab()->engine_view().navigation_state().url == kSettingsUrl);
 
   engine.shutdown();
 
@@ -354,13 +363,13 @@ int main() {
   private_options.initial_url = std::string{kPrivateStartUrl};
   BrowserApplication private_browser(std::make_unique<DevelopmentEngine>(), private_options);
   private_browser.initialize();
-  assert(private_browser.window_count() == 1);
-  assert(private_browser.first_window());
-  assert(private_browser.first_window()->private_window());
-  assert(private_browser.first_window()->active_tab());
-  assert(private_browser.first_window()->active_tab()->engine_view().navigation_state().url ==
+  GC_REQUIRE(private_browser.window_count() == 1);
+  GC_REQUIRE(private_browser.first_window());
+  GC_REQUIRE(private_browser.first_window()->private_window());
+  GC_REQUIRE(private_browser.first_window()->active_tab());
+  GC_REQUIRE(private_browser.first_window()->active_tab()->engine_view().navigation_state().url ==
          kPrivateStartUrl);
-  assert(private_browser.has_private_session_context("smoke-private"));
+  GC_REQUIRE(private_browser.has_private_session_context("smoke-private"));
   private_browser.shutdown();
 
   return 0;

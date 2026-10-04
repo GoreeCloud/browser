@@ -100,6 +100,7 @@ jobs:
       - name: Verify Linux GTK backend fallback contract
         run: |
           python3 - <<'PY'
+          import re
           from pathlib import Path
 
           host = Path("src/platform/gtk_linux_glaze_host.cpp").read_text()
@@ -107,7 +108,10 @@ jobs:
           scaffold = Path("src/chromium_runtime_scaffold.cpp").read_text()
           surface = Path("include/goreecloud/browser/native_engine_surface.hpp").read_text()
           runner = Path("include/goreecloud/browser/platform/gtk_linux_runner.hpp").read_text()
+          runtime_smoke = Path("apps/browser/runtime_smoke.cpp").read_text()
 
+          assert "GC_REQUIRE(" in runtime_smoke
+          assert re.search(r"(?<!static_)\bassert\(", runtime_smoke) is None
           assert "if (!display || !GDK_IS_X11_DISPLAY(display)) return false;" not in host
           assert "if (!display) return false;" in host
           assert "GOREECLOUD_BROWSER_FORCE_WINDOWLESS" in host
