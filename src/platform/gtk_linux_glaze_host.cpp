@@ -499,8 +499,8 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   }
 
   static NativePopupRect clamp_popup_rect(NativePopupRect rect,
-                                               int view_width,
-                                               int view_height) {
+                                           int view_width,
+                                           int view_height) {
     if (rect.width <= 0 || rect.height <= 0 ||
         view_width <= 0 || view_height <= 0) {
       return {};
@@ -558,7 +558,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     auto* forwarder = self->software_input_forwarder();
     if (!forwarder || !event) return FALSE;
     return forwarder->send_pointer_move(
-               pointer_event(event->x, event->y, event->state), false)
+               self->pointer_event(event->x, event->y, event->state), false)
                ? TRUE
                : FALSE;
   }
