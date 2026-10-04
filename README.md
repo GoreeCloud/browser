@@ -157,6 +157,8 @@ packaging/                    Linux, Flatpak, Windows, and other packaging work
 - [`USER-MANUAL.md`](USER-MANUAL.md) — current user-facing behavior and beta guidance.
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architectural boundaries and ownership model.
 - [`docs/ENGINE_LAYER.md`](docs/ENGINE_LAYER.md) — Browser Engine Layer contracts.
+- [`docs/LINUX_PACKAGING.md`](docs/LINUX_PACKAGING.md) — Development Linux CEF install/runtime staging contract.
+
 - [`docs/GLAZE_UI_ADOPTION.md`](docs/GLAZE_UI_ADOPTION.md) — current-Anchor Glaze adoption policy.
 - [`docs/SEARCH_INDEX_INTEGRATION.md`](docs/SEARCH_INDEX_INTEGRATION.md) — Browser/Search/Index delegation and authority contract.
 - [`docs/MEDIA_HOVER.md`](docs/MEDIA_HOVER.md) — Media Hover contract.

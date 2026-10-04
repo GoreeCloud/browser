@@ -178,6 +178,9 @@ if(GOREECLOUD_ENABLE_CEF)
   target_link_libraries(goreecloud_browser PRIVATE libcef_dll_wrapper libcef_lib ${CEF_STANDARD_LIBS})
   SET_EXECUTABLE_TARGET_PROPERTIES(goreecloud_browser)
   goreecloud_restore_cpp_runtime_features(goreecloud_browser)
+  if(OS_LINUX)
+    set_target_properties(goreecloud_browser PROPERTIES INSTALL_RPATH "\$ORIGIN")
+  endif()
 
   if(OS_LINUX OR OS_WINDOWS)
     SET_CEF_TARGET_OUT_DIR()
@@ -200,6 +203,10 @@ if(GOREECLOUD_ENABLE_CEF)
     PRIVATE GOREECLOUD_ENABLE_CEF=1 GOREECLOUD_ENABLE_CHROMIUM=1)
   SET_EXECUTABLE_TARGET_PROPERTIES(goreecloud_browser_cef_subprocess)
   goreecloud_restore_cpp_runtime_features(goreecloud_browser_cef_subprocess)
+  if(OS_LINUX)
+    set_target_properties(goreecloud_browser_cef_subprocess
+                          PROPERTIES INSTALL_RPATH "\$ORIGIN")
+  endif()
   goreecloud_apply_warnings(goreecloud_browser_cef_subprocess)
 endif()
 
@@ -330,7 +337,63 @@ if(BUILD_TESTING)
   endif()
 endif()
 
-install(TARGETS goreecloud_browser RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+set(GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR
+    "${CMAKE_INSTALL_LIBEXECDIR}/goreecloud-browser")
+
+if(GOREECLOUD_ENABLE_CEF)
+  # Keep the installed runtime prefix-relocatable: the public launcher finds
+  # the private libexec runtime relative to its own installed bin directory.
+  set(_goreecloud_browser_runtime_abs
+      "/__goreecloud_prefix__/${GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR}")
+  set(_goreecloud_browser_bindir_abs
+      "/__goreecloud_prefix__/${CMAKE_INSTALL_BINDIR}")
+  cmake_path(RELATIVE_PATH _goreecloud_browser_runtime_abs
+             BASE_DIRECTORY "${_goreecloud_browser_bindir_abs}"
+             OUTPUT_VARIABLE GOREECLOUD_BROWSER_INSTALL_RUNTIME_FROM_BINDIR)
+  configure_file(
+    packaging/linux/goreecloud-browser.in
+    "${CMAKE_CURRENT_BINARY_DIR}/goreecloud-browser-launcher"
+    @ONLY
+  )
+
+  install(TARGETS
+            goreecloud_browser
+            goreecloud_browser_cef_subprocess
+          RUNTIME DESTINATION "${GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR}")
+  install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/goreecloud-browser-launcher"
+          DESTINATION "${CMAKE_INSTALL_BINDIR}"
+          RENAME goreecloud-browser)
+
+  foreach(_goreecloud_cef_binary IN LISTS CEF_BINARY_FILES)
+    if(_goreecloud_cef_binary STREQUAL "chrome-sandbox")
+      # Preserve executable permission. Production package ownership/setuid
+      # policy remains a packaging acceptance gate rather than a build-tree
+      # side effect.
+      install(PROGRAMS "${CEF_BINARY_DIR}/${_goreecloud_cef_binary}"
+              DESTINATION "${GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR}")
+    else()
+      install(FILES "${CEF_BINARY_DIR}/${_goreecloud_cef_binary}"
+              DESTINATION "${GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR}")
+    endif()
+  endforeach()
+
+  foreach(_goreecloud_cef_resource IN LISTS CEF_RESOURCE_FILES)
+    if(IS_DIRECTORY "${CEF_RESOURCE_DIR}/${_goreecloud_cef_resource}")
+      install(DIRECTORY "${CEF_RESOURCE_DIR}/${_goreecloud_cef_resource}"
+              DESTINATION "${GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR}")
+    else()
+      install(FILES "${CEF_RESOURCE_DIR}/${_goreecloud_cef_resource}"
+              DESTINATION "${GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR}")
+    endif()
+  endforeach()
+
+  install(FILES assets/branding/goreecloud-browser.svg
+          DESTINATION
+            "${GOREECLOUD_BROWSER_INSTALL_RUNTIME_SUBDIR}/assets/branding")
+else()
+  install(TARGETS goreecloud_browser RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
+
 install(FILES packaging/linux/io.goreecloud.Browser.desktop
         DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 install(FILES packaging/linux/io.goreecloud.Browser.metainfo.xml

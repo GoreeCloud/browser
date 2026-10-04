@@ -49,6 +49,14 @@ inline RuntimeEngineSelection create_runtime_engine_from_environment(
   } else {
     options.locales_path = options.runtime_root / "locales";
   }
+  if (const char* user_data = std::getenv("GOREECLOUD_BROWSER_USER_DATA_ROOT");
+      user_data && std::string{user_data}.size() > 0) {
+    options.user_data_root = std::filesystem::path{user_data};
+  } else {
+    // Preserve the Development/runtime-tree behavior unless an installed
+    // launcher or caller provides a dedicated writable user-data root.
+    options.user_data_root = options.runtime_root / "profile-cache";
+  }
 
   return {std::make_unique<ChromiumEngineAdapter>(std::move(options)), true,
 #if GOREECLOUD_ENABLE_CEF
