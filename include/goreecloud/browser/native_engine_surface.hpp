@@ -22,6 +22,15 @@ class NativeSurfaceFrameSink {
  public:
   virtual ~NativeSurfaceFrameSink() = default;
   virtual void present_software_frame(const NativeSurfaceFrame& frame) = 0;
+
+  // Optional transient popup surface for windowless renderers (for example,
+  // engine-owned select/dropdown UI). Coordinates are relative to the view.
+  // Implementations must copy pixels synchronously and clear retained popup
+  // state when clear_software_popup_frame() is called.
+  virtual void present_software_popup_frame(const NativeSurfaceFrame& frame,
+                                            int x,
+                                            int y) {}
+  virtual void clear_software_popup_frame() {}
 };
 
 enum class NativePointerButton {
