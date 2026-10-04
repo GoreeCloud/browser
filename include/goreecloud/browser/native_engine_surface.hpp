@@ -102,6 +102,23 @@ class NativeSurfaceTextInputForwarder {
   virtual void cancel_text_composition() = 0;
 };
 
+struct NativeTextInputCursorRect {
+  int x{0};
+  int y{0};
+  int width{1};
+  int height{1};
+};
+
+// Optional engine-to-host geometry bridge for software/windowless text input.
+// Coordinates are logical view coordinates and contain no renderer-specific
+// types. Hosts may use the rectangle to position native IME candidate UI.
+class NativeSurfaceTextInputGeometrySink {
+ public:
+  virtual ~NativeSurfaceTextInputGeometrySink() = default;
+  virtual void update_text_input_cursor_rect(
+      const NativeTextInputCursorRect& rect) = 0;
+};
+
 enum class NativeCursorType {
   pointer,
   crosshair,
@@ -203,6 +220,7 @@ struct NativeEngineSurface {
   NativeSurfaceFrameSink* frame_sink{nullptr};
   NativeSurfaceCursorSink* cursor_sink{nullptr};
   NativeSurfaceContextMenuSink* context_menu_sink{nullptr};
+  NativeSurfaceTextInputGeometrySink* text_input_geometry_sink{nullptr};
 };
 
 class NativeSurfaceAttachable {
