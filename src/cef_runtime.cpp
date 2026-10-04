@@ -17,6 +17,7 @@
 #include "goreecloud/browser/cef_media_probe_app.hpp"
 #include "include/cef_app.h"
 #include "include/cef_browser.h"
+#include "include/cef_drag_data.h"
 #include "include/cef_request_context.h"
 #endif
 
@@ -218,6 +219,56 @@ class CefRuntimeView final : public ChromiumRuntimeView {
                 << " vkey=" << event.virtual_key_code
                 << " native=" << event.native_key_code
                 << " character=" << event.character << std::endl;
+    }
+    return true;
+  }
+
+  bool drop_data(NativeDropData data,
+                 const NativePointerEvent& event,
+                 NativeDropOperation operation) override {
+    if (!windowless_browser()) return false;
+
+    constexpr std::size_t kMaxDropTextBytes = 1024U * 1024U;
+    constexpr std::size_t kMaxDropUrlBytes = 8192U;
+    constexpr std::size_t kMaxDropTitleBytes = 4096U;
+
+    const bool has_text = !data.text.empty();
+    const bool has_link = !data.link_url.empty();
+    if (has_text == has_link) return false;
+    if (has_text && data.text.size() > kMaxDropTextBytes) return false;
+    if (has_link &&
+        (data.link_url.size() > kMaxDropUrlBytes ||
+         data.link_title.size() > kMaxDropTitleBytes)) {
+      return false;
+    }
+    if (has_text && operation != NativeDropOperation::copy) return false;
+    if (has_link && operation != NativeDropOperation::link) return false;
+
+    auto drag_data = CefDragData::Create();
+    if (!drag_data) return false;
+
+    CefBrowserHost::DragOperationsMask allowed_ops = DRAG_OPERATION_NONE;
+    if (has_text) {
+      drag_data->SetFragmentText(data.text);
+      allowed_ops = DRAG_OPERATION_COPY;
+    } else {
+      drag_data->SetLinkURL(data.link_url);
+      if (!data.link_title.empty()) drag_data->SetLinkTitle(data.link_title);
+      allowed_ops = DRAG_OPERATION_LINK;
+    }
+
+    const auto mouse_event = cef_mouse_event(event);
+    auto host = client_->browser()->GetHost();
+    host->DragTargetDragEnter(drag_data, mouse_event, allowed_ops);
+    host->DragTargetDragOver(mouse_event, allowed_ops);
+    host->DragTargetDrop(mouse_event);
+
+    if (cef_runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] windowless-drop kind="
+                << (has_link ? "link" : "text")
+                << " x=" << event.x << " y=" << event.y
+                << " bytes=" << (has_link ? data.link_url.size() : data.text.size())
+                << std::endl;
     }
     return true;
   }
