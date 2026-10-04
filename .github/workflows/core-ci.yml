@@ -324,6 +324,7 @@ jobs:
             xvfb-run -a -s "-screen 0 1280x800x24" \
             sh -c '
               set -e
+              trap 'status=$?; if [ "$status" -ne 0 ]; then echo "=== GoreeCloud Browser runtime log (failure) ===" >&2; cat "$2" >&2 || true; fi; exit "$status"' EXIT
               ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
               browser_pid=$!
 
@@ -478,6 +479,7 @@ jobs:
             xvfb-run -a -s "-screen 0 1280x800x24" \
             sh -c '
               set -e
+              trap 'status=$?; if [ "$status" -ne 0 ]; then echo "=== GoreeCloud Browser runtime log (failure) ===" >&2; cat "$2" >&2 || true; fi; exit "$status"' EXIT
               ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
               browser_pid=$!
 
@@ -585,6 +587,7 @@ jobs:
             xvfb-run -a -s "-screen 0 1280x800x24" \
             sh -c '
               set -e
+              trap 'status=$?; if [ "$status" -ne 0 ]; then echo "=== GoreeCloud Browser runtime log (failure) ===" >&2; cat "$2" >&2 || true; fi; exit "$status"' EXIT
               ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
               browser_pid=$!
 
@@ -677,6 +680,7 @@ jobs:
             xvfb-run -a -s "-screen 0 1280x800x24" \
             sh -c '
               set -e
+              trap 'status=$?; if [ "$status" -ne 0 ]; then echo "=== GoreeCloud Browser runtime log (failure) ===" >&2; cat "$2" >&2 || true; fi; exit "$status"' EXIT
               ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
               browser_pid=$!
 
@@ -750,6 +754,7 @@ jobs:
             xvfb-run -a -s "-screen 0 1280x800x24" \
             sh -c '
               set -e
+              trap 'status=$?; if [ "$status" -ne 0 ]; then echo "=== GoreeCloud Browser runtime log (failure) ===" >&2; cat "$2" >&2 || true; fi; exit "$status"' EXIT
               ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
               browser_pid=$!
 
