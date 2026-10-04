@@ -30,7 +30,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Structured Linux Settings section presentation for current Browser-owned settings taxonomy; functional controls remain acceptance-gated.
 - Friendly Browser-owned internal-page title/location presentation that suppresses implementation-only `goreecloud://` locations from ordinary visible chrome.
 - Canonical Browser compass branding synchronized from `GoreeCloud/branding-assets` full-color and monochrome identity sources.
-- GLAZE UI V1.6 / 1.6.0 source mapping with exact accepted release/qualification anchors, Android-native V1.6 mapping, and a Browser-owned Linux desktop Development presentation tranche: branded chrome, compact active-tab surface, primary navigation capsule, bounded secondary tools popover, responsive first-party cards, friendly internal-page titles, and redesigned first-party internal surfaces.
+- Bounded Stable Glaze V1.7 / 1.7.0 consumer-identity mapping anchored to `1a5756daed2294155be2e9972b24f580f6222b7b`, explicitly inheriting the accepted V1.6.0 runtime source `a7180679ea851389e0f3004515f9a25f420e716d` and excluding retained V1.7 dev.47/V1.7.1 Development behavior. Existing Android-native and Linux desktop presentation behavior remains the inherited V1.6 runtime foundation pending fresh Browser-local V1.7 acceptance.
 - GoreeCloud Search integration as the sole integrated query authority while direct structurally valid HTTP(S) navigation remains independent from search.
 - Fail-closed first-party capability evidence that does not manufacture Search, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, or Bookmarks authority.
 - Browser-owned Sync submission/retrieval contracts with bounded validation, pagination, privacy-safe tombstones, and signer-shape checks.
@@ -87,7 +87,7 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 The following foundations exist but remain acceptance-gated and therefore also appear in `PLANNED-FEATURES.md`:
 
 - Android Browser runtime without representative-device/accessibility/performance/production acceptance.
-- Current repository source mapping targets GLAZE UI V1.6 / 1.6.0, but Browser-specific rendered/accessibility/adaptive/device/performance/rollback/Human Visual Excellence acceptance remains incomplete.
+- Current repository source mapping targets bounded Stable Glaze V1.7 / 1.7.0 with inherited V1.6.0 runtime behavior, but fresh Browser-specific rendered/accessibility/adaptive/device/performance/rollback/Human Visual Excellence acceptance remains incomplete.
 - Session recovery without authenticated encrypted persistence, lifecycle wiring, restore execution, Everkeep integration, and runtime acceptance.
 - PermissionBroker without Android prompt/OS/live-authority adapters and durable Normal-context decision storage.
 - Native extension package/signature/permission foundations without installation, execution, sandboxing, privileged APIs, trusted developer-key authority, or production acceptance.
