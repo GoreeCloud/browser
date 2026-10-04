@@ -111,7 +111,7 @@ jobs:
           runtime_smoke = Path("apps/browser/runtime_smoke.cpp").read_text()
 
           assert "GC_REQUIRE(" in runtime_smoke
-          assert re.search(r"(?<!static_)\\bassert\\(", runtime_smoke) is None
+          assert re.search(r"(?<!static_)\bassert\(", runtime_smoke) is None
           assert "if (!display || !GDK_IS_X11_DISPLAY(display)) return false;" not in host
           assert "if (!display) return false;" in host
           assert "GOREECLOUD_BROWSER_FORCE_WINDOWLESS" in host
