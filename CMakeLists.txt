@@ -42,15 +42,15 @@ if(GOREECLOUD_ENABLE_LINUX_GTK_HOST AND NOT UNIX)
   message(FATAL_ERROR "GOREECLOUD_ENABLE_LINUX_GTK_HOST is currently supported only on Linux/Unix")
 endif()
 
-set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "1.6.0" CACHE STRING
-    "Current approved Stable Glaze UI version required by GoreeCloud Browser")
+set(GOREECLOUD_GLAZE_UI_STABLE_VERSION "1.7.0" CACHE STRING
+    "Current approved Stable Glaze version required by GoreeCloud Browser")
 set(GOREECLOUD_GLAZE_UI_STABLE_REVISION
-    "a7180679ea851389e0f3004515f9a25f420e716d" CACHE STRING
-    "Exact reviewed Glaze UI Stable source integration anchor")
+    "1a5756daed2294155be2e9972b24f580f6222b7b" CACHE STRING
+    "Exact Glaze V1.7 bounded-Stable lifecycle integration anchor")
 
-if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "1.6.0")
+if(NOT GOREECLOUD_GLAZE_UI_STABLE_VERSION STREQUAL "1.7.0")
   message(FATAL_ERROR
-    "GoreeCloud Browser source currently targets Glaze UI Stable 1.6.0. "
+    "GoreeCloud Browser source currently targets bounded Stable Glaze V1.7 / 1.7.0. "
     "Update the Browser Glaze adoption contract and acceptance evidence before changing the build baseline.")
 endif()
 
@@ -340,7 +340,7 @@ install(FILES assets/branding/goreecloud-browser.svg
         RENAME io.goreecloud.Browser.svg)
 
 message(STATUS "GoreeCloud Browser ${PROJECT_VERSION} channel=${GOREECLOUD_RELEASE_CHANNEL}")
-message(STATUS "Glaze UI Stable ${GOREECLOUD_GLAZE_UI_STABLE_VERSION} @ ${GOREECLOUD_GLAZE_UI_STABLE_REVISION}")
+message(STATUS "Glaze Stable ${GOREECLOUD_GLAZE_UI_STABLE_VERSION} @ ${GOREECLOUD_GLAZE_UI_STABLE_REVISION}")
 message(STATUS "Chromium adapter: ${GOREECLOUD_ENABLE_CHROMIUM}")
 message(STATUS "CEF runtime: ${GOREECLOUD_ENABLE_CEF}")
 message(STATUS "Linux GTK beta host: ${GOREECLOUD_ENABLE_LINUX_GTK_HOST}")
