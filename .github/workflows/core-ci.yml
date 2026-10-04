@@ -154,7 +154,9 @@ jobs:
           assert "ImeCancelComposition" in runtime
           assert "DragTargetDragEnter" in runtime
           assert "DragTargetDragOver" in runtime
-          assert "DragTargetDrop" in runtime
+          assert "DragTargetDrop" in client
+          assert "UpdateDragCursor" in client
+          assert "begin_windowless_drop" in runtime
           assert "SetAsWindowless" in runtime
           assert "cef.windowless_rendering = true" in scaffold
           assert "native Wayland embedding is not yet enabled" not in runner
@@ -989,6 +991,8 @@ jobs:
               for _ in $(seq 1 120); do
                 if grep -Fq "[GoreeCloud GTK] windowless-drop-result kind=text accepted=yes" "$2" &&
                    grep -Fq "[GoreeCloud CEF] windowless-drop kind=text" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] windowless-drop-accepted operation=" "$2" &&
+                   grep -Fq "[GoreeCloud CEF] windowless-drop-complete" "$2" &&
                    grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-drop-ok" "$2"; then
                   text_drop_ready=1
                   break
@@ -1014,6 +1018,8 @@ jobs:
           grep -Fq "[GoreeCloud GTK] windowless-drop-result kind=rejected accepted=no" "${log_file}"
           grep -Fq "[GoreeCloud GTK] windowless-drop-result kind=text accepted=yes" "${log_file}"
           grep -Fq "[GoreeCloud CEF] windowless-drop kind=text" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-drop-accepted operation=" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] windowless-drop-complete" "${log_file}"
           grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/#goreecloud-drop-ok" "${log_file}"
           if grep -Fq "[GoreeCloud CEF] windowless-drop kind=link" "${log_file}"; then
             echo "Rejected file URI reached the CEF link-drop boundary" >&2
