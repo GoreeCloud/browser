@@ -2,12 +2,12 @@
 
 **Target:** Android installable Development beta APK  
 **Package:** `io.goreecloud.browser.beta`  
-**Candidate version:** `0.1.0-beta.1+android.7`  
-**Candidate versionCode:** `10007`  
+**Candidate version:** `0.1.0-beta.1+android.12`  
+**Candidate versionCode:** `10012`  
 **Minimum Android:** 8.0 / API 26  
 **Target Android API:** 35  
-**Current GLAZE UI target:** V1.6 / `1.6.0`  
-**Canonical GLAZE UI lifecycle:** Anchor  
+**Current Glaze target:** V1.7 / `1.7.0`  
+**Canonical Glaze lifecycle:** Anchor  
 **Current Platform Contract:** `0.4` / nine Integral Platform Systems  
 **Production approved:** No
 
@@ -15,7 +15,7 @@
 
 This target is a real installable GoreeCloud Browser Development beta. Android System WebView/Chromium is a bounded, replaceable rendering-engine dependency; GoreeCloud retains Browser product identity, chrome, navigation/search policy, privacy/security boundaries, state, and integration authority.
 
-The current Android source targets GLAZE UI V1.6 and keeps free-text remote Search fail-closed until the required authorization and authentication evidence exists. Source implementation, emulator execution, or a green APK workflow does not establish representative physical-device acceptance, production approval, or release maturity.
+The current Android source targets bounded Glaze V1.7 / 1.7.0, inheriting the accepted V1.6.0 runtime behavior, and keeps free-text remote Search fail-closed until the required authorization and authentication evidence exists. Source implementation, emulator execution, or a green APK workflow does not establish representative physical-device acceptance, production approval, or release maturity.
 
 ## Implemented beta behavior
 
@@ -44,21 +44,21 @@ The current Development line includes:
 
 The Android beta uses Browser-owned native chrome with a compact top omnibox, web-content region, 56dp bottom toolbar, vector controls, scroll-aware top-chrome collapse/restore, Browser-owned menu sheet, and effects-free accessibility fallbacks.
 
-GLAZE UI remains presentation-only. It cannot create authorization, consent, security/privacy truth, provider precedence, navigation authority, service availability, or automatic consequential execution.
+Glaze remains presentation-only. It cannot create authorization, consent, security/privacy truth, provider precedence, navigation authority, service availability, or automatic consequential execution.
 
-## GLAZE UI V1.6 source mapping
+## Glaze V1.7 source mapping
 
 Current Browser source mapping:
 
-- Consumer release: GLAZE UI V1.6 / `1.6.0`.
+- Consumer release: Glaze V1.7 / `1.7.0`.
 - Canonical lifecycle: Anchor.
-- Accepted release source: `a7180679ea851389e0f3004515f9a25f420e716d`.
-- Qualification source anchor: `c7509c79256b04b0aa67cb9dd0737d7588e0ae4a`.
-- Qualification evidence integration: `354f5759385c28596fcfec26a3ad525e89fb1c35`.
-- Immediate rollback baseline: `1.5.1`.
+- Release integration revision: `1a5756daed2294155be2e9972b24f580f6222b7b`.
+- V1.7 Stable-contract qualification source: `7c4ded83d7a8725165bb6a55dfb175667cc9589e`.
+- Inherited accepted runtime source: GLAZE UI V1.6 / `1.6.0` at `a7180679ea851389e0f3004515f9a25f420e716d`.
+- Immediate rollback baseline: `1.6.0`.
 - Inherited optical baseline: `1.4.1`.
 
-The Android-native Glaze contract targets V1.6 and retains fail-closed provider conflict/absence handling, accessibility precedence, privacy-safe diagnostics, explicit disabled-state presentation, bounded visual complexity, non-color semantic meaning, large-text reflow requirements, and no automatic consequential/fallback execution.
+The Android-native Glaze contract targets V1.7.0 and intentionally retains the inherited accepted V1.6.0 behavior: fail-closed provider conflict/absence handling, accessibility precedence, privacy-safe diagnostics, explicit disabled-state presentation, bounded visual complexity, non-color semantic meaning, large-text reflow requirements, and no automatic consequential/fallback execution.
 
 Central Glaze qualification does **not** certify Browser. Browser-specific rendered/native visual, TalkBack/screen-reader, large-text, RTL/localization, Reduced Motion, Reduced Transparency, Increased Contrast, representative device/posture, sustained performance, workflow, rollback, renderer-integrated, and production acceptance remain open.
 
@@ -70,7 +70,7 @@ Browser declares Platform Contract `0.4` and evaluates all nine Integral Platfor
 2. Privacy Shield
 3. Wardveil Security
 4. Everkeep
-5. GLAZE UI
+5. Glaze
 6. GoreeCloud Mesh
 7. GoreeCloud Identity
 8. GoreeCloud Policy
@@ -135,6 +135,6 @@ These Development controls do not constitute complete Wardveil, Privacy Shield, 
 
 ## Promotion gates
 
-Browser remains Development. Before Android Browser can advance through later lifecycle stages, exact-release evidence must cover applicable functionality, security, privacy, accessibility, recovery, current GLAZE UI acceptance, all nine Integral Platform Systems, supported platforms, dependencies, artifact provenance, signing/distribution, upgrade/rollback/migration, representative devices, and production acceptance.
+Browser remains Development. Before Android Browser can advance through later lifecycle stages, exact-release evidence must cover applicable functionality, security, privacy, accessibility, recovery, current Glaze acceptance, all nine Integral Platform Systems, supported platforms, dependencies, artifact provenance, signing/distribution, upgrade/rollback/migration, representative devices, and production acceptance.
 
 Browser issue #33 remains the primary Android acceptance gate for representative physical-device launcher rendering, practical navigation/Search/error usability, accessibility and performance, current Glaze rendered/device acceptance, and release evidence.
