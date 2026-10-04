@@ -301,6 +301,21 @@ int main() {
   const auto initial_chrome = smoke_chrome.snapshot();
   assert(initial_chrome.tabs.size() == 2);
   assert(initial_chrome.tabs.back().active);
+
+  assert(window.move_active_tab_left());
+  const auto reordered_left = window.tab_ids();
+  assert(reordered_left.size() == 2);
+  assert(reordered_left[0] == second.id());
+  assert(reordered_left[1] == first.id());
+  assert(window.active_tab() && window.active_tab()->id() == second.id());
+
+  assert(window.move_active_tab_right());
+  const auto reordered_right = window.tab_ids();
+  assert(reordered_right.size() == 2);
+  assert(reordered_right[0] == first.id());
+  assert(reordered_right[1] == second.id());
+  assert(window.active_tab() && window.active_tab()->id() == second.id());
+
   assert(window.activate_previous_tab());
   assert(window.active_tab() && window.active_tab()->id() == first.id());
   assert(window.activate_next_tab());
