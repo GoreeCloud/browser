@@ -61,6 +61,10 @@ Changing the CEF pin requires a deliberate Browser dependency update:
 
 An upstream version being newer does not automatically authorize a Browser dependency change.
 
-## Non-claims
+## Representative-device evidence boundary
 
-This record does not claim that the current pinned CEF archive has already built or rendered successfully on the owner's laptop. It does not establish Browser Beta acceptance, production readiness, release signing, packaging acceptance, or Stable/Anchor product maturity.
+Exact current Browser source `16d02d80292fea225308b07ff69d947286dbb193` has now built successfully on the owner's Zorin OS 17.3 x86_64 laptop using this pinned CEF runtime. The exact build passed all 13 repository CTest smoke tests and produced Browser artifact SHA-256 `29016e07b63ad4e02f847e725f7f6d53f9377729c2e30970bfb78994707b0ab0`.
+
+On the same device's GNOME/Zorin Wayland session, both normal and isolated-private startup paths initialized CEF, presented nonuniform Browser-owned GTK windowless frames at 1280×880, and completed `https://example.com/` with HTTP 200. See `CEF_REPRESENTATIVE_RUNTIME_EVIDENCE_2026-10-04.md`.
+
+This evidence is Development runtime evidence only. It does not establish complete Browser Beta acceptance, production readiness, Privacy Shield FR-013 acceptance, release signing, packaging acceptance, or Stable/Anchor product maturity. Human visual/accessibility acceptance, graceful lifecycle/private-isolation acceptance, full security/privacy dimensions, performance/resilience, packaging, and production acceptance remain separate.
