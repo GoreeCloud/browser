@@ -213,6 +213,18 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     static_cast<Impl*>(data)->render_tab_search_results();
   }
 
+  static void on_tab_search_activate(GtkEntry*, gpointer data) {
+    static_cast<Impl*>(data)->activate_first_tab_search_result();
+  }
+
+  static void on_tab_search_popover_show(GtkWidget*, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    self->render_tab_search_results();
+    if (!self->tab_search_entry) return;
+    gtk_widget_grab_focus(self->tab_search_entry);
+    gtk_editable_select_region(GTK_EDITABLE(self->tab_search_entry), 0, -1);
+  }
+
   static void on_tab_close_clicked(GtkButton* button, gpointer data) {
     auto* self = static_cast<Impl*>(data);
     const auto* id =
@@ -336,6 +348,14 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
         self->search_entry) {
       gtk_widget_grab_focus(self->search_entry);
       gtk_editable_select_region(GTK_EDITABLE(self->search_entry), 0, -1);
+      return TRUE;
+    }
+    if (control && shift && event->keyval == GDK_KEY_a &&
+        self->tab_search_button && self->tab_search_popover &&
+        self->tab_search_entry) {
+      gtk_menu_button_popup(GTK_MENU_BUTTON(self->tab_search_button));
+      gtk_widget_grab_focus(self->tab_search_entry);
+      gtk_editable_select_region(GTK_EDITABLE(self->tab_search_entry), 0, -1);
       return TRUE;
     }
     if (control && !shift && event->keyval == GDK_KEY_t &&
@@ -2004,6 +2024,10 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     set_accessible_name(tab_search_entry, "Search open tabs");
     g_signal_connect(tab_search_entry, "changed",
                      G_CALLBACK(on_tab_search_changed), this);
+    g_signal_connect(tab_search_entry, "activate",
+                     G_CALLBACK(on_tab_search_activate), this);
+    g_signal_connect(tab_search_popover, "show",
+                     G_CALLBACK(on_tab_search_popover_show), this);
     gtk_box_pack_start(GTK_BOX(tab_search_card), tab_search_entry,
                        FALSE, FALSE, 0);
 
@@ -2036,6 +2060,22 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     std::string result{folded};
     g_free(folded);
     return result;
+  }
+
+  void activate_first_tab_search_result() {
+    if (!tab_search_results) return;
+
+    auto* children =
+        gtk_container_get_children(GTK_CONTAINER(tab_search_results));
+    for (auto* node = children; node; node = node->next) {
+      auto* child = GTK_WIDGET(node->data);
+      if (GTK_IS_BUTTON(child) && gtk_widget_get_visible(child) &&
+          gtk_widget_get_sensitive(child)) {
+        gtk_button_clicked(GTK_BUTTON(child));
+        break;
+      }
+    }
+    g_list_free(children);
   }
 
   void render_tab_search_results() {
