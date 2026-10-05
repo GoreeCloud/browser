@@ -1,5 +1,19 @@
 # GoreeCloud Browser — Changelogs
 
+
+## 2026-10-05 — Linux safe external web-link drop runtime evidence candidate
+
+### Changed
+
+- Extended the existing real-GTK external-drop regression so the page must observe both an accepted plain-text drop and an accepted safe `https://` URI drop before producing the fixed success navigation.
+- Preserved the existing pre-engine rejection check for local `file://` URIs.
+- Reused the existing Browser-owned drop implementation unchanged; this candidate adds evidence only.
+
+### Acceptance boundary
+
+If exact-head CI passes, this establishes pinned CEF/Xvfb automated evidence for file-URI rejection plus accepted external text and safe-web-link delivery. Representative native-Wayland drag/drop behavior, live drag-hover feedback, outgoing page drags, file-drop support/policy, accessibility, sustained performance, production approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-04 — Private startup and session teardown minimization candidate
 
 ### Changed
