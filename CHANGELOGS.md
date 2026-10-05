@@ -5,7 +5,7 @@
 ### Changed
 
 - Persist only the canonical Browser-approved HTTP(S) retry URL for the local `Page unavailable` surface in Android Activity instance state.
-- Restore the fixed Browser-owned failure title and retry identity only when WebView restoration still points at a Browser-local document.
+- Restore the fixed Browser-owned failure title and retry identity only when WebView restoration still points at a Browser-local document, treating WebView lifecycle `about:blank` as local so recreation cannot replace the recovery address with a synthetic New tab identity.
 - Keep the blocked-deep-link recreation marker authoritative over failure-state restoration so the two local safety surfaces cannot overwrite each other.
 - Never persist remote error codes/details, arbitrary page/title text, credential-bearing URLs, or blocked deep-link payloads.
 - Added JVM policy coverage plus Android 15 emulator evidence that an unreachable loopback page reaches `Page unavailable`, survives Activity recreation, and retains the same safe retry address.
