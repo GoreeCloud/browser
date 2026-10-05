@@ -296,7 +296,6 @@ std::string_view ChromiumEngineAdapter::version() const noexcept {
 EngineCapabilities ChromiumEngineAdapter::capabilities() const noexcept {
   return capability(EngineCapability::WebView) |
          capability(EngineCapability::PrivateContexts) |
-         capability(EngineCapability::SiteDataControl) |
          capability(EngineCapability::CookieInterception) |
          capability(EngineCapability::PermissionInterception) |
          capability(EngineCapability::DownloadInterception) |
@@ -307,9 +306,7 @@ EngineCapabilities ChromiumEngineAdapter::capabilities() const noexcept {
          capability(EngineCapability::Printing) |
          capability(EngineCapability::Accessibility) |
          capability(EngineCapability::PrivateContextCleanup) |
-         capability(EngineCapability::OriginScopedCleanup) |
-         capability(EngineCapability::AuthenticationStateCleanup) |
-         capability(EngineCapability::PermissionStateCleanup);
+         capability(EngineCapability::AuthenticationStateCleanup);
 }
 
 std::unique_ptr<EngineContext> ChromiumEngineAdapter::create_context(
