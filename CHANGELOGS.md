@@ -103,6 +103,24 @@ Development candidate pending fresh exact-head Core, security/evidence/signature
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-05 — Linux pinned-tab foundation
+
+### Added
+
+- Wired normal Browser windows to the in-memory Advanced Tab Manager with automatic managed-tab registration and unique Browser window identities.
+- Added manager-backed pinned-state readback to Browser chrome.
+- Added stable pinned-first tab ordering and fail-closed reorder boundaries so pinned and ordinary tabs cannot be dragged or keyboard-reordered across each other accidentally.
+- Added compact GTK glyph pin/unpin controls with accessible action names and pinned-tab visual state.
+- Added Release-active smoke coverage for automatic registration, pin/unpin ordering, boundary rejection, active-tab identity, manager state, and Browser-chrome pinned presentation.
+
+### Privacy and architecture boundary
+
+Private/Isolated Private windows remain outside the ordinary Advanced Tab Manager in this tranche. Pin state is kept in the Browser-owned tab manager rather than duplicated into engine-owned tab objects.
+
+### Acceptance boundary
+
+This is Development source and automated model/UI coverage. Representative native-Wayland pinned-tab interaction, pointer-drag behavior across mixed pinned/ordinary tabs, tab overflow/search, groups, persistence/recovery, accessibility, production approval, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-04 — Bounded Linux CEF renderer crash recovery candidate
 
 ### Added
