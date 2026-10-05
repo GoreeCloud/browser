@@ -423,8 +423,49 @@ jobs:
           fi
 
           log_file="${RUNNER_TEMP}/goreecloud-cef-renderer-recovery.log"
+          renderer_helper="${RUNNER_TEMP}/goreecloud-renderer-descendants.py"
           : > "${log_file}"
           trap 'status=$?; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud CEF recovery failure log ===" >&2; cat "${log_file}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+
+          cat > "${renderer_helper}" <<'PY'
+          import os
+          import sys
+
+          root = int(sys.argv[1])
+          rows = {}
+          children = {}
+          for entry in os.listdir("/proc"):
+              if not entry.isdigit():
+                  continue
+              try:
+                  pid = int(entry)
+                  stat = open(f"/proc/{entry}/stat").read().split()
+                  ppid = int(stat[3])
+                  cmd = open(f"/proc/{entry}/cmdline", "rb").read().replace(
+                      b"\\0", b" "
+                  ).decode(errors="replace")
+              except Exception:
+                  continue
+              rows[pid] = cmd
+              children.setdefault(ppid, []).append(pid)
+
+          stack = [root]
+          descendants = []
+          while stack:
+              current = stack.pop()
+              for child in children.get(current, []):
+                  descendants.append(child)
+                  stack.append(child)
+
+          candidates = []
+          for pid in descendants:
+              cmd = rows.get(pid, "")
+              if "goreecloud-browser-subprocess" in cmd and "--type=renderer" in cmd:
+                  candidates.append(pid)
+
+          for pid in sorted(candidates, reverse=True):
+              print(pid)
+          PY
 
           timeout --signal=TERM --kill-after=5s 120s \
             dbus-run-session -- \
@@ -450,58 +491,35 @@ jobs:
 
               renderer_pids=""
               for _ in $(seq 1 80); do
-                renderer_pids=$(python3 - "$browser_pid" <<'PY'
-              import os
-              import sys
-
-              root = int(sys.argv[1])
-              rows = {}
-              children = {}
-              for entry in os.listdir("/proc"):
-                  if not entry.isdigit():
-                      continue
-                  try:
-                      pid = int(entry)
-                      stat = open(f"/proc/{entry}/stat").read().split()
-                      ppid = int(stat[3])
-                      cmd = open(f"/proc/{entry}/cmdline", "rb").read().replace(
-                          b"\\0", b" "
-                      ).decode(errors="replace")
-                  except Exception:
-                      continue
-                  rows[pid] = cmd
-                  children.setdefault(ppid, []).append(pid)
-
-              stack = [root]
-              descendants = []
-              while stack:
-                  current = stack.pop()
-                  for child in children.get(current, []):
-                      descendants.append(child)
-                      stack.append(child)
-
-              for pid in descendants:
-                  cmd = rows.get(pid, "")
-                  if "goreecloud-browser-subprocess" in cmd and "--type=renderer" in cmd:
-                      print(pid)
-              PY
-                )
+                renderer_pids=$(python3 "$2" "$browser_pid")
                 if [ -n "$renderer_pids" ]; then
                   break
                 fi
                 sleep 0.1
               done
               test -n "$renderer_pids"
-              echo "Killing Browser renderer pids=$renderer_pids"
+
+              termination_seen=0
               for renderer_pid in $renderer_pids; do
+                echo "Killing Browser renderer pid=$renderer_pid"
                 kill -KILL "$renderer_pid" 2>/dev/null || true
+                for _ in $(seq 1 24); do
+                  if grep -Fq "[GoreeCloud CEF] render-process-terminated" "$1"; then
+                    termination_seen=1
+                    break 2
+                  fi
+                  if ! kill -0 "$browser_pid" 2>/dev/null; then
+                    break 2
+                  fi
+                  sleep 0.1
+                done
               done
+              test "$termination_seen" -eq 1
 
               recovered=0
               for _ in $(seq 1 160); do
                 loads=$(grep -Fc "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$1" || true)
-                if grep -Fq "[GoreeCloud CEF] render-process-terminated" "$1" &&
-                   grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "$1" &&
+                if grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "$1" &&
                    [ "$loads" -gt "$initial_loads" ]; then
                   recovered=1
                   break
@@ -516,7 +534,7 @@ jobs:
               kill "$browser_pid" 2>/dev/null || true
               wait "$browser_pid" 2>/dev/null || true
               exit 0
-            ' sh "${log_file}"
+            ' sh "${log_file}" "${renderer_helper}"
 
           cat "${log_file}"
           grep -Fq "[GoreeCloud CEF] render-process-terminated" "${log_file}"
