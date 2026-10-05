@@ -170,6 +170,10 @@ jobs:
           assert "OnPopupSize" in client
           assert "OnImeCompositionRangeChanged" in client
           assert "windowless-ime-cursor" in client
+          assert "GetRequestHandler" in client
+          assert "OnRenderProcessTerminated" in client
+          assert "render-process-recovery reload" in client
+          assert "render_recovery_pending_" in client
           assert "PET_POPUP" in client
           assert "RunContextMenu" in client
           assert "SendMouseClickEvent" in runtime
@@ -403,6 +407,85 @@ jobs:
           if [[ "${runtime_status}" -ne 0 && "${runtime_status}" -ne 124 ]]; then
             echo "CEF runtime exited unexpectedly with status ${runtime_status}" >&2
             exit "${runtime_status}"
+          fi
+
+      - name: Exercise bounded CEF renderer crash recovery under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-renderer-recovery.log"
+          : > "${log_file}"
+          trap 'status=$?; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud CEF recovery failure log ===" >&2; cat "${log_file}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+
+          timeout --signal=TERM --kill-after=5s 120s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh https://example.com/ >"$1" 2>&1 &
+              browser_pid=$!
+
+              initial_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$1"; then
+                  initial_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$initial_ready" -eq 1
+              initial_loads=$(grep -Fc "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$1")
+
+              renderer_pid=""
+              for _ in $(seq 1 80); do
+                renderer_pid=$(pgrep -f "[g]oreecloud-browser-subprocess.*--type=renderer" | head -n1 || true)
+                if [ -n "$renderer_pid" ]; then
+                  break
+                fi
+                sleep 0.1
+              done
+              test -n "$renderer_pid"
+              kill -KILL "$renderer_pid"
+
+              recovered=0
+              for _ in $(seq 1 160); do
+                loads=$(grep -Fc "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$1" || true)
+                if grep -Fq "[GoreeCloud CEF] render-process-terminated" "$1" &&
+                   grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "$1" &&
+                   [ "$loads" -gt "$initial_loads" ]; then
+                  recovered=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$recovered" -eq 1
+
+              kill "$browser_pid" 2>/dev/null || true
+              wait "$browser_pid" 2>/dev/null || true
+              exit 0
+            ' sh "${log_file}"
+
+          cat "${log_file}"
+          grep -Fq "[GoreeCloud CEF] render-process-terminated" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "${log_file}"
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during renderer recovery smoke" >&2
+            exit 1
           fi
 
       - name: Exercise CEF windowless page pixels, custom/standard cursors, pointer input, and context menu under Xvfb
