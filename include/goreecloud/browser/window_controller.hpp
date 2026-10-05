@@ -21,11 +21,13 @@ class WindowController {
   explicit WindowController(EngineContext& context,
                             bool private_window = false,
                             AdvancedTabManager* tab_manager = nullptr,
-                            std::string window_id = "window-1")
+                            std::string window_id = "window-1",
+                            std::string private_session_id = {})
       : context_(context),
         private_window_(private_window),
         tab_manager_(tab_manager),
-        window_id_(std::move(window_id)) {}
+        window_id_(std::move(window_id)),
+        private_session_id_(std::move(private_session_id)) {}
 
   [[nodiscard]] Tab& new_tab(std::string initial_url = std::string{kNewTabUrl}) {
     EngineViewOptions options;
@@ -158,6 +160,9 @@ class WindowController {
   [[nodiscard]] std::size_t tab_count() const noexcept { return tabs_.size(); }
   [[nodiscard]] bool private_window() const noexcept { return private_window_; }
   [[nodiscard]] const std::string& window_id() const noexcept { return window_id_; }
+  [[nodiscard]] const std::string& private_session_id() const noexcept {
+    return private_session_id_;
+  }
 
   [[nodiscard]] std::vector<std::string> tab_ids() const {
     std::vector<std::string> ids;
@@ -255,6 +260,7 @@ class WindowController {
   bool private_window_{false};
   AdvancedTabManager* tab_manager_{nullptr};
   std::string window_id_;
+  std::string private_session_id_;
   std::vector<std::unique_ptr<Tab>> tabs_;
   std::vector<std::string> selected_tab_ids_;
   std::optional<std::size_t> active_index_;
