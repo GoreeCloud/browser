@@ -132,6 +132,17 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
     present_active_tab();
   });
 
+  host.set_tab_reorder_handler(
+      [&](std::string_view source_id,
+          std::string_view target_id,
+          bool after_target) {
+        commands.clear_panel();
+        const bool reordered =
+            window->reorder_tab_relative(source_id, target_id, after_target);
+        if (reordered) present_active_tab();
+        return reordered;
+      });
+
   host.set_toolbar_handler([&](ToolbarItem item) {
     commands.clear_panel();
     if (!commands.invoke(item)) return;
