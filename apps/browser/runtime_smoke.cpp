@@ -351,6 +351,42 @@ int main() {
     return 1;
   }
 
+  WindowController relative_window(
+      *normal_context, false, nullptr, "window-relative-reorder");
+  const std::string relative_a =
+      relative_window.new_tab("https://a.example/").id();
+  const std::string relative_b =
+      relative_window.new_tab("https://b.example/").id();
+  const std::string relative_c =
+      relative_window.new_tab("https://c.example/").id();
+  GC_REQUIRE(relative_window.active_tab());
+  GC_REQUIRE(relative_window.active_tab()->id() == relative_c);
+
+  GC_REQUIRE(relative_window.reorder_tab_relative(
+      relative_a, relative_c, true));
+  GC_REQUIRE(relative_window.tab_ids() ==
+             std::vector<std::string>({relative_b, relative_c, relative_a}));
+  GC_REQUIRE(relative_window.active_tab());
+  GC_REQUIRE(relative_window.active_tab()->id() == relative_c);
+
+  GC_REQUIRE(relative_window.reorder_tab_relative(
+      relative_a, relative_b, false));
+  GC_REQUIRE(relative_window.tab_ids() ==
+             std::vector<std::string>({relative_a, relative_b, relative_c}));
+  GC_REQUIRE(relative_window.active_tab());
+  GC_REQUIRE(relative_window.active_tab()->id() == relative_c);
+
+  GC_REQUIRE(relative_window.reorder_tab_relative(
+      relative_b, relative_c, true));
+  GC_REQUIRE(relative_window.tab_ids() ==
+             std::vector<std::string>({relative_a, relative_c, relative_b}));
+  GC_REQUIRE(relative_window.active_tab());
+  GC_REQUIRE(relative_window.active_tab()->id() == relative_c);
+  GC_REQUIRE(relative_window.reorder_tab_relative(
+      relative_c, relative_c, false));
+  GC_REQUIRE(!relative_window.reorder_tab_relative(
+      relative_c, "missing-target", false));
+
   GC_REQUIRE(window.activate_previous_tab());
   GC_REQUIRE(window.active_tab() && window.active_tab()->id() == first.id());
   GC_REQUIRE(window.activate_next_tab());
