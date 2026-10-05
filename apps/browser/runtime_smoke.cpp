@@ -390,6 +390,13 @@ int main() {
   GC_REQUIRE(private_browser.first_window()->active_tab()->engine_view().navigation_state().url ==
          kPrivateStartUrl);
   GC_REQUIRE(private_browser.has_private_session_context("smoke-private"));
+  GC_REQUIRE(!private_browser.has_default_context());
+
+  auto& normal_after_private = private_browser.new_window(false);
+  GC_REQUIRE(!normal_after_private.private_window());
+  GC_REQUIRE(private_browser.has_default_context());
+  GC_REQUIRE(private_browser.window_count() == 2);
+
   private_browser.shutdown();
 
   return 0;
