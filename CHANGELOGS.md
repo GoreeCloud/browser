@@ -111,7 +111,8 @@ Development candidate pending fresh exact-head Core, security/evidence/signature
 - Added a Glaze-styled GTK popover with an accessible search field and scrollable matching-tab results.
 - Filter tab titles with UTF-8 case folding so title search is case-insensitive without exposing page URLs.
 - Preserve pinned and active visual indicators in the result list, provide an explicit empty state, and activate the exact Browser tab ID selected by the user.
-- Added Core CI source-contract guards for the tab-search control, accessible labels, Unicode folding, rendering path, and empty-result state.
+- Added Ctrl+Shift+A as a keyboard-first entry point that opens and focuses the tab-search popover, plus Enter activation of the first visible filtered result.
+- Added Core CI source-contract guards for the tab-search control, accessible labels, Unicode folding, rendering path, keyboard shortcut/activation path, and empty-result state.
 
 ### Acceptance boundary
 
