@@ -134,7 +134,8 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
 
 class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
                                       public NativeSurfaceCursorSink,
-                                      public NativeSurfaceContextMenuSink {
+                                      public NativeSurfaceContextMenuSink,
+                                      public NativeSurfaceTextInputGeometrySink {
  public:
   Impl() {
     media_hover.set_present_callback(
@@ -1178,6 +1179,31 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
                 << cursor.width << "x" << cursor.height
                 << " hotspot=" << cursor.hotspot_x << "," << cursor.hotspot_y
                 << " scale=" << cursor.scale_factor << std::endl;
+    }
+  }
+
+  void update_text_input_cursor_rect(
+      const NativeTextInputCursorRect& rect) override {
+    if (!im_context || !content_area) return;
+
+    GtkAllocation allocation{};
+    gtk_widget_get_allocation(content_area, &allocation);
+    if (allocation.width <= 0 || allocation.height <= 0) return;
+
+    const int x = std::clamp(rect.x, 0, allocation.width - 1);
+    const int y = std::clamp(rect.y, 0, allocation.height - 1);
+    const int width =
+        std::clamp(rect.width, 1, std::max(1, allocation.width - x));
+    const int height =
+        std::clamp(rect.height, 1, std::max(1, allocation.height - y));
+    GdkRectangle cursor{x, y, width, height};
+    gtk_im_context_set_cursor_location(im_context, &cursor);
+
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] windowless-ime-cursor-location x="
+                << cursor.x << " y=" << cursor.y
+                << " width=" << cursor.width
+                << " height=" << cursor.height << std::endl;
     }
   }
 
@@ -2260,6 +2286,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       surface.frame_sink = this;
       surface.cursor_sink = this;
       surface.context_menu_sink = this;
+      surface.text_input_geometry_sink = this;
     }
     return surface;
   }
