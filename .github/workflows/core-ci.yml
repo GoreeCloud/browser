@@ -698,14 +698,18 @@ jobs:
           port_file = sys.argv[1]
 
           class Handler(http.server.BaseHTTPRequestHandler):
-              request_count = 0
+              document_request_count = 0
 
               def do_GET(self):
-                  type(self).request_count += 1
-                  # Hold only the first automatic recovery request.
-                  # A later explicit user retry must be allowed to complete.
-                  if type(self).request_count == 2:
-                      time.sleep(30)
+                  # Count only top-level document requests. Chromium may request
+                  # /favicon.ico after the initial load; allowing that request to
+                  # consume the delay slot makes the recovery race nondeterministic.
+                  if self.path == "/":
+                      type(self).document_request_count += 1
+                      # Hold only the first automatic recovery document request.
+                      # A later explicit user retry must be allowed to complete.
+                      if type(self).document_request_count == 2:
+                          time.sleep(30)
                   body = b"<html><body>GoreeCloud renderer recovery</body></html>"
                   self.send_response(200)
                   self.send_header("Content-Type", "text/html; charset=utf-8")
