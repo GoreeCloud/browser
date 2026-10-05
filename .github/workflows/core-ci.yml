@@ -94,7 +94,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
       - name: Syntax-check CEF bootstrap and launch scripts
         run: |
-          python3 -m py_compile scripts/bootstrap_cef_linux.py
+          python3 -m py_compile scripts/bootstrap_cef_linux.py scripts/record_cef_binary_evidence.py
           bash -n scripts/build_linux_render_beta.sh
           bash -n scripts/run_linux_render_beta.sh
       - name: Verify Linux GTK backend fallback contract
