@@ -111,6 +111,10 @@ class BrowserApplication {
     return private_contexts_.contains(private_session_id);
   }
 
+  [[nodiscard]] bool has_default_context() const noexcept {
+    return static_cast<bool>(default_context_);
+  }
+
   [[nodiscard]] BrowserEngine& engine() noexcept { return *engine_; }
   [[nodiscard]] const BrowserEngine& engine() const noexcept { return *engine_; }
   [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }
