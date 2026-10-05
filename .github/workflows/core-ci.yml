@@ -72,8 +72,12 @@ jobs:
           persist-credentials: false
       - name: Verify exact source revision
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
-      - name: Install GTK/X11 and libcurl development packages
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libx11-dev pkg-config libcurl4-openssl-dev
+      - name: Install GTK/X11, packaging validators, and libcurl development packages
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libx11-dev pkg-config libcurl4-openssl-dev desktop-file-utils appstream
+      - name: Validate Linux desktop and AppStream metadata
+        run: |
+          desktop-file-validate packaging/linux/io.goreecloud.Browser.desktop
+          appstreamcli validate --no-net packaging/linux/io.goreecloud.Browser.metainfo.xml
       - name: Configure beta shell with live downloads
         run: cmake -S . -B build-gtk -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DGOREECLOUD_ENABLE_CHROMIUM=OFF -DGOREECLOUD_ENABLE_CEF=OFF -DGOREECLOUD_ENABLE_LINUX_GTK_HOST=ON -DGOREECLOUD_ENABLE_CURL_DOWNLOAD_TRANSPORT=ON
       - name: Build beta shell
