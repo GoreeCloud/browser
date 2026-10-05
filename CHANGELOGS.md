@@ -103,6 +103,19 @@ Development candidate pending fresh exact-head Core, security/evidence/signature
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-05 — Linux repeated renderer failure surface
+
+### Added
+
+- Added a Browser-owned `goreecloud://renderer-failure` recovery surface for a second recoverable CEF renderer termination before the first automatic recovery completes.
+- Preserved the existing single automatic reload for the first abnormal/killed/crashed/OOM renderer termination.
+- Added a recovery-exhausted guard so repeated failures cannot create an automatic reload loop.
+- Added a deterministic pinned-CEF Xvfb regression backed by a local HTTP server that deliberately holds the recovery request, kills the replacement renderer, and requires exactly one automatic reload followed by the local failure surface.
+
+### Acceptance boundary
+
+This establishes Development repeated-failure behavior and automated runtime evidence. Representative native-Wayland crash UX, manual retry behavior, accessibility, repeated long-running failure patterns, production recovery policy, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-05 — Linux pinned-tab foundation
 
 ### Added

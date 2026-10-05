@@ -14,6 +14,7 @@
 
 #include "goreecloud/browser/cef_media_probe.hpp"
 #include "goreecloud/browser/engine.hpp"
+#include "goreecloud/browser/internal_pages.hpp"
 #include "goreecloud/browser/media_preview_provider.hpp"
 #include "goreecloud/browser/media_target_detector.hpp"
 #include "goreecloud/browser/native_engine_surface.hpp"
@@ -454,6 +455,7 @@ class GoreeCloudCefClient final : public CefClient,
     state_.loading = false;
     state_.progress = 1.0;
     render_recovery_pending_ = false;
+    render_recovery_exhausted_ = false;
     if (runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] main-frame-load-end status="
                 << http_status_code
@@ -502,10 +504,25 @@ class GoreeCloudCefClient final : public CefClient,
                 << " error=" << error_string.ToString() << std::endl;
     }
 
-    if (!recoverable || !same_browser || render_recovery_pending_) {
+    if (!recoverable || !same_browser) {
       if (runtime_diagnostics_enabled()) {
         std::cerr << "[GoreeCloud CEF] render-process-recovery suppressed"
                   << std::endl;
+      }
+      return;
+    }
+
+    if (render_recovery_pending_ || render_recovery_exhausted_) {
+      render_recovery_pending_ = false;
+      render_recovery_exhausted_ = true;
+      state_.url = std::string{kRendererFailureUrl};
+      state_.title = "Page crashed";
+      state_.loading = false;
+      state_.progress = 0.0;
+      publish();
+      if (runtime_diagnostics_enabled()) {
+        std::cerr << "[GoreeCloud CEF] render-process-recovery exhausted"
+                  << " surface=" << kRendererFailureUrl << std::endl;
       }
       return;
     }
@@ -1058,6 +1075,7 @@ class GoreeCloudCefClient final : public CefClient,
       DRAG_OPERATION_NONE};
   bool pending_drop_active_{false};
   bool render_recovery_pending_{false};
+  bool render_recovery_exhausted_{false};
   int view_width_{1};
   int view_height_{1};
   float scale_factor_{1.0F};
