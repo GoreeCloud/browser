@@ -131,6 +131,19 @@ Development candidate pending fresh exact-head Core, security/evidence/signature
 
 Development source and compile/source-contract coverage only. The keyboard shortcut and Enter-first-result source paths are implemented, but representative native-Wayland keyboard interaction, large tab sets, focus traversal, large text, screen-reader behavior, localization/RTL, performance, production approval, Stable, Seal, and Anchor qualification remain open.
 
+## 2026-10-05 — Linux HiDPI custom-cursor scaling candidate
+
+### Added
+
+- Scale Browser-owned custom cursor bitmaps from the CEF-reported image scale into the GTK content-surface device scale.
+- Scale and clamp cursor hotspots consistently with the presented bitmap, including after fitting oversized cursors to the display-reported maximum cursor size.
+- Preserve source/presented dimensions plus image/device-scale diagnostics for Development evidence.
+- Add a pinned-CEF Xvfb regression under `GDK_SCALE=2` that requires a CSS custom cursor to be presented at the mathematically expected device-scale dimensions.
+
+### Acceptance boundary
+
+Development source plus automated GTK 2× scaling evidence only. Representative native-Wayland high-DPI behavior across real displays/compositors, fractional scale, cursor-theme interoperability, accessibility, sustained performance, production approval, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-05 — Linux repeated renderer failure surface
 
 ### Added
