@@ -24,6 +24,7 @@
 #include "include/cef_drag_data.h"
 #include "include/cef_process_message.h"
 #include "include/cef_render_handler.h"
+#include "include/cef_request_handler.h"
 #include "include/wrapper/cef_helpers.h"
 #endif
 
@@ -35,6 +36,7 @@ class GoreeCloudCefClient final : public CefClient,
                                   public CefDisplayHandler,
                                   public CefLifeSpanHandler,
                                   public CefLoadHandler,
+                                  public CefRequestHandler,
                                   public CefContextMenuHandler,
                                   public CefRenderHandler {
  public:
@@ -55,6 +57,7 @@ class GoreeCloudCefClient final : public CefClient,
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
   CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
+  CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
   CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
   CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
 
@@ -450,12 +453,74 @@ class GoreeCloudCefClient final : public CefClient,
     state_.url = frame->GetURL().ToString();
     state_.loading = false;
     state_.progress = 1.0;
+    render_recovery_pending_ = false;
     if (runtime_diagnostics_enabled()) {
       std::cerr << "[GoreeCloud CEF] main-frame-load-end status="
                 << http_status_code
                 << " url=" << state_.url << std::endl;
     }
     publish();
+  }
+
+  void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser,
+                                 TerminationStatus status,
+                                 int error_code,
+                                 const CefString& error_string) override {
+    CEF_REQUIRE_UI_THREAD();
+
+    fail_all_pending_probes();
+    fail_all_pending_previews(
+        "Renderer terminated before preview completed.");
+
+    NativeSurfaceFrameSink* frame_sink = nullptr;
+    {
+      std::scoped_lock lock(render_mutex_);
+      frame_sink = frame_sink_;
+      popup_visible_ = false;
+      popup_rect_ = CefRect();
+    }
+    if (frame_sink) frame_sink->clear_software_popup_frame();
+
+    pending_drop_active_ = false;
+    pending_drop_allowed_ops_ = DRAG_OPERATION_NONE;
+
+    const bool recoverable =
+        status == TS_ABNORMAL_TERMINATION ||
+        status == TS_PROCESS_WAS_KILLED ||
+        status == TS_PROCESS_CRASHED ||
+        status == TS_PROCESS_OOM;
+    const bool same_browser =
+        browser_ && browser && browser_->IsSame(browser);
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] render-process-terminated status="
+                << static_cast<int>(status)
+                << " error_code=" << error_code
+                << " recoverable=" << (recoverable ? "yes" : "no")
+                << " recovery_pending="
+                << (render_recovery_pending_ ? "yes" : "no")
+                << " error=" << error_string.ToString() << std::endl;
+    }
+
+    if (!recoverable || !same_browser || render_recovery_pending_) {
+      if (runtime_diagnostics_enabled()) {
+        std::cerr << "[GoreeCloud CEF] render-process-recovery suppressed"
+                  << std::endl;
+      }
+      return;
+    }
+
+    render_recovery_pending_ = true;
+    state_.loading = true;
+    state_.progress = 0.0;
+    publish();
+
+    browser->Reload();
+
+    if (runtime_diagnostics_enabled()) {
+      std::cerr << "[GoreeCloud CEF] render-process-recovery reload"
+                << std::endl;
+    }
   }
 
   void OnLoadError(CefRefPtr<CefBrowser>,
@@ -992,6 +1057,7 @@ class GoreeCloudCefClient final : public CefClient,
   CefBrowserHost::DragOperationsMask pending_drop_allowed_ops_{
       DRAG_OPERATION_NONE};
   bool pending_drop_active_{false};
+  bool render_recovery_pending_{false};
   int view_width_{1};
   int view_height_{1};
   float scale_factor_{1.0F};
