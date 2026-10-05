@@ -59,6 +59,7 @@ inline std::string browser_tab_title(std::string_view url, std::string_view engi
   if (url == kHomeUrl) return "Home";
   if (url == kSettingsUrl) return "Settings";
   if (url == kPrivateStartUrl) return "Private Browsing";
+  if (url == kRendererFailureUrl) return "Page Recovery";
   if (!engine_title.empty()) return std::string{engine_title};
   return std::string{url};
 }
