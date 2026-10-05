@@ -149,6 +149,10 @@ jobs:
           assert "NativeSurfaceContextMenuSink" in surface
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
+          assert "gdk_display_get_maximal_cursor_size" in host
+          assert "gdk_pixbuf_scale_simple" in host
+          assert "device_scale" in host
+          assert "image_scale" in host
           assert "windowless-context-menu-presented" in host
           assert "gc-tab-pin" in host
           assert "GtkTabAction::toggle_pin" in host
@@ -795,6 +799,124 @@ jobs:
           fi
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during windowless input smoke" >&2
+            exit 1
+          fi
+
+      - name: Exercise CEF windowless custom cursor scaling at GTK 2x
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+          GDK_SCALE: "2"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-windowless-cursor-hidpi.log"
+          : > "${log_file}"
+          trap 'status=$?; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud CEF HiDPI cursor failure log ===" >&2; cat "${log_file}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+          test_url="$(python3 - <<'PY'
+          import base64
+          import urllib.parse
+
+          svg = (
+              '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">'
+              '<rect width="16" height="16" fill="#111"/>'
+              '<rect x="3" y="3" width="10" height="10" fill="#fff"/>'
+              '<rect x="6" y="6" width="4" height="4" fill="#111"/>'
+              '</svg>'
+          )
+          encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+          html = f"""
+          <div style="position:fixed;inset:0;background:#fafafa;
+              cursor:url(data:image/svg+xml;base64,{encoded}) 2 2,crosshair">
+            GoreeCloud HiDPI cursor
+          </div>
+          """
+          print("data:text/html," + urllib.parse.quote(html, safe=""))
+          PY
+          )"
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 2560x1600x24" \
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh "$1" >"$2" 2>&1 &
+              browser_pid=$!
+
+              window_id=""
+              for _ in $(seq 1 80); do
+                window_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
+                if [ -n "$window_id" ] &&
+                   grep -Fq "[GoreeCloud GTK] windowless-frame-presented" "$2"; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test -n "$window_id"
+
+              eval "$(xdotool getwindowgeometry --shell "$window_id")"
+              test "${WIDTH:-0}" -gt 0
+              test "${HEIGHT:-0}" -gt 0
+              xdotool mousemove --window "$window_id" "$((WIDTH / 2))" "$((HEIGHT / 2))"
+
+              cursor_ready=0
+              for _ in $(seq 1 60); do
+                if grep -Fq "[GoreeCloud GTK] windowless-custom-cursor-applied" "$2"; then
+                  cursor_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$cursor_ready" -eq 1
+
+              kill "$browser_pid" 2>/dev/null || true
+              wait "$browser_pid" 2>/dev/null || true
+              exit 0
+            ' sh "${test_url}" "${log_file}"
+
+          cat "${log_file}"
+
+          python3 - "${log_file}" <<'PY'
+          import math
+          import re
+          import sys
+          from pathlib import Path
+
+          text = Path(sys.argv[1]).read_text()
+          matches = re.findall(
+              r"windowless-custom-cursor-applied size=(\d+)x(\d+) "
+              r"presented=(\d+)x(\d+) .*?"
+              r"source-scale=([0-9.]+) device-scale=(\d+)",
+              text,
+          )
+          assert matches, text
+          width, height, shown_w, shown_h, image_scale, device_scale = matches[-1]
+          width = int(width)
+          height = int(height)
+          shown_w = int(shown_w)
+          shown_h = int(shown_h)
+          image_scale = float(image_scale)
+          device_scale = int(device_scale)
+          assert device_scale == 2, matches[-1]
+          expected_w = max(1, math.floor(width * device_scale / image_scale + 0.5))
+          expected_h = max(1, math.floor(height * device_scale / image_scale + 0.5))
+          assert shown_w == expected_w, (matches[-1], expected_w)
+          assert shown_h == expected_h, (matches[-1], expected_h)
+          PY
+
+          grep -Fq "[GoreeCloud CEF] windowless-custom-cursor-change" "${log_file}"
+          grep -Fq "device-scale=2" "${log_file}"
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during HiDPI cursor smoke" >&2
             exit 1
           fi
 
