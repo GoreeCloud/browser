@@ -1,5 +1,22 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-05 — Fail-closed CEF cleanup reporting candidate
+
+### Changed
+
+- CEF request-context cleanup no longer reports unsupported data classes as successfully cleared.
+- `clear_all_data` now accepts only the currently implemented HTTP-cache class and fails before side effects when cookies, storage, history, authentication, permissions, or other unsupported classes are requested through that aggregate path.
+- Origin-scoped authentication cleanup now fails closed because pinned CEF exposes only context-wide HTTP-auth credential clearing.
+
+### Privacy boundary
+
+This corrects Browser/engine authority reporting; it does not add cookie, local-storage, IndexedDB, service-worker, history, permission, or origin-scoped authentication deletion support. Private-context destruction remains separate from explicit engine-data cleanup, and user-facing Close & Forget remains acceptance-gated.
+
+### Acceptance boundary
+
+Development correctness candidate pending exact-head hosted validation and physical-Linux build/CTest evidence. Production privacy acceptance, Close & Forget, and representative private-session cleanup remain open.
+
+
 
 ## 2026-10-05 — Linux safe external web-link drop runtime evidence candidate
 
