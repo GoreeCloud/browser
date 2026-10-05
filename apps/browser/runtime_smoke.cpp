@@ -391,11 +391,43 @@ int main() {
          kPrivateStartUrl);
   GC_REQUIRE(private_browser.has_private_session_context("smoke-private"));
   GC_REQUIRE(!private_browser.has_default_context());
+  GC_REQUIRE(private_browser.first_window()->private_session_id() == "smoke-private");
+
+  auto& same_private_session =
+      private_browser.new_private_window("smoke-private");
+  (void)same_private_session.new_tab(std::string{kPrivateStartUrl});
+  GC_REQUIRE(same_private_session.private_session_id() == "smoke-private");
+
+  auto& isolated_private_session =
+      private_browser.new_private_window("isolated-smoke");
+  (void)isolated_private_session.new_tab(std::string{kPrivateStartUrl});
+  GC_REQUIRE(isolated_private_session.private_session_id() == "isolated-smoke");
+  GC_REQUIRE(private_browser.has_private_session_context("isolated-smoke"));
 
   auto& normal_after_private = private_browser.new_window(false);
   GC_REQUIRE(!normal_after_private.private_window());
+  GC_REQUIRE(normal_after_private.private_session_id().empty());
+  GC_REQUIRE(private_browser.has_default_context());
+  GC_REQUIRE(private_browser.window_count() == 4);
+
+  GC_REQUIRE(private_browser.close_private_session("smoke-private"));
+  GC_REQUIRE(!private_browser.has_private_session_context("smoke-private"));
+  GC_REQUIRE(private_browser.has_private_session_context("isolated-smoke"));
   GC_REQUIRE(private_browser.has_default_context());
   GC_REQUIRE(private_browser.window_count() == 2);
+  GC_REQUIRE(private_browser.first_window());
+  GC_REQUIRE(private_browser.first_window()->private_window());
+  GC_REQUIRE(private_browser.first_window()->private_session_id() ==
+             "isolated-smoke");
+  GC_REQUIRE(!private_browser.close_private_session("missing-private"));
+
+  GC_REQUIRE(private_browser.close_private_session("isolated-smoke"));
+  GC_REQUIRE(!private_browser.has_private_session_context("isolated-smoke"));
+  GC_REQUIRE(private_browser.has_default_context());
+  GC_REQUIRE(private_browser.window_count() == 1);
+  GC_REQUIRE(private_browser.first_window());
+  GC_REQUIRE(!private_browser.first_window()->private_window());
+  GC_REQUIRE(private_browser.first_window()->private_session_id().empty());
 
   private_browser.shutdown();
 
