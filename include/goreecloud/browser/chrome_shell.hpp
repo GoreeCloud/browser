@@ -86,7 +86,7 @@ class BrowserChromeShell {
           .id = tab->id(),
           .title = browser_tab_title(navigation.url, navigation.title),
           .active = active && active->id() == tab->id(),
-          .pinned = false,
+          .pinned = window_.tab_pinned(tab->id()),
           .private_context = window_.private_window(),
           .loading = navigation.loading,
       });
