@@ -44,15 +44,7 @@ class BrowserApplication {
     if (initialized_) return;
     engine_->initialize();
 
-    EngineContextOptions context_options;
-    context_options.profile_id = options_.profile_id;
-    context_options.storage_path = options_.storage_path;
-    context_options.locale = options_.locale;
-    context_options.private_context = false;
-    context_options.persistent_storage = true;
-
-    default_context_ = engine_->create_context(context_options);
-    if (!default_context_) {
+    if (!options_.initial_private_window && !ensure_default_context()) {
       engine_->shutdown();
       throw std::runtime_error("Browser engine failed to create default context");
     }
@@ -84,6 +76,9 @@ class BrowserApplication {
       return new_private_window("shared-private");
     }
     require_initialized();
+    if (!ensure_default_context()) {
+      throw std::runtime_error("Default Browser context unavailable");
+    }
     windows_.push_back(std::make_unique<WindowController>(*default_context_, false));
     return *windows_.back();
   }
@@ -130,6 +125,20 @@ class BrowserApplication {
   }
 
  private:
+  bool ensure_default_context() {
+    if (default_context_) return true;
+
+    EngineContextOptions context_options;
+    context_options.profile_id = options_.profile_id;
+    context_options.storage_path = options_.storage_path;
+    context_options.locale = options_.locale;
+    context_options.private_context = false;
+    context_options.persistent_storage = true;
+
+    default_context_ = engine_->create_context(context_options);
+    return static_cast<bool>(default_context_);
+  }
+
   EngineContext* ensure_private_context(const std::string& private_session_id) {
     const auto found = private_contexts_.find(private_session_id);
     if (found != private_contexts_.end()) return found->second.get();
