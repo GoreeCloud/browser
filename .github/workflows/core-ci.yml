@@ -702,7 +702,9 @@ jobs:
 
               def do_GET(self):
                   type(self).request_count += 1
-                  if type(self).request_count >= 2:
+                  # Hold only the first automatic recovery request.
+                  # A later explicit user retry must be allowed to complete.
+                  if type(self).request_count == 2:
                       time.sleep(30)
                   body = b"<html><body>GoreeCloud renderer recovery</body></html>"
                   self.send_response(200)
@@ -803,6 +805,67 @@ jobs:
               reloads=$(grep -Fc "[GoreeCloud CEF] render-process-recovery reload" "$1" || true)
               test "$reloads" -eq 1
 
+              # The Browser-owned failure surface keeps chrome active. An
+              # explicit user reload must recover the page without counting as
+              # another automatic recovery attempt.
+              window_id=""
+              for _ in $(seq 1 40); do
+                window_id=$(xdotool search --onlyvisible --name "GoreeCloud Browser" 2>/dev/null | head -n1 || true)
+                if [ -n "$window_id" ]; then break; fi
+                sleep 0.1
+              done
+              test -n "$window_id"
+              xdotool key --window "$window_id" --clearmodifiers ctrl+r
+
+              manual_ready=0
+              for _ in $(seq 1 120); do
+                load_count=$(grep -Fc "[GoreeCloud CEF] main-frame-load-end status=200 url=$3" "$1" || true)
+                if [ "$load_count" -ge 2 ]; then
+                  manual_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then break; fi
+                sleep 0.1
+              done
+              test "$manual_ready" -eq 1
+              test "$(grep -Fc "[GoreeCloud CEF] render-process-recovery reload" "$1" || true)" -eq 1
+
+              # A successful manual retry must reset the exhausted guard. A
+              # subsequent renderer failure therefore receives one new
+              # automatic recovery attempt and completes successfully.
+              recovered_renderer=""
+              for _ in $(seq 1 80); do
+                recovered_renderer=$(python3 "$2" "$browser_pid" | head -n1)
+                if [ -n "$recovered_renderer" ]; then break; fi
+                sleep 0.1
+              done
+              test -n "$recovered_renderer"
+              kill -KILL "$recovered_renderer"
+
+              guard_reset=0
+              for _ in $(seq 1 120); do
+                reload_count=$(grep -Fc "[GoreeCloud CEF] render-process-recovery reload" "$1" || true)
+                if [ "$reload_count" -ge 2 ]; then
+                  guard_reset=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then break; fi
+                sleep 0.1
+              done
+              test "$guard_reset" -eq 1
+
+              final_ready=0
+              for _ in $(seq 1 120); do
+                load_count=$(grep -Fc "[GoreeCloud CEF] main-frame-load-end status=200 url=$3" "$1" || true)
+                if [ "$load_count" -ge 3 ]; then
+                  final_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then break; fi
+                sleep 0.1
+              done
+              test "$final_ready" -eq 1
+
               kill "$browser_pid" 2>/dev/null || true
               wait "$browser_pid" 2>/dev/null || true
               exit 0
@@ -811,7 +874,8 @@ jobs:
           cat "${log_file}"
           grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "${log_file}"
           grep -Fq "[GoreeCloud CEF] render-process-recovery exhausted surface=goreecloud://renderer-failure" "${log_file}"
-          test "$(grep -Fc "[GoreeCloud CEF] render-process-recovery reload" "${log_file}")" -eq 1
+          test "$(grep -Fc "[GoreeCloud CEF] render-process-recovery reload" "${log_file}")" -eq 2
+          test "$(grep -Fc "[GoreeCloud CEF] main-frame-load-end status=200 url=${test_url}" "${log_file}")" -ge 3
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during repeated renderer failure smoke" >&2
             exit 1
