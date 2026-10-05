@@ -168,6 +168,12 @@ jobs:
           assert "set_tab_reorder_handler" in runner
           assert "reorder_tab_relative" in window_controller
           assert "relative_window.reorder_tab_relative" in runtime_smoke
+          assert "Close & Forget" in host
+          assert "gc-private-close-and-forget" in host
+          assert "close_and_forget_handler" in host
+          assert "set_close_and_forget_handler" in runner
+          assert "close_and_forget_requested" in runner
+          assert "application.close_private_session(private_session_id)" in runner
           assert "close_accessible" in host
           assert "set_accessible_name(close, close_accessible.c_str())" in host
           client = Path("include/goreecloud/browser/cef_client.hpp").read_text()

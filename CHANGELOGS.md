@@ -1,5 +1,24 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-05 — Linux private Close & Forget source candidate
+
+### Added
+
+- Added a private-only Glaze GTK overflow action labeled `Close & Forget` with a private-session-specific accessible name.
+- Added an explicit confirmation that the action closes every Browser window in the current private session and destroys its non-persistent Browser context while warning that data intentionally saved or copied outside the session is not removed.
+- Added two-phase runner lifetime handling: the GTK host closes and detaches the active engine view first, the event loop stops, and only then does Browser destroy the exact private session.
+- Reused the existing Release-tested `BrowserApplication::close_private_session` primitive rather than adding a second cleanup path.
+- Added Core CI source-contract checks for private-only UI wiring and exact-session teardown invocation.
+
+### Privacy boundary
+
+This command destroys Browser-owned windows and the non-persistent private request context for the exact session. It does not manufacture unsupported cookie/storage/history/permission deletion success and does not remove data the user intentionally persisted outside the private session.
+
+### Acceptance boundary
+
+Development source candidate only. Representative Close & Forget interaction on native Wayland, engine-level deletion where explicitly supported, private clipboard isolation, crash/recovery cleanup, production privacy acceptance, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-05 — Linux same-process pointer tab-reorder candidate
 
 ### Added
