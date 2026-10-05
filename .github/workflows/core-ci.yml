@@ -150,6 +150,8 @@ jobs:
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
+          assert "PAGE RECOVERY" in host
+          assert "kRendererFailureUrl" in host
           assert "gc-tab-pin" in host
           assert "GtkTabAction::toggle_pin" in host
           assert "gtk_im_context_set_cursor_location" in host
@@ -202,6 +204,8 @@ jobs:
           assert "ImeSetComposition" in runtime
           assert "ImeCommitText" in runtime
           assert "ImeCancelComposition" in runtime
+          assert "render-process-recovery exhausted" in client
+          assert "render_recovery_exhausted_" in client
           assert "DragTargetDragEnter" in client
           assert "DragTargetDragOver" in client
           assert "DragTargetDrop" in client
@@ -625,6 +629,191 @@ jobs:
           grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "${log_file}"
           if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
             echo "CEF subprocess stack corruption detected during renderer recovery smoke" >&2
+            exit 1
+          fi
+
+      - name: Exercise repeated CEF renderer failure surface under Xvfb
+        env:
+          GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+        run: |
+          set -euo pipefail
+
+          if [[ -f build-cef-render/chrome-sandbox ]]; then
+            sudo chown root:root build-cef-render/chrome-sandbox
+            sudo chmod 4755 build-cef-render/chrome-sandbox
+          fi
+
+          log_file="${RUNNER_TEMP}/goreecloud-cef-renderer-exhausted.log"
+          renderer_helper="${RUNNER_TEMP}/goreecloud-renderer-descendants-exhausted.py"
+          server_script="${RUNNER_TEMP}/goreecloud-delayed-recovery-server.py"
+          port_file="${RUNNER_TEMP}/goreecloud-delayed-recovery-port.txt"
+          server_log="${RUNNER_TEMP}/goreecloud-delayed-recovery-server.log"
+          : > "${log_file}"
+          : > "${server_log}"
+          rm -f "${port_file}"
+
+          cat > "${renderer_helper}" <<'PY'
+          import os
+          import sys
+
+          root = int(sys.argv[1])
+          rows = {}
+          children = {}
+          for entry in os.listdir("/proc"):
+              if not entry.isdigit():
+                  continue
+              try:
+                  pid = int(entry)
+                  stat = open(f"/proc/{entry}/stat").read().split()
+                  ppid = int(stat[3])
+                  cmd = open(f"/proc/{entry}/cmdline", "rb").read().replace(
+                      b"\0", b" "
+                  ).decode(errors="replace")
+              except Exception:
+                  continue
+              rows[pid] = cmd
+              children.setdefault(ppid, []).append(pid)
+
+          stack = [root]
+          descendants = []
+          while stack:
+              current = stack.pop()
+              for child in children.get(current, []):
+                  descendants.append(child)
+                  stack.append(child)
+
+          for pid in sorted(descendants, reverse=True):
+              cmd = rows.get(pid, "")
+              if "goreecloud-browser-subprocess" in cmd and "--type=renderer" in cmd:
+                  print(pid)
+          PY
+
+          cat > "${server_script}" <<'PY'
+          import http.server
+          import sys
+          import time
+
+          port_file = sys.argv[1]
+
+          class Handler(http.server.BaseHTTPRequestHandler):
+              request_count = 0
+
+              def do_GET(self):
+                  type(self).request_count += 1
+                  if type(self).request_count >= 2:
+                      time.sleep(30)
+                  body = b"<html><body>GoreeCloud renderer recovery</body></html>"
+                  self.send_response(200)
+                  self.send_header("Content-Type", "text/html; charset=utf-8")
+                  self.send_header("Content-Length", str(len(body)))
+                  self.end_headers()
+                  self.wfile.write(body)
+
+              def log_message(self, fmt, *args):
+                  sys.stderr.write((fmt % args) + "\n")
+
+          server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+          with open(port_file, "w", encoding="utf-8") as handle:
+              handle.write(str(server.server_address[1]))
+              handle.flush()
+          server.serve_forever()
+          PY
+
+          python3 -u "${server_script}" "${port_file}" >"${server_log}" 2>&1 &
+          server_pid=$!
+          trap 'status=$?; kill "${server_pid}" 2>/dev/null || true; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud repeated renderer failure log ===" >&2; cat "${log_file}" >&2 || true; echo "=== delayed server log ===" >&2; cat "${server_log}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+
+          for _ in $(seq 1 50); do
+            if [[ -s "${port_file}" ]]; then break; fi
+            sleep 0.1
+          done
+          test -s "${port_file}"
+          port="$(cat "${port_file}")"
+          test_url="http://127.0.0.1:${port}/"
+
+          timeout --signal=TERM --kill-after=5s 120s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            sh -c '
+              set -e
+              ./scripts/run_linux_render_beta.sh "$3" >"$1" 2>&1 &
+              browser_pid=$!
+
+              initial_ready=0
+              for _ in $(seq 1 120); do
+                if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=$3" "$1"; then
+                  initial_ready=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then
+                  break
+                fi
+                sleep 0.25
+              done
+              test "$initial_ready" -eq 1
+
+              first_renderer=""
+              for _ in $(seq 1 80); do
+                first_renderer=$(python3 "$2" "$browser_pid" | head -n1)
+                if [ -n "$first_renderer" ]; then break; fi
+                sleep 0.1
+              done
+              test -n "$first_renderer"
+              kill -KILL "$first_renderer"
+
+              recovery_started=0
+              for _ in $(seq 1 80); do
+                if grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "$1"; then
+                  recovery_started=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then break; fi
+                sleep 0.1
+              done
+              test "$recovery_started" -eq 1
+
+              replacement=""
+              for _ in $(seq 1 120); do
+                for pid in $(python3 "$2" "$browser_pid"); do
+                  if [ "$pid" != "$first_renderer" ]; then
+                    replacement="$pid"
+                    break
+                  fi
+                done
+                if [ -n "$replacement" ]; then break; fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then break; fi
+                sleep 0.1
+              done
+              test -n "$replacement"
+              kill -KILL "$replacement"
+
+              exhausted=0
+              for _ in $(seq 1 100); do
+                if grep -Fq "[GoreeCloud CEF] render-process-recovery exhausted surface=goreecloud://renderer-failure" "$1"; then
+                  exhausted=1
+                  break
+                fi
+                if ! kill -0 "$browser_pid" 2>/dev/null; then break; fi
+                sleep 0.1
+              done
+              test "$exhausted" -eq 1
+
+              reloads=$(grep -Fc "[GoreeCloud CEF] render-process-recovery reload" "$1" || true)
+              test "$reloads" -eq 1
+
+              kill "$browser_pid" 2>/dev/null || true
+              wait "$browser_pid" 2>/dev/null || true
+              exit 0
+            ' sh "${log_file}" "${renderer_helper}" "${test_url}"
+
+          cat "${log_file}"
+          grep -Fq "[GoreeCloud CEF] render-process-recovery reload" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] render-process-recovery exhausted surface=goreecloud://renderer-failure" "${log_file}"
+          test "$(grep -Fc "[GoreeCloud CEF] render-process-recovery reload" "${log_file}")" -eq 1
+          if grep -Fq "*** stack smashing detected ***" "${log_file}"; then
+            echo "CEF subprocess stack corruption detected during repeated renderer failure smoke" >&2
             exit 1
           fi
 
