@@ -89,12 +89,31 @@ class BrowserActivityV2 : Activity() {
             blockedWebNavigationVisible =
                 savedInstanceState.getBoolean(STATE_BLOCKED_WEB_NAVIGATION_VISIBLE, false)
             val restoredUrl = webView.url
-            if (blockedWebNavigationVisible && restoredUrl?.let(::isInternalStartUrl) == true) {
-                currentUrl = INTERNAL_HOME
-                chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
-            } else {
-                blockedWebNavigationVisible = false
-                currentUrl = restoredUrl ?: INTERNAL_HOME
+            val restoredDocumentIsBrowserLocal =
+                restoredUrl?.let(::isInternalStartUrl) == true
+            val restoredFailure = BrowserFailureStatePolicy.restorable(
+                retryUrl = savedInstanceState.getString(
+                    BrowserFailureStatePolicy.BUNDLE_RETRY_URL_KEY,
+                ),
+                restoredDocumentIsBrowserLocal = restoredDocumentIsBrowserLocal,
+                blockedWebNavigationVisible = blockedWebNavigationVisible,
+            )
+            when {
+                blockedWebNavigationVisible && restoredDocumentIsBrowserLocal -> {
+                    failedMainFrameUrl = null
+                    currentUrl = INTERNAL_HOME
+                    chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
+                }
+                restoredFailure != null -> {
+                    blockedWebNavigationVisible = false
+                    failedMainFrameUrl = restoredFailure.retryUrl
+                    currentUrl = restoredFailure.retryUrl
+                    chromeOverrideTitle = BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
+                }
+                else -> {
+                    blockedWebNavigationVisible = false
+                    currentUrl = restoredUrl ?: INTERNAL_HOME
+                }
             }
             refreshChrome()
         } else {
@@ -117,6 +136,9 @@ class BrowserActivityV2 : Activity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean(STATE_BLOCKED_WEB_NAVIGATION_VISIBLE, blockedWebNavigationVisible)
+        BrowserFailureStatePolicy.persistableRetryUrl(failedMainFrameUrl)?.let { retryUrl ->
+            outState.putString(BrowserFailureStatePolicy.BUNDLE_RETRY_URL_KEY, retryUrl)
+        }
         webView.saveState(outState)
         outState.putBoolean(STATE_DESKTOP_SITE, desktopSiteEnabled)
         outState.putBoolean(STATE_PAGE_SCRIPTS, pageScriptsEnabled)
@@ -522,7 +544,7 @@ class BrowserActivityV2 : Activity() {
             ?: currentUrl.takeIf(NavigationResolver::isAllowedWebUrl)
 
         failedMainFrameUrl = retryUrl
-        chromeOverrideTitle = "Page unavailable"
+        chromeOverrideTitle = BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
         if (retryUrl != null) currentUrl = retryUrl
         loading = false
         progressBar.visibility = View.GONE
