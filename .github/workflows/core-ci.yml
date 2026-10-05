@@ -332,6 +332,70 @@ jobs:
             exit 1
           fi
 
+      - name: Exercise installed private startup without normal profile materialization
+        env:
+          GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS: "1"
+          GOREECLOUD_BROWSER_FORCE_WINDOWLESS: "1"
+        run: |
+          set -euo pipefail
+
+          stage="${RUNNER_TEMP}/goreecloud-install"
+          xdg_data="${RUNNER_TEMP}/goreecloud-private-xdg"
+          log_file="${RUNNER_TEMP}/goreecloud-installed-private-runtime.log"
+          launcher="${stage}/bin/goreecloud-browser"
+          runtime="${stage}/libexec/goreecloud-browser"
+
+          rm -rf "${xdg_data}"
+          mkdir -p "${xdg_data}"
+          : > "${log_file}"
+
+          test -x "${launcher}"
+          test -x "${runtime}/goreecloud-browser"
+          test -u "${runtime}/chrome-sandbox"
+
+          trap 'status=$?; if [[ $status -ne 0 ]]; then echo "=== GoreeCloud installed private runtime failure log ===" >&2; cat "${log_file}" >&2 || true; fi; trap - EXIT; exit "$status"' EXIT
+
+          timeout --signal=TERM --kill-after=5s 90s \
+            dbus-run-session -- \
+            xvfb-run -a -s "-screen 0 1280x800x24" \
+            env XDG_DATA_HOME="${xdg_data}" \
+            "${launcher}" --private https://example.com/ >"${log_file}" 2>&1 &
+          runtime_pid=$!
+
+          private_ready=0
+          for _ in $(seq 1 90); do
+            if grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"; then
+              private_ready=1
+              break
+            fi
+            if ! kill -0 "${runtime_pid}" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          test "${private_ready}" -eq 1
+          test -d "${xdg_data}/goreecloud/browser/cef"
+          test ! -e "${xdg_data}/goreecloud/browser/cef/profile"
+
+          kill "${runtime_pid}" 2>/dev/null || true
+          wait "${runtime_pid}" 2>/dev/null || true
+
+          cat "${log_file}"
+
+          grep -Fq "[GoreeCloud CEF] CefInitialize completed" "${log_file}"
+          grep -Fq "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "${log_file}"
+          test ! -e "${xdg_data}/goreecloud/browser/cef/profile"
+
+          if grep -Fq "GoreeCloud Browser refuses to initialize Chromium with the sandbox disabled" "${log_file}"; then
+            echo "Installed private launcher disabled Chromium sandboxing" >&2
+            exit 1
+          fi
+          if grep -Fq "cache_path directory (profile) is not an absolute path" "${log_file}"; then
+            echo "Installed private launcher produced a relative CEF profile path" >&2
+            exit 1
+          fi
+
       - name: Launch sandboxed CEF runtime under Xvfb
         env:
           GOREECLOUD_BROWSER_CEF_BUILD_DIR: ${{ github.workspace }}/build-cef-render

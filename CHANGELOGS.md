@@ -1,5 +1,26 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-04 — Private startup and session teardown minimization candidate
+
+### Changed
+
+- Deferred creation of the normal persistent Browser engine context when startup is Private or Isolated Private.
+- Kept private startup on the existing cache-path-free, non-persistent private request-context path.
+- Added Release-active Browser core coverage requiring no default persistent context after private startup and lazy creation only when a normal window is later requested.
+- Bound Browser-owned private windows to their exact private-session identity.
+- Replaced unsafe context-only teardown with session-scoped teardown that destroys every Browser-owned window for the target private session before destroying its non-persistent engine context, preventing dangling `EngineContext` references while preserving Normal and unrelated private sessions.
+- Expanded Release-active smoke coverage to two private sessions plus a Normal window, including shared-session multi-window teardown, cross-session isolation, repeated/missing-session behavior, and preservation of the Normal context.
+- Added an installed CEF runtime regression that keeps a private session live through a successful HTTPS page load and requires the ordinary persistent `profile` directory to remain absent from the XDG user-data root.
+
+### Privacy boundary
+
+This removes unnecessary normal-profile materialization during private-only startup and makes Browser-owned multi-window private-session teardown structurally safe and session-scoped. It does not yet establish engine-level cookie/site-data/permission/authentication purge completion, private clipboard isolation, crash/recovery cleanup, user-facing Close & Forget, or representative native-device privacy acceptance.
+
+### Acceptance boundary
+
+Development candidate pending fresh exact-head Core, security/evidence/signature, installed-runtime, and physical-Linux build/CTest validation. Production approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-04 — Representative Linux CEF runtime evidence
 
 - Built exact Browser source `16d02d80292fea225308b07ff69d947286dbb193` / tree `59a60318a3dd30c6f3d07d39d22f0d062b5fa4a4` on the owner's Zorin OS 17.3 x86_64 laptop using pinned CEF `152.0.6+g708dc14+chromium-152.0.7977.83`.
@@ -27,7 +48,7 @@
 
 ### Acceptance boundary
 
-Development candidate only. Hosted exact-head renderer-kill recovery evidence is required before integration. Representative user-facing crash/error surfaces, repeated-crash behavior, process-hang handling, private-context cleanup, production approval, Stable, Seal, and Anchor remain open.
+Integrated Development behavior. Exact-head hosted renderer-kill recovery passed before integration and required a second successful HTTPS main-frame load after one bounded recovery reload. Representative user-facing crash/error surfaces, repeated-crash behavior, process-hang handling, private-context cleanup, production approval, Stable, Seal, and Anchor remain open.
 
 ## 2026-10-04 — Linux Wayland IME candidate-position geometry
 
