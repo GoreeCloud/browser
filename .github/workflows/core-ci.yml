@@ -450,13 +450,50 @@ jobs:
 
               renderer_pid=""
               for _ in $(seq 1 80); do
-                renderer_pid=$(pgrep -f "[g]oreecloud-browser-subprocess.*--type=renderer" | head -n1 || true)
+                renderer_pid=$(python3 - "$browser_pid" <<'PY'
+              import os
+              import sys
+
+              root = int(sys.argv[1])
+              rows = {}
+              children = {}
+              for entry in os.listdir("/proc"):
+                  if not entry.isdigit():
+                      continue
+                  try:
+                      pid = int(entry)
+                      stat = open(f"/proc/{entry}/stat").read().split()
+                      ppid = int(stat[3])
+                      cmd = open(f"/proc/{entry}/cmdline", "rb").read().replace(
+                          b"\\0", b" "
+                      ).decode(errors="replace")
+                  except Exception:
+                      continue
+                  rows[pid] = cmd
+                  children.setdefault(ppid, []).append(pid)
+
+              stack = [root]
+              descendants = []
+              while stack:
+                  current = stack.pop()
+                  for child in children.get(current, []):
+                      descendants.append(child)
+                      stack.append(child)
+
+              for pid in descendants:
+                  cmd = rows.get(pid, "")
+                  if "goreecloud-browser-subprocess" in cmd and "--type=renderer" in cmd:
+                      print(pid)
+                      break
+              PY
+                )
                 if [ -n "$renderer_pid" ]; then
                   break
                 fi
                 sleep 0.1
               done
               test -n "$renderer_pid"
+              echo "Killing Browser renderer pid=$renderer_pid"
               kill -KILL "$renderer_pid"
 
               recovered=0
