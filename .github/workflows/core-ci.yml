@@ -828,7 +828,22 @@ jobs:
                 sleep 0.1
               done
               test -n "$window_id"
-              xdotool key --window "$window_id" --clearmodifiers ctrl+r
+
+              # Xvfb has no window manager to activate the GTK toplevel for us.
+              # Focus it directly, prove X input focus moved there, then send the
+              # ordinary Browser Ctrl+R shortcut through the focused window.
+              xdotool windowfocus "$window_id"
+              focus_ready=0
+              for _ in $(seq 1 40); do
+                focused_window=$(xdotool getwindowfocus 2>/dev/null || true)
+                if [ "$focused_window" = "$window_id" ]; then
+                  focus_ready=1
+                  break
+                fi
+                sleep 0.1
+              done
+              test "$focus_ready" -eq 1
+              xdotool key --clearmodifiers ctrl+r
 
               manual_ready=0
               for _ in $(seq 1 120); do
