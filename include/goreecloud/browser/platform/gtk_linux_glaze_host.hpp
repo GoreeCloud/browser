@@ -27,6 +27,8 @@ class GtkLinuxGlazeWindowHost final : public NativeWindowHost {
  public:
   using ToolbarHandler = std::function<void(ToolbarItem)>;
   using TabActionHandler = std::function<void(GtkTabAction, std::string_view)>;
+  using TabReorderHandler =
+      std::function<bool(std::string_view, std::string_view, bool)>;
   using SearchHandler = std::function<void(std::string_view)>;
   using SearchControlHandler = std::function<void(UnifiedSearchBarControl)>;
   using MediaHoverActionHandler = std::function<void(MediaAction, const MediaTarget&)>;
@@ -39,6 +41,7 @@ class GtkLinuxGlazeWindowHost final : public NativeWindowHost {
 
   void set_toolbar_handler(ToolbarHandler handler);
   void set_tab_action_handler(TabActionHandler handler);
+  void set_tab_reorder_handler(TabReorderHandler handler);
   void set_search_handler(SearchHandler handler);
   void set_search_control_handler(SearchControlHandler handler);
   void set_media_hover_action_handler(MediaHoverActionHandler handler);
