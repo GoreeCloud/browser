@@ -103,6 +103,19 @@ Development candidate pending fresh exact-head Core, security/evidence/signature
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-05 — Linux HiDPI custom-cursor scaling candidate
+
+### Added
+
+- Scale Browser-owned custom cursor bitmaps and hotspots from the CEF-reported image scale into the GTK content surface device scale.
+- Bound the presented cursor to the display's reported maximum cursor size and preserve hotspot coordinates after any fit scaling.
+- Added runtime diagnostics that distinguish source size/scale from presented size/device scale.
+- Added a pinned-CEF Xvfb regression under `GDK_SCALE=2` that requires a CSS custom cursor to be presented at the mathematically expected 2× device-scale dimensions.
+
+### Acceptance boundary
+
+This establishes Development source plus automated GTK 2× scaling evidence only. Representative native-Wayland high-DPI behavior across real displays/compositors, fractional scale, cursor-theme interoperability, accessibility, sustained performance, production approval, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-05 — Linux pinned-tab foundation
 
 ### Added
