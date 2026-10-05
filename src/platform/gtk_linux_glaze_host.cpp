@@ -203,7 +203,14 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
         static_cast<const char*>(g_object_get_data(G_OBJECT(button), "gc-tab-id"));
     if (self->tab_action_handler && id) {
       self->tab_action_handler(GtkTabAction::activate, id);
+      if (self->tab_search_popover) {
+        gtk_popover_popdown(GTK_POPOVER(self->tab_search_popover));
+      }
     }
+  }
+
+  static void on_tab_search_changed(GtkEditable*, gpointer data) {
+    static_cast<Impl*>(data)->render_tab_search_results();
   }
 
   static void on_tab_close_clicked(GtkButton* button, gpointer data) {
@@ -1616,6 +1623,49 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       .gc-tab-pin-active {
         color: @theme_selected_bg_color;
       }
+      .gc-tab-search-button {
+        min-width: 34px;
+        min-height: 34px;
+        padding: 0;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        box-shadow: none;
+      }
+      .gc-tab-search-button:hover {
+        background-color: alpha(@theme_fg_color, 0.07);
+      }
+      .gc-tab-search-card {
+        min-width: 300px;
+        padding: 8px;
+        border-radius: 16px;
+        background-color: @theme_bg_color;
+      }
+      .gc-tab-search-entry {
+        min-height: 38px;
+        margin-bottom: 6px;
+        padding: 0 10px;
+        border-radius: 12px;
+      }
+      .gc-tab-search-result {
+        min-height: 40px;
+        padding: 5px 10px;
+        border-radius: 10px;
+        border: 1px solid transparent;
+        background: transparent;
+        box-shadow: none;
+      }
+      .gc-tab-search-result:hover {
+        background-color: alpha(@theme_fg_color, 0.06);
+      }
+      .gc-tab-search-result-active {
+        background-color: alpha(@theme_selected_bg_color, 0.12);
+        border-color: alpha(@theme_selected_bg_color, 0.22);
+      }
+      .gc-tab-search-empty {
+        padding: 12px 8px;
+        opacity: 0.72;
+      }
       .gc-stage-badge {
         opacity: 0.74;
         padding: 5px 10px;
@@ -1936,6 +1986,39 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     g_signal_connect(new_tab_button, "clicked", G_CALLBACK(on_new_tab_clicked), this);
     gtk_box_pack_start(GTK_BOX(tab_strip), new_tab_button, FALSE, FALSE, 0);
 
+    tab_search_button = gtk_menu_button_new();
+    set_button_icon(tab_search_button, "⌄", "view-list-symbolic");
+    gtk_widget_set_size_request(tab_search_button, 34, 34);
+    add_style_class(tab_search_button, "gc-tab-search-button");
+    set_accessible_name(tab_search_button, "Search Tabs");
+    gtk_box_pack_start(GTK_BOX(tab_strip), tab_search_button, FALSE, FALSE, 0);
+
+    tab_search_popover = gtk_popover_new(tab_search_button);
+    auto* tab_search_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    add_style_class(tab_search_card, "gc-tab-search-card");
+    gtk_container_add(GTK_CONTAINER(tab_search_popover), tab_search_card);
+
+    tab_search_entry = gtk_search_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(tab_search_entry), "Search tabs");
+    add_style_class(tab_search_entry, "gc-tab-search-entry");
+    set_accessible_name(tab_search_entry, "Search open tabs");
+    g_signal_connect(tab_search_entry, "changed",
+                     G_CALLBACK(on_tab_search_changed), this);
+    gtk_box_pack_start(GTK_BOX(tab_search_card), tab_search_entry,
+                       FALSE, FALSE, 0);
+
+    auto* tab_search_scroll = gtk_scrolled_window_new(nullptr, nullptr);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tab_search_scroll),
+                                   GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_size_request(tab_search_scroll, 320, 240);
+    tab_search_results = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    gtk_container_add(GTK_CONTAINER(tab_search_scroll), tab_search_results);
+    gtk_box_pack_start(GTK_BOX(tab_search_card), tab_search_scroll,
+                       TRUE, TRUE, 0);
+
+    gtk_menu_button_set_popover(GTK_MENU_BUTTON(tab_search_button),
+                                tab_search_popover);
+
     auto* spacer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_widget_set_hexpand(spacer, TRUE);
     gtk_box_pack_start(GTK_BOX(tab_strip), spacer, TRUE, TRUE, 0);
@@ -1946,8 +2029,75 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     gtk_box_pack_end(GTK_BOX(tab_strip), stage_badge, FALSE, FALSE, 0);
   }
 
+  static std::string folded_utf8(std::string_view value) {
+    const std::string owned{value};
+    gchar* folded = g_utf8_casefold(owned.c_str(), -1);
+    if (!folded) return {};
+    std::string result{folded};
+    g_free(folded);
+    return result;
+  }
+
+  void render_tab_search_results() {
+    if (!tab_search_results) return;
+
+    auto* children =
+        gtk_container_get_children(GTK_CONTAINER(tab_search_results));
+    for (auto* node = children; node; node = node->next) {
+      gtk_widget_destroy(GTK_WIDGET(node->data));
+    }
+    g_list_free(children);
+
+    const char* raw_query =
+        tab_search_entry ? gtk_entry_get_text(GTK_ENTRY(tab_search_entry)) : "";
+    const std::string query = folded_utf8(raw_query ? raw_query : "");
+    std::size_t matches = 0;
+
+    for (const auto& tab : tab_presentations) {
+      const std::string folded_title = folded_utf8(tab.title);
+      if (!query.empty() && folded_title.find(query) == std::string::npos) {
+        continue;
+      }
+
+      std::string label;
+      if (tab.pinned) label += "◆ ";
+      label += tab.title.empty() ? "Untitled Tab" : tab.title;
+      if (tab.active) label += " •";
+
+      auto* result = gtk_button_new_with_label(label.c_str());
+      gtk_widget_set_halign(result, GTK_ALIGN_FILL);
+      add_style_class(result, "gc-tab-search-result");
+      if (tab.active) add_style_class(result, "gc-tab-search-result-active");
+      const std::string accessible =
+          "Switch to " + (tab.title.empty() ? std::string{"Untitled Tab"}
+                                            : tab.title);
+      set_accessible_name(result, accessible.c_str());
+      g_object_set_data_full(G_OBJECT(result), "gc-tab-id",
+                             g_strdup(tab.id.c_str()), g_free);
+      g_signal_connect(result, "clicked",
+                       G_CALLBACK(on_tab_activate_clicked), this);
+      gtk_box_pack_start(GTK_BOX(tab_search_results), result,
+                         FALSE, FALSE, 0);
+      ++matches;
+    }
+
+    if (matches == 0) {
+      auto* empty = gtk_label_new("No matching tabs");
+      gtk_label_set_xalign(GTK_LABEL(empty), 0.0F);
+      add_style_class(empty, "gc-tab-search-empty");
+      set_accessible_name(empty, "No matching tabs");
+      gtk_box_pack_start(GTK_BOX(tab_search_results), empty,
+                         FALSE, FALSE, 0);
+    }
+
+    gtk_widget_show_all(tab_search_results);
+  }
+
   void render_tabs(const BrowserChromeState& state) {
     if (!tab_list) return;
+
+    tab_presentations = state.tabs;
+    render_tab_search_results();
 
     active_tab_id.clear();
     for (const auto& tab : state.tabs) {
@@ -2509,6 +2659,10 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   GtkWidget* tab_strip{nullptr};
   GtkWidget* tab_list{nullptr};
   GtkWidget* new_tab_button{nullptr};
+  GtkWidget* tab_search_button{nullptr};
+  GtkWidget* tab_search_popover{nullptr};
+  GtkWidget* tab_search_entry{nullptr};
+  GtkWidget* tab_search_results{nullptr};
   GtkWidget* stage_badge{nullptr};
   GtkWidget* toolbar{nullptr};
   GtkWidget* search_shell{nullptr};
@@ -2552,6 +2706,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   NativePopupRect software_popup_rect{};
   bool software_frame_diagnostic_emitted{false};
   guint media_hover_timer_id{0};
+  std::vector<ChromeTabPresentation> tab_presentations;
   std::string tab_signature;
   std::string active_tab_id;
   std::string panel_return_child{"internal"};
