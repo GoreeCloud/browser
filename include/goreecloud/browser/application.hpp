@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -87,7 +88,8 @@ class BrowserApplication {
     require_initialized();
     auto* context = ensure_private_context(private_session_id);
     if (!context) throw std::runtime_error("Private Browser context unavailable");
-    windows_.push_back(std::make_unique<WindowController>(*context, true));
+    windows_.push_back(std::make_unique<WindowController>(
+        *context, true, nullptr, "window-1", private_session_id));
     return *windows_.back();
   }
 
@@ -102,9 +104,29 @@ class BrowserApplication {
     return found == private_contexts_.end() ? nullptr : found->second.get();
   }
 
-  bool destroy_private_session_context(const std::string& private_session_id) {
+  bool close_private_session(const std::string& private_session_id) {
     require_initialized();
-    return private_contexts_.erase(private_session_id) > 0;
+    const auto found = private_contexts_.find(private_session_id);
+    if (found == private_contexts_.end()) return false;
+
+    windows_.erase(
+        std::remove_if(
+            windows_.begin(), windows_.end(),
+            [&private_session_id](const auto& window) {
+              return window && window->private_window() &&
+                     window->private_session_id() == private_session_id;
+            }),
+        windows_.end());
+
+    // Private contexts are created without persistent storage. Destroy every
+    // Browser-owned view first, then destroy the exact ephemeral context so no
+    // WindowController can retain a dangling EngineContext reference.
+    private_contexts_.erase(found);
+    return true;
+  }
+
+  bool destroy_private_session_context(const std::string& private_session_id) {
+    return close_private_session(private_session_id);
   }
 
   [[nodiscard]] bool has_private_session_context(const std::string& private_session_id) const {
