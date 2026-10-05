@@ -129,6 +129,47 @@ class BrowserAndroidRuntimeSmokeTest {
     }
 
     @Test
+    fun pageUnavailableRetryStateSurvivesActivityRecreation() {
+        val retryUrl = "http://127.0.0.1:1/goreecloud-recovery-smoke"
+
+        ActivityScenario.launch(BrowserActivityV2::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val views = collectViews(activity.window.decorView)
+                views.filterIsInstance<EditText>()
+                    .first { it.contentDescription?.toString() == "Search or address bar" }
+                    .setText(retryUrl)
+                views.filterIsInstance<ImageButton>()
+                    .first { it.contentDescription?.toString() == "Go" }
+                    .performClick()
+            }
+
+            assertTrue(
+                "Expected Browser-owned failure surface before recreation",
+                waitForChromeText(scenario, BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE),
+            )
+
+            scenario.recreate()
+
+            assertTrue(
+                "Expected Browser-owned failure surface after recreation",
+                waitForChromeText(scenario, BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE),
+            )
+            scenario.onActivity { activity ->
+                val views = collectViews(activity.window.decorView)
+                val address = views.filterIsInstance<EditText>()
+                    .first { it.contentDescription?.toString() == "Search or address bar" }
+                    .text
+                    .toString()
+                assertEquals("127.0.0.1:1/goreecloud-recovery-smoke", address)
+
+                val reload = views.filterIsInstance<ImageButton>()
+                    .first { it.contentDescription?.toString() == "Reload" }
+                assertTrue(reload.isEnabled)
+            }
+        }
+    }
+
+    @Test
     fun browsingDataCleanerRemovesWebViewCookies() {
         val cookieUrl = "https://example.com/"
         val cookieName = "goreecloud_clear_test"
@@ -165,6 +206,25 @@ class BrowserAndroidRuntimeSmokeTest {
                     ?.contains("$cookieName=1") == true,
             )
         }
+    }
+
+    private fun waitForChromeText(
+        scenario: ActivityScenario<BrowserActivityV2>,
+        expected: String,
+    ): Boolean {
+        repeat(80) {
+            val observed = AtomicReference(false)
+            scenario.onActivity { activity ->
+                observed.set(
+                    collectViews(activity.window.decorView)
+                        .filterIsInstance<TextView>()
+                        .any { it.text?.toString() == expected },
+                )
+            }
+            if (observed.get()) return true
+            Thread.sleep(200)
+        }
+        return false
     }
 
     private fun collectViews(view: View): List<View> = when (view) {
