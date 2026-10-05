@@ -13,7 +13,18 @@ namespace goreecloud::browser {
 
 class InMemoryAdvancedTabManager final : public AdvancedTabManager {
  public:
-  void register_tab(ManagedTabState state) { tabs_[state.tab_id] = std::move(state); }
+  bool register_tab(ManagedTabState state) override {
+    if (state.tab_id.empty()) return false;
+    tabs_[state.tab_id] = std::move(state);
+    return true;
+  }
+
+  [[nodiscard]] std::optional<ManagedTabState> tab_state(
+      std::string_view tab_id) const override {
+    const auto found = tabs_.find(std::string{tab_id});
+    if (found == tabs_.end()) return std::nullopt;
+    return found->second;
+  }
 
   bool duplicate_tabs(const std::vector<std::string>& tab_ids, bool) override {
     return all_exist(tab_ids);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cstdint>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -9,6 +10,7 @@
 #include <vector>
 
 #include "goreecloud/browser/engine.hpp"
+#include "goreecloud/browser/in_memory_tab_manager.hpp"
 #include "goreecloud/browser/internal_pages.hpp"
 #include "goreecloud/browser/private_browsing.hpp"
 #include "goreecloud/browser/window_controller.hpp"
@@ -66,6 +68,7 @@ class BrowserApplication {
 
   void shutdown() noexcept {
     windows_.clear();
+    tab_manager_ = InMemoryAdvancedTabManager{};
     private_contexts_.clear();
     default_context_.reset();
     engine_->shutdown();
@@ -80,7 +83,8 @@ class BrowserApplication {
     if (!ensure_default_context()) {
       throw std::runtime_error("Default Browser context unavailable");
     }
-    windows_.push_back(std::make_unique<WindowController>(*default_context_, false));
+    windows_.push_back(std::make_unique<WindowController>(
+        *default_context_, false, &tab_manager_, next_window_id()));
     return *windows_.back();
   }
 
@@ -89,7 +93,7 @@ class BrowserApplication {
     auto* context = ensure_private_context(private_session_id);
     if (!context) throw std::runtime_error("Private Browser context unavailable");
     windows_.push_back(std::make_unique<WindowController>(
-        *context, true, nullptr, "window-1", private_session_id));
+        *context, true, nullptr, next_window_id(), private_session_id));
     return *windows_.back();
   }
 
@@ -189,11 +193,17 @@ class BrowserApplication {
     }
   }
 
+  std::string next_window_id() {
+    return "window-" + std::to_string(next_window_id_++);
+  }
+
   std::unique_ptr<BrowserEngine> engine_;
   BrowserApplicationOptions options_;
   std::unique_ptr<EngineContext> default_context_;
   std::unordered_map<std::string, std::unique_ptr<EngineContext>> private_contexts_;
+  InMemoryAdvancedTabManager tab_manager_;
   std::vector<std::unique_ptr<WindowController>> windows_;
+  std::uint64_t next_window_id_{1};
   bool initialized_{false};
 };
 

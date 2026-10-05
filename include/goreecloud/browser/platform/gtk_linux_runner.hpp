@@ -146,6 +146,9 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
       case GtkTabAction::move_right:
         (void)window->move_active_tab_right();
         break;
+      case GtkTabAction::toggle_pin:
+        (void)window->toggle_tab_pinned(tab_id);
+        break;
     }
     present_active_tab();
   });

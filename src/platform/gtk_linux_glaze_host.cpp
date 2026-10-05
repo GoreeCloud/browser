@@ -210,6 +210,15 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     }
   }
 
+  static void on_tab_pin_clicked(GtkButton* button, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    const auto* id =
+        static_cast<const char*>(g_object_get_data(G_OBJECT(button), "gc-tab-id"));
+    if (self->tab_action_handler && id) {
+      self->tab_action_handler(GtkTabAction::toggle_pin, id);
+    }
+  }
+
   static void on_tab_drag_data_get(GtkWidget* widget,
                                    GdkDragContext*,
                                    GtkSelectionData* selection,
@@ -1573,6 +1582,10 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
         border-color: alpha(@theme_fg_color, 0.12);
         box-shadow: 0 2px 8px alpha(#000000, 0.06);
       }
+      .gc-browser-tab-pinned {
+        background-color: alpha(@theme_selected_bg_color, 0.08);
+        border-color: alpha(@theme_selected_bg_color, 0.18);
+      }
       .gc-tab-select {
         min-height: 34px;
         min-width: 118px;
@@ -1583,7 +1596,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
         font-weight: 600;
       }
       .gc-tab-select:hover { background-color: alpha(@theme_fg_color, 0.05); }
-      .gc-tab-close, .gc-new-tab {
+      .gc-tab-pin, .gc-tab-close, .gc-new-tab {
         min-width: 34px;
         min-height: 34px;
         padding: 0;
@@ -1592,8 +1605,11 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
         background: transparent;
         box-shadow: none;
       }
-      .gc-tab-close:hover, .gc-new-tab:hover {
+      .gc-tab-pin:hover, .gc-tab-close:hover, .gc-new-tab:hover {
         background-color: alpha(@theme_fg_color, 0.07);
+      }
+      .gc-tab-pin-active {
+        color: @theme_selected_bg_color;
       }
       .gc-stage-badge {
         opacity: 0.74;
@@ -1944,6 +1960,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       signature.push_back('|');
       signature += tab.active ? "1" : "0";
       signature += tab.loading ? "1" : "0";
+      signature += tab.pinned ? "1" : "0";
       signature.push_back(';');
     }
     if (signature == tab_signature) return;
@@ -1959,6 +1976,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       auto* shell = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 2);
       add_style_class(shell, "gc-browser-tab");
       if (tab.active) add_style_class(shell, "gc-browser-tab-active");
+      if (tab.pinned) add_style_class(shell, "gc-browser-tab-pinned");
 
       auto* select = gtk_button_new_with_label(tab.title.c_str());
       add_style_class(select, "gc-tab-select");
@@ -1995,6 +2013,19 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
         gtk_label_set_max_width_chars(GTK_LABEL(child), 22);
       }
       gtk_box_pack_start(GTK_BOX(shell), select, TRUE, TRUE, 0);
+
+      auto* pin = gtk_button_new_with_label(tab.pinned ? "◆" : "◇");
+      gtk_widget_set_size_request(pin, 34, 34);
+      add_style_class(pin, "gc-tab-pin");
+      if (tab.pinned) add_style_class(pin, "gc-tab-pin-active");
+      const std::string pin_accessible =
+          (tab.pinned ? "Unpin " : "Pin ") +
+          (tab.title.empty() ? std::string{"tab"} : tab.title + " tab");
+      set_accessible_name(pin, pin_accessible.c_str());
+      g_object_set_data_full(G_OBJECT(pin), "gc-tab-id",
+                             g_strdup(tab.id.c_str()), g_free);
+      g_signal_connect(pin, "clicked", G_CALLBACK(on_tab_pin_clicked), this);
+      gtk_box_pack_start(GTK_BOX(shell), pin, FALSE, FALSE, 0);
 
       auto* close = gtk_button_new();
       set_button_icon(close, "×", "window-close-symbolic");

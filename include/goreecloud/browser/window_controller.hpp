@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -34,21 +35,36 @@ class WindowController {
     options.initial_url = std::move(initial_url);
 
     auto view = context_.create_view(options);
-    const auto id = std::string{"tab-"} + std::to_string(next_tab_id_++);
+    const auto id = window_id_ + "-tab-" + std::to_string(next_tab_id_++);
     tabs_.push_back(std::make_unique<Tab>(id, std::move(view)));
+    if (tab_manager_ &&
+        !tab_manager_->register_tab(ManagedTabState{
+            .tab_id = id,
+            .window_id = window_id_,
+            .workspace_id = "workspace-main",
+            .group_id = std::nullopt,
+            .split_id = std::nullopt,
+            .pinned = false,
+            .protection = TabProtection::normal,
+            .sleep_policy = TabSleepPolicy::automatic,
+            .resources = {},
+        })) {
+      tabs_.pop_back();
+      throw std::runtime_error("Advanced Tab Manager rejected new tab");
+    }
     activate(tabs_.size() - 1);
     return *tabs_.back();
   }
 
   [[nodiscard]] bool close_tab(std::string_view id, bool explicit_protected_close = false) {
-    if (tab_manager_ && !tab_manager_->close_tabs({std::string{id}}, explicit_protected_close)) {
-      return false;
-    }
-
     const auto it = std::find_if(tabs_.begin(), tabs_.end(), [id](const auto& tab) {
       return tab->id() == id;
     });
     if (it == tabs_.end()) return false;
+    if (tab_manager_ &&
+        !tab_manager_->close_tabs({std::string{id}}, explicit_protected_close)) {
+      return false;
+    }
 
     const auto removed_index = static_cast<std::size_t>(std::distance(tabs_.begin(), it));
     (*it)->set_lifecycle_state(TabLifecycleState::Closed);
@@ -102,6 +118,13 @@ class WindowController {
         static_cast<std::size_t>(std::distance(tabs_.begin(), it));
     if (old_index == new_index) return true;
 
+    const auto pinned_count = pinned_tab_count();
+    const bool source_pinned = tab_pinned(id);
+    if ((source_pinned && new_index >= pinned_count) ||
+        (!source_pinned && new_index < pinned_count)) {
+      return false;
+    }
+
     const std::string active_id =
         active_tab() ? active_tab()->id() : std::string{};
     auto moved = std::move(*it);
@@ -132,6 +155,7 @@ class WindowController {
         tabs_.begin(), tabs_.end(),
         [target_id](const auto& tab) { return tab->id() == target_id; });
     if (source == tabs_.end() || target == tabs_.end()) return false;
+    if (tab_pinned(id) != tab_pinned(target_id)) return false;
 
     const auto source_index =
         static_cast<std::size_t>(std::distance(tabs_.begin(), source));
@@ -239,9 +263,32 @@ class WindowController {
            tab_manager_->lock_tabs(selected_tab_ids_, lock);
   }
 
+  [[nodiscard]] bool tab_pinned(std::string_view id) const {
+    if (!tab_manager_) return false;
+    const auto state = tab_manager_->tab_state(id);
+    return state.has_value() && state->pinned;
+  }
+
+  bool pin_tab(std::string_view id, bool pin) {
+    if (!tab_manager_ || !contains_tab(id) ||
+        !tab_manager_->pin_tabs({std::string{id}}, pin)) {
+      return false;
+    }
+    normalize_pinned_order();
+    return true;
+  }
+
+  bool toggle_tab_pinned(std::string_view id) {
+    return pin_tab(id, !tab_pinned(id));
+  }
+
   bool pin_selected_tabs(bool pin) {
-    return tab_manager_ && !selected_tab_ids_.empty() &&
-           tab_manager_->pin_tabs(selected_tab_ids_, pin);
+    if (!tab_manager_ || selected_tab_ids_.empty() ||
+        !tab_manager_->pin_tabs(selected_tab_ids_, pin)) {
+      return false;
+    }
+    normalize_pinned_order();
+    return true;
   }
 
   void navigate_active(std::string_view url) {
@@ -271,6 +318,28 @@ class WindowController {
       if (tab->id() == id) {
         tab->set_lifecycle_state(state);
         return;
+      }
+    }
+  }
+
+  [[nodiscard]] std::size_t pinned_tab_count() const {
+    return static_cast<std::size_t>(std::count_if(
+        tabs_.begin(), tabs_.end(),
+        [this](const auto& tab) { return tab_pinned(tab->id()); }));
+  }
+
+  void normalize_pinned_order() {
+    const std::string active_id =
+        active_tab() ? active_tab()->id() : std::string{};
+    std::stable_partition(
+        tabs_.begin(), tabs_.end(),
+        [this](const auto& tab) { return tab_pinned(tab->id()); });
+    if (!active_id.empty()) {
+      for (std::size_t index = 0; index < tabs_.size(); ++index) {
+        if (tabs_[index]->id() == active_id) {
+          active_index_ = index;
+          break;
+        }
       }
     }
   }
