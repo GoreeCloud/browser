@@ -1,5 +1,20 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-05 — Android privacy-safe blocked deep-link feedback
+
+### Changed
+
+- Web-initiated unsupported main-frame schemes remain fail-closed but now show a Browser-owned local explanation instead of failing silently.
+- The local surface receives only a syntactically bounded scheme label such as `mailto: link`; phone numbers, email addresses, intent extras, tokens, and other target payload data are not rendered.
+- Unsupported subframe/custom-scheme attempts remain blocked without creating a user-facing payload surface.
+- Android instance-state recreation preserves only a boolean blocked-surface marker, not the blocked target, so the synthetic local rendering origin is not promoted into visible/copyable page identity after recreation.
+- Browser-owned local start, Search-authorization, blocked-input, blocked-web-navigation, and recovery documents now share a fail-closed CSP/no-referrer document head so local safety content cannot silently gain script, network, form, object, base, or referrer authority from the globally JavaScript-capable WebView.
+- Added focused unit coverage for scheme-only labeling, blocked-navigation content minimization, and the local-document CSP/referrer boundary.
+
+### Acceptance boundary
+
+Development source hardening only. This does not enable external-app handoff, deep-link execution, new intent permissions, Search delegation, production website permissions, representative-device acceptance, Release Candidate, Stable, Seal, or Anchor qualification.
+
 ## 2026-10-05 — Linux packaging metadata validation
 
 ### Added
