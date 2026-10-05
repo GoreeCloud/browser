@@ -343,6 +343,13 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       self->tab_action_handler(GtkTabAction::close, self->active_tab_id);
       return TRUE;
     }
+    if (control && shift && event->keyval == GDK_KEY_a &&
+        self->tab_search_button && self->tab_search_entry) {
+      gtk_menu_button_set_active(GTK_MENU_BUTTON(self->tab_search_button), TRUE);
+      gtk_widget_grab_focus(self->tab_search_entry);
+      gtk_editable_select_region(GTK_EDITABLE(self->tab_search_entry), 0, -1);
+      return TRUE;
+    }
     if (control && shift && self->tab_action_handler &&
         event->keyval == GDK_KEY_Page_Up) {
       self->tab_action_handler(GtkTabAction::move_left, {});
@@ -2050,7 +2057,10 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
 
     for (const auto& tab : tab_presentations) {
       const std::string folded_title = folded_utf8(tab.title);
-      if (!query.empty() && folded_title.find(query) == std::string::npos) {
+      const std::string folded_location = folded_utf8(tab.location);
+      if (!query.empty() &&
+          folded_title.find(query) == std::string::npos &&
+          folded_location.find(query) == std::string::npos) {
         continue;
       }
 
@@ -2092,7 +2102,6 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     if (!tab_list) return;
 
     tab_presentations = state.tabs;
-    render_tab_search_results();
 
     active_tab_id.clear();
     for (const auto& tab : state.tabs) {
@@ -2108,6 +2117,8 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       signature.push_back('|');
       signature += tab.title;
       signature.push_back('|');
+      signature += tab.location;
+      signature.push_back('|');
       signature += tab.active ? "1" : "0";
       signature += tab.loading ? "1" : "0";
       signature += tab.pinned ? "1" : "0";
@@ -2115,6 +2126,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     }
     if (signature == tab_signature) return;
     tab_signature = std::move(signature);
+    render_tab_search_results();
 
     auto* children = gtk_container_get_children(GTK_CONTAINER(tab_list));
     for (auto* node = children; node; node = node->next) {
