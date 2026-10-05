@@ -35,7 +35,7 @@ class WindowController {
     options.initial_url = std::move(initial_url);
 
     auto view = context_.create_view(options);
-    const auto id = std::string{"tab-"} + std::to_string(next_tab_id_++);
+    const auto id = window_id_ + "-tab-" + std::to_string(next_tab_id_++);
     tabs_.push_back(std::make_unique<Tab>(id, std::move(view)));
     if (tab_manager_ &&
         !tab_manager_->register_tab(ManagedTabState{
