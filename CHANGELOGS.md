@@ -7,6 +7,7 @@
 - CEF request-context cleanup no longer reports unsupported data classes as successfully cleared.
 - `clear_all_data` now accepts only the currently implemented HTTP-cache class and fails before side effects when cookies, storage, history, authentication, permissions, or other unsupported classes are requested through that aggregate path.
 - Origin-scoped authentication cleanup now fails closed because pinned CEF exposes only context-wide HTTP-auth credential clearing.
+- Chromium engine capability reporting no longer advertises site-data control, origin-scoped cleanup, or permission-state cleanup that the pinned CEF delegate cannot perform.
 
 ### Privacy boundary
 
