@@ -353,7 +353,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     if (control && shift && event->keyval == GDK_KEY_a &&
         self->tab_search_button && self->tab_search_popover &&
         self->tab_search_entry) {
-      gtk_menu_button_popup(GTK_MENU_BUTTON(self->tab_search_button));
+      gtk_popover_popup(GTK_POPOVER(self->tab_search_popover));
       gtk_widget_grab_focus(self->tab_search_entry);
       gtk_editable_select_region(GTK_EDITABLE(self->tab_search_entry), 0, -1);
       return TRUE;
