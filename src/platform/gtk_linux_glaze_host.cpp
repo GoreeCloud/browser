@@ -293,6 +293,13 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     }
   }
 
+  static void on_close_and_forget_clicked(GtkButton*, gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    if (self && self->close_and_forget_handler) {
+      self->close_and_forget_handler();
+    }
+  }
+
   static gboolean on_window_key_press(GtkWidget*, GdkEventKey* event,
                                       gpointer data) {
     auto* self = static_cast<Impl*>(data);
@@ -2073,6 +2080,17 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     add_overflow_action(card, ToolbarItem::advanced_proxy_manager,
                         "Advanced Proxy Manager");
 
+    if (private_window) {
+      auto* close_and_forget = gtk_button_new_with_label("Close & Forget");
+      gtk_widget_set_halign(close_and_forget, GTK_ALIGN_FILL);
+      add_style_class(close_and_forget, "gc-private-close-and-forget");
+      set_accessible_name(close_and_forget,
+                          "Close and forget this private session");
+      g_signal_connect(close_and_forget, "clicked",
+                       G_CALLBACK(on_close_and_forget_clicked), this);
+      gtk_box_pack_start(GTK_BOX(card), close_and_forget, FALSE, FALSE, 0);
+    }
+
     gtk_menu_button_set_popover(GTK_MENU_BUTTON(overflow_menu),
                                 overflow_popover);
   }
@@ -2440,6 +2458,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
   ToolbarHandler toolbar_handler;
   TabActionHandler tab_action_handler;
   TabReorderHandler tab_reorder_handler;
+  CloseAndForgetHandler close_and_forget_handler;
   SearchHandler search_handler;
   SearchControlHandler search_control_handler;
   MediaHoverActionHandler media_hover_action_handler;
@@ -2534,6 +2553,10 @@ void GtkLinuxGlazeWindowHost::set_tab_action_handler(TabActionHandler handler) {
 void GtkLinuxGlazeWindowHost::set_tab_reorder_handler(
     TabReorderHandler handler) {
   impl_->tab_reorder_handler = std::move(handler);
+}
+void GtkLinuxGlazeWindowHost::set_close_and_forget_handler(
+    CloseAndForgetHandler handler) {
+  impl_->close_and_forget_handler = std::move(handler);
 }
 void GtkLinuxGlazeWindowHost::set_search_handler(SearchHandler handler) {
   impl_->search_handler = std::move(handler);
