@@ -161,6 +161,12 @@ jobs:
           assert "XDG_DATA_HOME" in launcher
           assert "GtkTabAction::move_left" in host
           assert "GtkTabAction::move_right" in host
+          assert "Close & Forget" in host
+          assert "gc-private-close-and-forget" in host
+          assert "close_and_forget_handler" in host
+          assert "set_close_and_forget_handler" in runner
+          assert "close_and_forget_requested" in runner
+          assert "application.close_private_session(private_session_id)" in runner
           assert "close_accessible" in host
           assert "set_accessible_name(close, close_accessible.c_str())" in host
           client = Path("include/goreecloud/browser/cef_client.hpp").read_text()
