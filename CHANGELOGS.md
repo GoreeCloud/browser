@@ -1,5 +1,18 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-05 — Linux packaging metadata validation
+
+### Added
+
+- Added fast CI validation for the installed desktop entry with `desktop-file-validate`.
+- Added offline AppStream metadata validation with `appstreamcli validate --no-net`.
+- Installed only the standard Ubuntu validation packages in the existing GTK beta-shell lane so invalid launcher/AppStream metadata fails before packaging promotion.
+
+### Acceptance boundary
+
+This is repository packaging-metadata quality evidence only. It does not establish distro packaging, launcher visual acceptance, signing, store publication, production approval, Stable, Seal, or Anchor qualification.
+
+
 ## 2026-10-05 — Linux private Close & Forget source candidate
 
 ### Added
