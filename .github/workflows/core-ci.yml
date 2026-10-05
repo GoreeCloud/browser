@@ -135,12 +135,17 @@ jobs:
           assert "NativeSurfaceTextInputForwarder" in surface
           assert "set_text_composition" in surface
           assert "commit_text" in surface
+          assert "NativeSurfaceTextInputGeometrySink" in surface
+          assert "NativeTextInputCursorRect" in surface
+          assert "text_input_geometry_sink" in surface
           assert "NativeSurfaceCursorSink" in surface
           assert "NativeCustomCursor" in surface
           assert "NativeSurfaceContextMenuSink" in surface
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
+          assert "gtk_im_context_set_cursor_location" in host
+          assert "windowless-ime-cursor-location" in host
           assert "windowless-drop-result" in host
           assert "gtk_drag_dest_add_text_targets" in host
           assert "gtk_drag_dest_add_uri_targets" in host
@@ -163,6 +168,8 @@ jobs:
           assert "OnCursorChange" in client
           assert "OnPopupShow" in client
           assert "OnPopupSize" in client
+          assert "OnImeCompositionRangeChanged" in client
+          assert "windowless-ime-cursor" in client
           assert "PET_POPUP" in client
           assert "RunContextMenu" in client
           assert "SendMouseClickEvent" in runtime
