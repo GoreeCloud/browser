@@ -158,7 +158,7 @@ jobs:
           assert "Search open tabs" in host
           assert "render_tab_search_results" in host
           assert "activate_first_tab_search_result" in host
-          assert "gtk_menu_button_popup" in host
+          assert "gtk_popover_popup" in host
           assert "GDK_KEY_a" in host
           assert '"activate"' in host
           assert "g_utf8_casefold" in host
