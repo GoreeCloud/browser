@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
@@ -1255,9 +1256,64 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       }
     }
 
+    const int device_scale =
+        std::max(1, gtk_widget_get_scale_factor(content_area));
+    const float image_scale =
+        std::isfinite(cursor.scale_factor) && cursor.scale_factor > 0.0F
+            ? cursor.scale_factor
+            : 1.0F;
+    const float requested_scale =
+        static_cast<float>(device_scale) / image_scale;
+
+    int presented_width =
+        std::max(1, static_cast<int>(std::lround(
+                        static_cast<double>(cursor.width) * requested_scale)));
+    int presented_height =
+        std::max(1, static_cast<int>(std::lround(
+                        static_cast<double>(cursor.height) * requested_scale)));
+
+    guint maximum_width = 0;
+    guint maximum_height = 0;
+    gdk_display_get_maximal_cursor_size(
+        display, &maximum_width, &maximum_height);
+    if (maximum_width > 0 && maximum_height > 0 &&
+        (presented_width > static_cast<int>(maximum_width) ||
+         presented_height > static_cast<int>(maximum_height))) {
+      const double fit = std::min(
+          static_cast<double>(maximum_width) / presented_width,
+          static_cast<double>(maximum_height) / presented_height);
+      presented_width =
+          std::max(1, static_cast<int>(std::floor(presented_width * fit)));
+      presented_height =
+          std::max(1, static_cast<int>(std::floor(presented_height * fit)));
+    }
+
+    GdkPixbuf* presented = pixbuf;
+    if (presented_width != cursor.width ||
+        presented_height != cursor.height) {
+      presented = gdk_pixbuf_scale_simple(
+          pixbuf, presented_width, presented_height, GDK_INTERP_BILINEAR);
+      g_object_unref(pixbuf);
+      if (!presented) {
+        reset_native_cursor();
+        return;
+      }
+    }
+
+    const double hotspot_scale_x =
+        static_cast<double>(presented_width) / cursor.width;
+    const double hotspot_scale_y =
+        static_cast<double>(presented_height) / cursor.height;
+    const int presented_hotspot_x = std::clamp(
+        static_cast<int>(std::lround(cursor.hotspot_x * hotspot_scale_x)),
+        0, presented_width - 1);
+    const int presented_hotspot_y = std::clamp(
+        static_cast<int>(std::lround(cursor.hotspot_y * hotspot_scale_y)),
+        0, presented_height - 1);
+
     auto* native_cursor = gdk_cursor_new_from_pixbuf(
-        display, pixbuf, cursor.hotspot_x, cursor.hotspot_y);
-    g_object_unref(pixbuf);
+        display, presented, presented_hotspot_x, presented_hotspot_y);
+    g_object_unref(presented);
     if (!native_cursor) {
       reset_native_cursor();
       return;
@@ -1269,8 +1325,13 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
       std::cerr << "[GoreeCloud GTK] windowless-custom-cursor-applied size="
                 << cursor.width << "x" << cursor.height
+                << " presented=" << presented_width << "x"
+                << presented_height
                 << " hotspot=" << cursor.hotspot_x << "," << cursor.hotspot_y
-                << " scale=" << cursor.scale_factor << std::endl;
+                << " presented-hotspot=" << presented_hotspot_x << ","
+                << presented_hotspot_y
+                << " source-scale=" << image_scale
+                << " device-scale=" << device_scale << std::endl;
     }
   }
 
