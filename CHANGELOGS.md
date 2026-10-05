@@ -15,6 +15,20 @@
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-04 — Bounded Linux CEF renderer crash recovery candidate
+
+### Added
+
+- Added CEF request-handler coverage for unexpected renderer termination.
+- Recoverable abnormal termination, process kill, crash, or OOM now clears Browser-owned transient popup/drop/media state and permits exactly one automatic reload attempt.
+- A successful main-frame load resets the recovery guard; repeated termination before recovery is suppressed.
+- Child launch failure and code-integrity failure remain fail-closed and are not auto-reloaded.
+- Added a pinned-CEF Xvfb runtime exercise that kills a renderer subprocess and requires termination diagnostics, the bounded reload path, and a second successful HTTPS main-frame load.
+
+### Acceptance boundary
+
+Development candidate only. Hosted exact-head renderer-kill recovery evidence is required before integration. Representative user-facing crash/error surfaces, repeated-crash behavior, process-hang handling, private-context cleanup, production approval, Stable, Seal, and Anchor remain open.
+
 ## 2026-10-04 — Linux Wayland IME candidate-position geometry
 
 ### Added
