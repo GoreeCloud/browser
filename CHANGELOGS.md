@@ -116,7 +116,7 @@ Development candidate pending fresh exact-head Core, security/evidence/signature
 
 ### Acceptance boundary
 
-Development source and compile/source-contract coverage only. Representative native-Wayland interaction, large tab sets, keyboard navigation inside the popover, large text, screen-reader behavior, localization/RTL, performance, production approval, Stable, Seal, and Anchor qualification remain open.
+Development source and compile/source-contract coverage only. The keyboard shortcut and Enter-first-result source paths are implemented, but representative native-Wayland keyboard interaction, large tab sets, focus traversal, large text, screen-reader behavior, localization/RTL, performance, production approval, Stable, Seal, and Anchor qualification remain open.
 
 ## 2026-10-05 — Linux repeated renderer failure surface
 
