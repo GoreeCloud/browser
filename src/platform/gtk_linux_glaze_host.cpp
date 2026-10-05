@@ -210,6 +210,82 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
     }
   }
 
+  static void on_tab_drag_data_get(GtkWidget* widget,
+                                   GdkDragContext*,
+                                   GtkSelectionData* selection,
+                                   guint,
+                                   guint,
+                                   gpointer) {
+    if (!widget || !selection) return;
+    const auto* id =
+        static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "gc-tab-id"));
+    if (!id || !*id) return;
+    const std::string_view tab_id{id};
+    gtk_selection_data_set(
+        selection,
+        gtk_selection_data_get_target(selection),
+        8,
+        reinterpret_cast<const guchar*>(tab_id.data()),
+        static_cast<gint>(tab_id.size()));
+  }
+
+  static gboolean on_tab_drag_drop(GtkWidget* widget,
+                                   GdkDragContext* context,
+                                   gint,
+                                   gint,
+                                   guint time,
+                                   gpointer) {
+    if (!widget || !context) return FALSE;
+    const auto target = gtk_drag_dest_find_target(widget, context, nullptr);
+    if (target == GDK_NONE) return FALSE;
+    gtk_drag_get_data(widget, context, target, time);
+    return TRUE;
+  }
+
+  static void on_tab_drag_data_received(GtkWidget* widget,
+                                        GdkDragContext* context,
+                                        gint x,
+                                        gint,
+                                        GtkSelectionData* selection,
+                                        guint,
+                                        guint time,
+                                        gpointer data) {
+    auto* self = static_cast<Impl*>(data);
+    bool accepted = false;
+    std::string source_id;
+    std::string target_id;
+    bool after_target = false;
+
+    if (self && widget && context && selection) {
+      const auto length = gtk_selection_data_get_length(selection);
+      const auto* bytes = gtk_selection_data_get_data(selection);
+      const auto* target =
+          static_cast<const char*>(g_object_get_data(G_OBJECT(widget), "gc-tab-id"));
+      if (bytes && length > 0 && length <= 256 && target && *target) {
+        source_id.assign(
+            reinterpret_cast<const char*>(bytes),
+            static_cast<std::size_t>(length));
+        target_id = target;
+        const int width = std::max(1, gtk_widget_get_allocated_width(widget));
+        after_target = x >= width / 2;
+        if (self->tab_reorder_handler) {
+          accepted = self->tab_reorder_handler(
+              source_id, target_id, after_target);
+        }
+      }
+    }
+
+    if (environment_flag_enabled("GOREECLOUD_BROWSER_RUNTIME_DIAGNOSTICS")) {
+      std::cerr << "[GoreeCloud GTK] tab-reorder-drag source=" << source_id
+                << " target=" << target_id
+                << " after=" << (after_target ? "yes" : "no")
+                << " accepted=" << (accepted ? "yes" : "no")
+                << std::endl;
+    }
+
+    if (context) gtk_drag_finish(context, accepted ? TRUE : FALSE, FALSE, time);
+  }
+
   static void on_new_tab_clicked(GtkButton*, gpointer data) {
     auto* self = static_cast<Impl*>(data);
     if (self->tab_action_handler) {
@@ -1883,6 +1959,29 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
       g_object_set_data_full(G_OBJECT(select), "gc-tab-id",
                              g_strdup(tab.id.c_str()), g_free);
       g_signal_connect(select, "clicked", G_CALLBACK(on_tab_activate_clicked), this);
+
+      gtk_drag_source_set(
+          select, GDK_BUTTON1_MASK, nullptr, 0, GDK_ACTION_MOVE);
+      gtk_drag_dest_set(
+          select,
+          static_cast<GtkDestDefaults>(GTK_DEST_DEFAULT_MOTION |
+                                       GTK_DEST_DEFAULT_HIGHLIGHT),
+          nullptr, 0, GDK_ACTION_MOVE);
+      auto* tab_drag_targets = gtk_target_list_new(nullptr, 0);
+      gtk_target_list_add(
+          tab_drag_targets,
+          gdk_atom_intern_static_string("application/x-goreecloud-tab-id"),
+          GTK_TARGET_SAME_APP, 1);
+      gtk_drag_source_set_target_list(select, tab_drag_targets);
+      gtk_drag_dest_set_target_list(select, tab_drag_targets);
+      gtk_target_list_unref(tab_drag_targets);
+      g_signal_connect(select, "drag-data-get",
+                       G_CALLBACK(on_tab_drag_data_get), this);
+      g_signal_connect(select, "drag-drop",
+                       G_CALLBACK(on_tab_drag_drop), this);
+      g_signal_connect(select, "drag-data-received",
+                       G_CALLBACK(on_tab_drag_data_received), this);
+
       if (auto* child = gtk_bin_get_child(GTK_BIN(select));
           child && GTK_IS_LABEL(child)) {
         gtk_label_set_ellipsize(GTK_LABEL(child), PANGO_ELLIPSIZE_END);
@@ -2340,6 +2439,7 @@ class GtkLinuxGlazeWindowHost::Impl : public NativeSurfaceFrameSink,
 
   ToolbarHandler toolbar_handler;
   TabActionHandler tab_action_handler;
+  TabReorderHandler tab_reorder_handler;
   SearchHandler search_handler;
   SearchControlHandler search_control_handler;
   MediaHoverActionHandler media_hover_action_handler;
@@ -2430,6 +2530,10 @@ void GtkLinuxGlazeWindowHost::set_toolbar_handler(ToolbarHandler handler) {
 }
 void GtkLinuxGlazeWindowHost::set_tab_action_handler(TabActionHandler handler) {
   impl_->tab_action_handler = std::move(handler);
+}
+void GtkLinuxGlazeWindowHost::set_tab_reorder_handler(
+    TabReorderHandler handler) {
+  impl_->tab_reorder_handler = std::move(handler);
 }
 void GtkLinuxGlazeWindowHost::set_search_handler(SearchHandler handler) {
   impl_->search_handler = std::move(handler);
