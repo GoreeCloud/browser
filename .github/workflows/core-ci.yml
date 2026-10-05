@@ -94,7 +94,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
       - name: Syntax-check CEF bootstrap and launch scripts
         run: |
-          python3 -m py_compile scripts/bootstrap_cef_linux.py
+          python3 -m py_compile scripts/bootstrap_cef_linux.py scripts/record_cef_binary_evidence.py
           bash -n scripts/build_linux_render_beta.sh
           bash -n scripts/run_linux_render_beta.sh
       - name: Verify Linux GTK backend fallback contract
@@ -1659,4 +1659,19 @@ jobs:
             echo "CEF subprocess stack corruption detected during windowless IME smoke" >&2
             exit 1
           fi
+
+      - name: Record exact compiled Browser artifact evidence
+        run: |
+          python3 scripts/record_cef_binary_evidence.py \
+            --build-dir build-cef-render \
+            --installed-runtime "${RUNNER_TEMP}/goreecloud-install/libexec/goreecloud-browser" \
+            --output-dir "${RUNNER_TEMP}/goreecloud-browser-cef-artifact"
+
+      - name: Retain exact compiled Browser artifact evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
+        with:
+          name: goreecloud-browser-cef-binary-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/goreecloud-browser-cef-artifact/
+          if-no-files-found: error
+          retention-days: 30
 
