@@ -28,8 +28,26 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
     throw std::runtime_error("GoreeCloud Browser has no initial window/tab for GTK host");
   }
 
+  const bool private_window = window->private_window();
+  const std::string private_session_id = window->private_session_id();
+  bool close_and_forget_requested = false;
+
   GtkLinuxGlazeWindowHost host;
-  host.set_private_window(window->private_window());
+  host.set_private_window(private_window);
+  if (private_window && !private_session_id.empty()) {
+    host.set_close_and_forget_handler([&] {
+      if (!host.confirm_media_boundary(
+              "Close & Forget",
+              "Close every window in this private session and destroy its "
+              "non-persistent Browser context? Data intentionally saved or "
+              "copied outside this private session is not removed.")) {
+        return;
+      }
+      close_and_forget_requested = true;
+      host.close();
+    });
+  }
+
   BrowserChromeShell chrome(*window);
   ChromeCommandRouter commands(*window);
   auto search_router = search_router_from_environment();
@@ -247,6 +265,10 @@ inline int run_gtk_linux_browser(BrowserApplication& application) {
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
+
+  if (close_and_forget_requested) {
+    return application.close_private_session(private_session_id) ? 0 : 1;
   }
 
   host.close();
