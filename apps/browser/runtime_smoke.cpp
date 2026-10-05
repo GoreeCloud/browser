@@ -422,6 +422,23 @@ int main() {
 
   engine.shutdown();
 
+  BrowserApplication managed_browser(std::make_unique<DevelopmentEngine>());
+  managed_browser.initialize();
+  auto* managed_first_window = managed_browser.first_window();
+  GC_REQUIRE(managed_first_window);
+  GC_REQUIRE(managed_first_window->active_tab());
+  auto& managed_second_window = managed_browser.new_window(false);
+  auto& managed_second_tab =
+      managed_second_window.new_tab("https://second-window.example/");
+  GC_REQUIRE(managed_first_window->window_id() !=
+             managed_second_window.window_id());
+  GC_REQUIRE(managed_first_window->active_tab()->id() != managed_second_tab.id());
+  GC_REQUIRE(managed_first_window->active_tab()->id().starts_with(
+      managed_first_window->window_id() + "-tab-"));
+  GC_REQUIRE(managed_second_tab.id().starts_with(
+      managed_second_window.window_id() + "-tab-"));
+  managed_browser.shutdown();
+
   BrowserApplicationOptions private_options;
   private_options.initial_private_window = true;
   private_options.initial_private_session_id = "smoke-private";
