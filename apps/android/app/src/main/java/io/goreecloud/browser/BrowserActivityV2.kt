@@ -1757,7 +1757,9 @@ class BrowserActivityV2 : Activity() {
     }
 
     private fun isInternalStartUrl(url: String): Boolean =
-        url.startsWith(START_BASE_URL) || url.startsWith("data:text/html")
+        url.equals("about:blank", ignoreCase = true) ||
+            url.startsWith(START_BASE_URL) ||
+            url.startsWith("data:text/html")
 
     private fun dp(value: Int): Int = glaze.dp(value)
 
