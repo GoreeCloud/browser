@@ -154,6 +154,11 @@ jobs:
           assert "kRendererFailureUrl" in host
           assert "gc-tab-pin" in host
           assert "GtkTabAction::toggle_pin" in host
+          assert "Search Tabs" in host
+          assert "Search open tabs" in host
+          assert "render_tab_search_results" in host
+          assert "g_utf8_casefold" in host
+          assert "No matching tabs" in host
           assert "gtk_im_context_set_cursor_location" in host
           assert "windowless-ime-cursor-location" in host
           assert "windowless-drop-result" in host
