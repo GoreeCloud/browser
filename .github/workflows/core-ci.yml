@@ -110,6 +110,11 @@ jobs:
           runner = Path("include/goreecloud/browser/platform/gtk_linux_runner.hpp").read_text()
           window_controller = Path("include/goreecloud/browser/window_controller.hpp").read_text()
           runtime_smoke = Path("apps/browser/runtime_smoke.cpp").read_text()
+          window_controller = Path("include/goreecloud/browser/window_controller.hpp").read_text()
+          chrome_shell = Path("include/goreecloud/browser/chrome_shell.hpp").read_text()
+          assert "tab_state(" in window_controller
+          assert "normalize_pinned_order" in window_controller
+          assert "window_.tab_pinned" in chrome_shell
           factory = Path("include/goreecloud/browser/runtime_engine_factory.hpp").read_text()
           adapter = Path("include/goreecloud/browser/chromium_adapter.hpp").read_text()
           cmake = Path("CMakeLists.txt").read_text()
@@ -145,6 +150,8 @@ jobs:
           assert "windowless-cursor-applied" in host
           assert "windowless-custom-cursor-applied" in host
           assert "windowless-context-menu-presented" in host
+          assert "gc-tab-pin" in host
+          assert "GtkTabAction::toggle_pin" in host
           assert "gtk_im_context_set_cursor_location" in host
           assert "windowless-ime-cursor-location" in host
           assert "windowless-drop-result" in host
