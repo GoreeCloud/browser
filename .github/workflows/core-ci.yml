@@ -448,9 +448,9 @@ jobs:
               test "$initial_ready" -eq 1
               initial_loads=$(grep -Fc "[GoreeCloud CEF] main-frame-load-end status=200 url=https://example.com/" "$1")
 
-              renderer_pid=""
+              renderer_pids=""
               for _ in $(seq 1 80); do
-                renderer_pid=$(python3 - "$browser_pid" <<'PY'
+                renderer_pids=$(python3 - "$browser_pid" <<'PY'
               import os
               import sys
 
@@ -484,17 +484,18 @@ jobs:
                   cmd = rows.get(pid, "")
                   if "goreecloud-browser-subprocess" in cmd and "--type=renderer" in cmd:
                       print(pid)
-                      break
               PY
                 )
-                if [ -n "$renderer_pid" ]; then
+                if [ -n "$renderer_pids" ]; then
                   break
                 fi
                 sleep 0.1
               done
-              test -n "$renderer_pid"
-              echo "Killing Browser renderer pid=$renderer_pid"
-              kill -KILL "$renderer_pid"
+              test -n "$renderer_pids"
+              echo "Killing Browser renderer pids=$renderer_pids"
+              for renderer_pid in $renderer_pids; do
+                kill -KILL "$renderer_pid" 2>/dev/null || true
+              done
 
               recovered=0
               for _ in $(seq 1 160); do
