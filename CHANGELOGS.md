@@ -139,10 +139,11 @@ Development source and compile/source-contract coverage only. The keyboard short
 - Preserved the existing single automatic reload for the first abnormal/killed/crashed/OOM renderer termination.
 - Added a recovery-exhausted guard so repeated failures cannot create an automatic reload loop.
 - Added a deterministic pinned-CEF Xvfb regression backed by a local HTTP server that deliberately holds the recovery request, kills the replacement renderer, and requires exactly one automatic reload followed by the local failure surface.
+- Extended that regression to send an explicit Browser Ctrl+R retry from the local failure surface, require the original page to recover without consuming a second automatic retry, then kill the recovered renderer and require exactly one fresh automatic recovery; the harness counts only top-level document requests so favicon traffic cannot consume the delayed-recovery slot and explicitly focuses the Xvfb GTK window before injecting the shortcut.
 
 ### Acceptance boundary
 
-This establishes Development repeated-failure behavior and automated runtime evidence. Representative native-Wayland crash UX, manual retry behavior, accessibility, repeated long-running failure patterns, production recovery policy, Stable, Seal, and Anchor qualification remain open.
+This establishes Development repeated-failure behavior plus automated Xvfb evidence for explicit manual retry and recovery-guard reset. Representative native-Wayland crash UX and manual-retry interaction, accessibility, repeated long-running failure patterns, production recovery policy, Stable, Seal, and Anchor qualification remain open.
 
 ## 2026-10-05 — Linux pinned-tab foundation
 
