@@ -476,23 +476,35 @@ class CefRuntimeContext final : public ChromiumRuntimeContext {
     return std::make_unique<CefRuntimeView>(request_context_, options);
   }
 
-  bool clear_origin_data(std::string_view, EngineDataClasses) override { return false; }
+  bool clear_origin_data(std::string_view, EngineDataClasses) override {
+    return false;
+  }
 
   bool clear_all_data(EngineDataClasses classes) override {
+    constexpr EngineDataClasses supported =
+        data_class(EngineDataClass::HttpCache);
+    if ((classes & ~supported) != 0) return false;
+
     if ((classes & data_class(EngineDataClass::HttpCache)) != 0) {
 #if CEF_API_ADDED(14400)
       request_context_->ClearHttpCache(nullptr);
+#else
+      return false;
 #endif
     }
     return true;
   }
 
-  bool clear_authentication_state(std::optional<std::string_view>) override {
+  bool clear_authentication_state(
+      std::optional<std::string_view> origin) override {
+    if (origin.has_value()) return false;
     request_context_->ClearHttpAuthCredentials(nullptr);
     return true;
   }
 
-  bool clear_permission_state(std::optional<std::string_view>) override { return false; }
+  bool clear_permission_state(std::optional<std::string_view>) override {
+    return false;
+  }
 
  private:
   EngineContextOptions options_;
