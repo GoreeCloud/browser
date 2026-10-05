@@ -143,7 +143,7 @@ Development source and compile/source-contract coverage only. The keyboard short
 
 ### Acceptance boundary
 
-This establishes Development repeated-failure behavior and automated runtime evidence. Representative native-Wayland crash UX, manual retry behavior, accessibility, repeated long-running failure patterns, production recovery policy, Stable, Seal, and Anchor qualification remain open.
+This establishes Development repeated-failure behavior plus automated Xvfb evidence for explicit manual retry and recovery-guard reset. Representative native-Wayland crash UX and manual-retry interaction, accessibility, repeated long-running failure patterns, production recovery policy, Stable, Seal, and Anchor qualification remain open.
 
 ## 2026-10-05 — Linux pinned-tab foundation
 
