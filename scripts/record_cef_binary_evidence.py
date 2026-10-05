@@ -29,6 +29,14 @@ def require_file(path: Path, label: str) -> None:
         raise SystemExit(f"Missing {label}: {path}")
 
 
+def first_existing_file(candidates: tuple[Path, ...], label: str) -> Path:
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    joined = ", ".join(str(candidate) for candidate in candidates)
+    raise SystemExit(f"Missing {label}; checked: {joined}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--build-dir", type=Path, required=True)
@@ -37,13 +45,18 @@ def main() -> int:
     args = parser.parse_args()
 
     build_browser = args.build_dir / "goreecloud-browser"
-    build_subprocess = args.build_dir / "goreecloud-browser-subprocess"
+    build_subprocess = first_existing_file(
+        (
+            args.build_dir / "goreecloud-browser-subprocess",
+            args.build_dir / "Release" / "goreecloud-browser-subprocess",
+        ),
+        "build Browser subprocess",
+    )
     installed_browser = args.installed_runtime / "goreecloud-browser"
     installed_subprocess = args.installed_runtime / "goreecloud-browser-subprocess"
 
     for path, label in (
         (build_browser, "build Browser binary"),
-        (build_subprocess, "build Browser subprocess"),
         (installed_browser, "installed Browser binary"),
         (installed_subprocess, "installed Browser subprocess"),
     ):
