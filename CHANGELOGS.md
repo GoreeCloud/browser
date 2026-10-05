@@ -1,5 +1,21 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-05 — Linux same-process pointer tab-reorder candidate
+
+### Added
+
+- Added an engine-independent relative tab-reorder primitive that moves a source tab before or after a target while preserving active-tab identity.
+- Added Release-active three-tab smoke coverage for both reorder directions, self/no-op handling, and invalid-target rejection.
+- Added a GTK same-process pointer-drag path on tab title controls using the private `application/x-goreecloud-tab-id` target and only opaque Browser tab IDs.
+- Added before/after selection from the target midpoint plus bounded 256-byte payload parsing and truthful drag completion based on Browser-model acceptance.
+- Added runtime diagnostics containing only source/target IDs, side, and acceptance; page URLs and engine objects do not cross the tab-drag payload.
+- Added Core CI source-contract assertions for model, runner, GTK host, drag target, and Release smoke coverage.
+
+### Acceptance boundary
+
+Development source candidate pending exact-head hosted and physical-Linux validation. Representative native-Wayland pointer/drag reorder interaction, drag accessibility beyond the existing keyboard alternative, sustained-use behavior, production approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-05 — Fail-closed CEF cleanup reporting candidate
 
 ### Changed
