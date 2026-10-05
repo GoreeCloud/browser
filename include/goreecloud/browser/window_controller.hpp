@@ -118,6 +118,35 @@ class WindowController {
     return true;
   }
 
+  [[nodiscard]] bool reorder_tab_relative(std::string_view id,
+                                          std::string_view target_id,
+                                          bool after_target) {
+    if (id == target_id) return contains_tab(id);
+
+    const auto source = std::find_if(
+        tabs_.begin(), tabs_.end(),
+        [id](const auto& tab) { return tab->id() == id; });
+    const auto target = std::find_if(
+        tabs_.begin(), tabs_.end(),
+        [target_id](const auto& tab) { return tab->id() == target_id; });
+    if (source == tabs_.end() || target == tabs_.end()) return false;
+
+    const auto source_index =
+        static_cast<std::size_t>(std::distance(tabs_.begin(), source));
+    const auto target_index =
+        static_cast<std::size_t>(std::distance(tabs_.begin(), target));
+
+    std::size_t destination = target_index;
+    if (after_target) {
+      destination = source_index < target_index ? target_index
+                                                : target_index + 1;
+    } else if (source_index < target_index) {
+      destination = target_index - 1;
+    }
+
+    return reorder_tab(id, destination);
+  }
+
   [[nodiscard]] bool move_active_tab_left() {
     if (!active_index_.has_value() || *active_index_ == 0 ||
         *active_index_ >= tabs_.size()) {
