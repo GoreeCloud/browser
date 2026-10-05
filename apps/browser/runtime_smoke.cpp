@@ -300,29 +300,15 @@ int main() {
   WindowController window(*normal_context, false, &tab_manager, "window-smoke");
 
   auto& first = window.new_tab(std::string{kNewTabUrl});
-  tab_manager.register_tab(ManagedTabState{
-      .tab_id = first.id(),
-      .window_id = window.window_id(),
-      .workspace_id = "workspace-main",
-      .group_id = std::nullopt,
-      .split_id = std::nullopt,
-      .pinned = false,
-      .protection = TabProtection::normal,
-      .sleep_policy = TabSleepPolicy::automatic,
-      .resources = {},
-  });
   auto& second = window.new_tab("https://example.com/");
-  tab_manager.register_tab(ManagedTabState{
-      .tab_id = second.id(),
-      .window_id = window.window_id(),
-      .workspace_id = "workspace-main",
-      .group_id = std::nullopt,
-      .split_id = std::nullopt,
-      .pinned = false,
-      .protection = TabProtection::normal,
-      .sleep_policy = TabSleepPolicy::automatic,
-      .resources = {},
-  });
+  const auto first_managed = tab_manager.tab_state(first.id());
+  const auto second_managed = tab_manager.tab_state(second.id());
+  GC_REQUIRE(first_managed.has_value());
+  GC_REQUIRE(second_managed.has_value());
+  GC_REQUIRE(first_managed->window_id == window.window_id());
+  GC_REQUIRE(second_managed->window_id == window.window_id());
+  GC_REQUIRE(!first_managed->pinned);
+  GC_REQUIRE(!second_managed->pinned);
 
   if (window.tab_count() != 2 || window.tab_views().size() != 2) return 1;
   BrowserChromeShell smoke_chrome(window);
@@ -350,6 +336,29 @@ int main() {
       window.active_tab()->id() != second.id()) {
     return 1;
   }
+
+  GC_REQUIRE(window.pin_tab(second.id(), true));
+  GC_REQUIRE(window.tab_pinned(second.id()));
+  GC_REQUIRE(!window.tab_pinned(first.id()));
+  GC_REQUIRE(window.tab_ids() ==
+             std::vector<std::string>({second.id(), first.id()}));
+  GC_REQUIRE(window.active_tab());
+  GC_REQUIRE(window.active_tab()->id() == second.id());
+  GC_REQUIRE(!window.move_active_tab_right());
+
+  const auto pinned_chrome = smoke_chrome.snapshot();
+  GC_REQUIRE(pinned_chrome.tabs.size() == 2);
+  GC_REQUIRE(pinned_chrome.tabs.front().id == second.id());
+  GC_REQUIRE(pinned_chrome.tabs.front().pinned);
+  GC_REQUIRE(!pinned_chrome.tabs.back().pinned);
+
+  GC_REQUIRE(window.pin_tab(second.id(), false));
+  GC_REQUIRE(!window.tab_pinned(second.id()));
+  GC_REQUIRE(window.move_active_tab_right());
+  GC_REQUIRE(window.tab_ids() ==
+             std::vector<std::string>({first.id(), second.id()}));
+  GC_REQUIRE(window.active_tab());
+  GC_REQUIRE(window.active_tab()->id() == second.id());
 
   WindowController relative_window(
       *normal_context, false, nullptr, "window-relative-reorder");
