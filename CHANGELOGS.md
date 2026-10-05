@@ -103,6 +103,21 @@ Development candidate pending fresh exact-head Core, security/evidence/signature
 **Lifecycle:** Development / non-Stable  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance v1.0, effective September 22, 2026.
 
+## 2026-10-05 — Linux searchable tab switcher candidate
+
+### Added
+
+- Added a compact Browser-owned tab-search glyph beside the Linux tab strip.
+- Added a Glaze-styled GTK popover with an accessible search field and scrollable matching-tab results.
+- Filter tab titles with UTF-8 case folding so title search is case-insensitive without exposing page URLs.
+- Preserve pinned and active visual indicators in the result list, provide an explicit empty state, and activate the exact Browser tab ID selected by the user.
+- Added Ctrl+Shift+A as a keyboard-first entry point that opens and focuses the tab-search popover, plus Enter activation of the first visible filtered result.
+- Added Core CI source-contract guards for the tab-search control, accessible labels, Unicode folding, rendering path, keyboard shortcut/activation path, and empty-result state.
+
+### Acceptance boundary
+
+Development source and compile/source-contract coverage only. The keyboard shortcut and Enter-first-result source paths are implemented, but representative native-Wayland keyboard interaction, large tab sets, focus traversal, large text, screen-reader behavior, localization/RTL, performance, production approval, Stable, Seal, and Anchor qualification remain open.
+
 ## 2026-10-05 — Linux repeated renderer failure surface
 
 ### Added
