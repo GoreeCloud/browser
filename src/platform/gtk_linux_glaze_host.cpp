@@ -125,6 +125,11 @@ InternalSurfaceCopy internal_surface_copy(std::string_view url) {
             "Private state is kept separate from ordinary persistence. Privacy Shield and Wardveil Security remain authoritative for their actual protection state.",
             "Private runtime acceptance pending"};
   }
+  if (url == kRendererFailureUrl) {
+    return {"PAGE RECOVERY", "This page stopped responding.",
+            "GoreeCloud Browser already tried one automatic renderer recovery. Reload the page or enter another address to continue.",
+            "Automatic recovery exhausted"};
+  }
   return {"GOREECLOUD BROWSER", "First-party browser surface",
           "This GoreeCloud-owned internal destination is still being implemented.",
           "Development surface"};
