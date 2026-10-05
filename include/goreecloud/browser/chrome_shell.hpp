@@ -29,6 +29,7 @@ enum class ChromeSurfaceRole {
 struct ChromeTabPresentation {
   std::string id;
   std::string title;
+  std::string location;
   bool active{false};
   bool pinned{false};
   bool private_context{false};
@@ -85,6 +86,7 @@ class BrowserChromeShell {
       state.tabs.push_back(ChromeTabPresentation{
           .id = tab->id(),
           .title = browser_tab_title(navigation.url, navigation.title),
+          .location = navigation.url,
           .active = active && active->id() == tab->id(),
           .pinned = window_.tab_pinned(tab->id()),
           .private_context = window_.private_window(),
