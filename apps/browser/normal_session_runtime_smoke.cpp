@@ -185,6 +185,86 @@ int main() {
 
   {
     MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator first(
+        store, options("recoverable"), deterministic_clock());
+    require(first.begin());
+    require(first.normal_window_opened("window-recovered"));
+    require(first.normal_tab_opened(
+        "window-recovered",
+        "tab-recovered",
+        "https://example.com/recovered",
+        "Recovered",
+        0));
+
+    NormalSessionRuntimeCoordinator resumed(
+        store, options("recoverable"), deterministic_clock());
+    const auto recovery = resumed.recoverable_state();
+    require(recovery.has_value());
+    require(recovery->journal_high_water_mark == 4);
+    require(recovery->windows.size() == 1);
+    require(recovery->windows.front().tabs.size() == 1);
+    require(resumed.resume_recovery());
+    require(resumed.status().health == NormalSessionRuntimeHealth::healthy);
+    require(
+        resumed.status().startup ==
+        NormalSessionStartupClassification::abnormal_termination);
+    require(resumed.status().committed_sequence == 6);
+    require(store.history.size() == 6);
+    require_contiguous(store.history);
+    require(
+        store.history[4].lifecycle_state ==
+        NormalSessionLifecycleState::restoring);
+    require(
+        store.history[5].lifecycle_state ==
+        NormalSessionLifecycleState::running);
+
+    NormalSessionRuntimeCoordinator wrong_epoch(
+        store, options("different-epoch"), deterministic_clock());
+    require(!wrong_epoch.resume_recovery());
+    require(
+        wrong_epoch.status().health ==
+        NormalSessionRuntimeHealth::transition_rejected);
+  }
+
+  {
+    MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator first(
+        store, options("interrupted-recovery"), deterministic_clock());
+    require(first.begin());
+    require(first.normal_window_opened("window-recovered"));
+    require(first.normal_tab_opened(
+        "window-recovered",
+        "tab-recovered",
+        "https://example.com/recovered",
+        "Recovered",
+        0));
+
+    store.fail_append_sequence = 6;
+    NormalSessionRuntimeCoordinator interrupted(
+        store, options("interrupted-recovery"), deterministic_clock());
+    require(!interrupted.resume_recovery());
+    require(
+        interrupted.status().health ==
+        NormalSessionRuntimeHealth::journal_write_failed);
+    require(interrupted.status().committed_sequence == 5);
+    require(
+        interrupted.classify_startup() ==
+        NormalSessionStartupClassification::abnormal_termination);
+
+    store.fail_append_sequence.reset();
+    NormalSessionRuntimeCoordinator retry(
+        store, options("interrupted-recovery"), deterministic_clock());
+    require(retry.resume_recovery());
+    require(retry.status().committed_sequence == 6);
+    require(store.history.size() == 6);
+    require_contiguous(store.history);
+    require(
+        store.history.back().lifecycle_state ==
+        NormalSessionLifecycleState::running);
+  }
+
+  {
+    MemoryNormalSessionStore store;
     store.fail_append_sequence = 4;
     NormalSessionRuntimeCoordinator runtime(
         store, options("append-failure"), deterministic_clock());
