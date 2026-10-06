@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -164,6 +165,7 @@ class NormalSessionRuntimeCoordinator final : public NormalSessionRuntimeObserve
     }
     if (replayed.lifecycle_state == NormalSessionLifecycleState::clean_shutdown ||
         replayed.journal_high_water_mark == 0 ||
+        replayed.journal_high_water_mark == std::numeric_limits<std::uint64_t>::max() ||
         replayed.journal_id.empty() ||
         replayed.session_epoch.empty() ||
         replayed.profile_id != options_.profile_id ||
