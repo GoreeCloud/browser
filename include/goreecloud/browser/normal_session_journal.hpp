@@ -144,10 +144,23 @@ class NormalSessionJournalPolicy {
     }
 
     if (!checkpoint.has_value() && !deduplicated.empty()) {
+      if (deduplicated.front().sequence != 1) {
+        return reject("journal does not begin at sequence one");
+      }
       result.journal_id = deduplicated.front().journal_id;
       result.profile_id = deduplicated.front().profile_id;
       result.privacy_context_id = deduplicated.front().privacy_context_id;
       result.session_epoch = deduplicated.front().session_epoch;
+    }
+
+    std::uint64_t expected_sequence =
+        checkpoint.has_value() ? checkpoint->journal_high_water_mark + 1 : 1;
+    for (const auto& entry : deduplicated) {
+      if (entry.sequence <= result.journal_high_water_mark) continue;
+      if (entry.sequence != expected_sequence) {
+        return reject("journal sequence gap");
+      }
+      ++expected_sequence;
     }
 
     if (!valid_identity(result.journal_id) && !deduplicated.empty()) {
@@ -388,13 +401,32 @@ class NormalSessionJournalPolicy {
     for (auto& tab : window.tabs) tab.active = false;
   }
 
+  [[nodiscard]] static bool valid_lifecycle_transition(
+      NormalSessionLifecycleState from,
+      NormalSessionLifecycleState to) {
+    if (from == NormalSessionLifecycleState::clean_shutdown ||
+        from == NormalSessionLifecycleState::abnormal_termination) {
+      return from == to;
+    }
+    return true;
+  }
+
   [[nodiscard]] static bool apply_entry(
       NormalSessionReplayResult& result,
       std::unordered_set<std::string>& retired_windows,
       std::unordered_set<std::string>& retired_tabs,
       const NormalSessionJournalEntry& entry) {
+    if (entry.operation != NormalSessionJournalOperation::lifecycle &&
+        (result.lifecycle_state == NormalSessionLifecycleState::clean_shutdown ||
+         result.lifecycle_state == NormalSessionLifecycleState::abnormal_termination)) {
+      return false;
+    }
+
     switch (entry.operation) {
       case NormalSessionJournalOperation::lifecycle:
+        if (!valid_lifecycle_transition(result.lifecycle_state, entry.lifecycle_state)) {
+          return false;
+        }
         result.lifecycle_state = entry.lifecycle_state;
         return true;
 
