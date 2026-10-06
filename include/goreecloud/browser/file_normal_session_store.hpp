@@ -51,30 +51,47 @@ class FileNormalSessionStore {
     return out.good();
   }
 
-  [[nodiscard]] bool write_checkpoint(const NormalSessionCheckpoint& checkpoint) {
-    if (!NormalSessionJournalPolicy::valid_checkpoint(checkpoint)) return false;
-    const auto payload = serialize_checkpoint(checkpoint);
-    if (payload.size() > kMaxNormalSessionDurableFileBytes) return false;
-    return atomic_replace(checkpoint_path(), payload);
-  }
-
   [[nodiscard]] bool compact(const NormalSessionCheckpoint& checkpoint) {
     if (!NormalSessionJournalPolicy::valid_checkpoint(checkpoint)) return false;
+
+    std::optional<NormalSessionCheckpoint> base_checkpoint;
+    std::error_code error;
+    const auto checkpoint_exists = std::filesystem::exists(checkpoint_path(), error);
+    if (error) return false;
+    if (checkpoint_exists) {
+      base_checkpoint = read_checkpoint();
+      if (!base_checkpoint.has_value()) return false;
+      if (checkpoint.journal_high_water_mark < base_checkpoint->journal_high_water_mark) {
+        return false;
+      }
+    }
 
     const auto journal = read_journal();
     if (!journal.has_value()) return false;
 
+    std::vector<NormalSessionJournalEntry> covered;
     std::vector<NormalSessionJournalEntry> retained;
+    covered.reserve(journal->size());
     retained.reserve(journal->size());
     for (const auto& entry : *journal) {
-      if (entry.sequence > checkpoint.journal_high_water_mark) {
+      if (entry.sequence <= checkpoint.journal_high_water_mark) {
+        covered.push_back(entry);
+      } else {
         retained.push_back(entry);
       }
     }
 
+    const auto replayed =
+        NormalSessionJournalPolicy::replay(base_checkpoint, std::move(covered));
+    if (!replayed.accepted ||
+        replayed.journal_high_water_mark != checkpoint.journal_high_water_mark ||
+        !same_projection(checkpoint, replayed)) {
+      return false;
+    }
+
     // Write the checkpoint first. If the process dies before journal trimming,
     // replay ignores the stale <= high-water records and remains deterministic.
-    if (!write_checkpoint(checkpoint)) return false;
+    if (!write_checkpoint_file(checkpoint)) return false;
 
     std::string journal_bytes;
     for (const auto& entry : retained) {
@@ -151,6 +168,62 @@ class FileNormalSessionStore {
   }
 
  private:
+  [[nodiscard]] static bool same_tab(
+      const RecoverableTab& left,
+      const RecoverableTab& right) {
+    return left.tab_id == right.tab_id &&
+           left.url == right.url &&
+           left.title == right.title &&
+           left.workspace_id == right.workspace_id &&
+           left.group_id == right.group_id &&
+           left.split_id == right.split_id &&
+           left.pinned == right.pinned &&
+           left.active == right.active &&
+           left.last_active_unix_ms == right.last_active_unix_ms;
+  }
+
+  [[nodiscard]] static bool same_window(
+      const RecoverableWindow& left,
+      const RecoverableWindow& right) {
+    if (left.window_id != right.window_id ||
+        left.privacy_mode != right.privacy_mode ||
+        left.active_tab_id != right.active_tab_id ||
+        left.tabs.size() != right.tabs.size()) {
+      return false;
+    }
+    for (std::size_t index = 0; index < left.tabs.size(); ++index) {
+      if (!same_tab(left.tabs[index], right.tabs[index])) return false;
+    }
+    return true;
+  }
+
+  [[nodiscard]] static bool same_projection(
+      const NormalSessionCheckpoint& checkpoint,
+      const NormalSessionReplayResult& replayed) {
+    if (checkpoint.journal_id != replayed.journal_id ||
+        checkpoint.profile_id != replayed.profile_id ||
+        checkpoint.privacy_context_id != replayed.privacy_context_id ||
+        checkpoint.session_epoch != replayed.session_epoch ||
+        checkpoint.journal_high_water_mark != replayed.journal_high_water_mark ||
+        checkpoint.lifecycle_state != replayed.lifecycle_state ||
+        checkpoint.retired_window_ids != replayed.retired_window_ids ||
+        checkpoint.retired_tab_ids != replayed.retired_tab_ids ||
+        checkpoint.windows.size() != replayed.windows.size()) {
+      return false;
+    }
+    for (std::size_t index = 0; index < checkpoint.windows.size(); ++index) {
+      if (!same_window(checkpoint.windows[index], replayed.windows[index])) return false;
+    }
+    return true;
+  }
+
+  [[nodiscard]] bool write_checkpoint_file(
+      const NormalSessionCheckpoint& checkpoint) const {
+    const auto payload = serialize_checkpoint(checkpoint);
+    if (payload.size() > kMaxNormalSessionDurableFileBytes) return false;
+    return atomic_replace(checkpoint_path(), payload);
+  }
+
   [[nodiscard]] static NormalSessionReplayResult rejected(std::string error) {
     NormalSessionReplayResult result;
     result.error = std::move(error);
