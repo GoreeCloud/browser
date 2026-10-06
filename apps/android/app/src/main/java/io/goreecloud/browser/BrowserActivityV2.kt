@@ -97,7 +97,10 @@ class BrowserActivityV2 : Activity() {
                 .getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
         )
         val recreationState = savedInstanceState?.takeIf {
-            it.getString(STATE_PROCESS_INSTANCE_TOKEN) == PROCESS_INSTANCE_TOKEN
+            BrowserTabRecreationPolicy.acceptsSameProcess(
+                savedToken = it.getString(STATE_PROCESS_INSTANCE_TOKEN),
+                currentToken = PROCESS_INSTANCE_TOKEN,
+            )
         }
         desktopSiteEnabled = recreationState?.getBoolean(STATE_DESKTOP_SITE, false) == true
         pageScriptsEnabled = recreationState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
