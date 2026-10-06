@@ -171,11 +171,13 @@ class BrowserApplication {
 
     const bool normal_window = !(*found)->private_window();
     const std::string durable_id{(*found)->window_id()};
-    windows_.erase(found);
-    if (normal_window && normal_session_started_ && session_runtime_ &&
-        session_runtime_->accepting_runtime_events()) {
-      (void)session_runtime_->normal_window_closed(durable_id);
+    if (normal_window && normal_session_started_ && session_runtime_) {
+      if (!session_runtime_->accepting_runtime_events() ||
+          !session_runtime_->normal_window_closed(durable_id)) {
+        return false;
+      }
     }
+    windows_.erase(found);
     return true;
   }
 
