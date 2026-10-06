@@ -66,10 +66,14 @@ jobs:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
 
-      - name: Install Android 35 SDK
+      - name: Install Android 35 SDK and pinned native toolchain
         shell: bash
         run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1"
 
       - name: Configure exact Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
@@ -157,6 +161,15 @@ jobs:
           cmdline-tools-version: "15859902"
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
+
+      - name: Install Android 35 SDK and pinned native toolchain
+        shell: bash
+        run: |
+          sdkmanager \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018" \
+            "cmake;3.22.1"
 
       - name: Configure exact Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
