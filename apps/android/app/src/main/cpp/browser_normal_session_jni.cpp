@@ -58,6 +58,16 @@ class AndroidNormalSessionBridge {
     return recovered_;
   }
 
+  [[nodiscard]] bool discard_recovered_and_restart(std::string fresh_epoch) {
+    if (!store_.erase_all()) return false;
+    runtime_.reset();
+    recovered_.reset();
+    seeded_ = false;
+    fresh_epoch_ = std::move(fresh_epoch);
+    start_fresh();
+    return available();
+  }
+
   [[nodiscard]] bool seed(
       std::string_view window_id,
       const std::vector<std::string>& flat_tabs,
@@ -322,6 +332,20 @@ Java_io_goreecloud_browser_BrowserNormalSessionNative_nativeRecoveredActiveTabId
   const auto& windows = bridge->recovered_state()->windows;
   if (windows.size() != 1 || !windows.front().active_tab_id.has_value()) return nullptr;
   return to_jstring(env, *windows.front().active_tab_id);
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_io_goreecloud_browser_BrowserNormalSessionNative_nativeDiscardRecoveredAndRestart(
+    JNIEnv* env,
+    jobject,
+    jlong handle,
+    jstring fresh_epoch) {
+  auto* bridge = bridge_from(handle);
+  const auto epoch = from_jstring(env, fresh_epoch);
+  return bridge != nullptr && epoch.has_value() && !epoch->empty() &&
+                 bridge->discard_recovered_and_restart(*epoch)
+             ? JNI_TRUE
+             : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
