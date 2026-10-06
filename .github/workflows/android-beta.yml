@@ -202,7 +202,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             gradle -p apps/android --no-daemon connectedDebugAndroidTest --stacktrace
 
             instrumentation="$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\) (target=io.goreecloud.browser.beta)$/\1/p' | head -n 1 | tr -d '\r')"
