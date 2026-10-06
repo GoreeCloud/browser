@@ -6,15 +6,20 @@ plugins {
 android {
     namespace = "io.goreecloud.browser"
     compileSdk = 35
+    ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "io.goreecloud.browser"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10012
+        versionCode = 10013
         versionName = "0.1.0-beta.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
 
     buildTypes {
@@ -22,7 +27,7 @@ android {
             // The CI beta is intentionally a distinct application so it can
             // coexist with a future production-signed GoreeCloud Browser.
             applicationIdSuffix = ".beta"
-            versionNameSuffix = "+android.12"
+            versionNameSuffix = "+android.13"
         }
 
         getByName("release") {
@@ -44,6 +49,13 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     lint {
