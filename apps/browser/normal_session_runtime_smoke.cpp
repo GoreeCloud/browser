@@ -205,6 +205,57 @@ int main() {
 
   {
     MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator runtime(
+        store, options("tab-close-failure"), deterministic_clock());
+    BrowserApplication browser(
+        std::make_unique<DevelopmentEngine>(),
+        BrowserApplicationOptions{},
+        &runtime);
+
+    browser.initialize();
+    auto* window = browser.first_window();
+    require(window);
+    auto* tab = window->active_tab();
+    require(tab);
+    const auto tab_id = tab->id();
+    const auto tab_count = window->tab_count();
+
+    store.fail_append_sequence = runtime.status().committed_sequence + 1;
+    require(!window->close_tab(tab_id));
+    require(window->tab_count() == tab_count);
+    require(window->active_tab());
+    require(window->active_tab()->id() == tab_id);
+    require(
+        runtime.status().health ==
+        NormalSessionRuntimeHealth::journal_write_failed);
+  }
+
+  {
+    MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator runtime(
+        store, options("window-close-failure"), deterministic_clock());
+    BrowserApplication browser(
+        std::make_unique<DevelopmentEngine>(),
+        BrowserApplicationOptions{},
+        &runtime);
+
+    browser.initialize();
+    require(browser.first_window());
+    const auto window_id = browser.first_window()->window_id();
+    const auto window_count = browser.window_count();
+
+    store.fail_append_sequence = runtime.status().committed_sequence + 1;
+    require(!browser.close_window(window_id));
+    require(browser.window_count() == window_count);
+    require(browser.first_window());
+    require(browser.first_window()->window_id() == window_id);
+    require(
+        runtime.status().health ==
+        NormalSessionRuntimeHealth::journal_write_failed);
+  }
+
+  {
+    MemoryNormalSessionStore store;
     store.fail_compact = true;
     NormalSessionRuntimeCoordinator runtime(
         store, options("checkpoint-failure", 1), deterministic_clock());
