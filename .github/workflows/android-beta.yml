@@ -185,4 +185,6 @@ jobs:
           target: default
           arch: x86_64
           disable-animations: true
-          script: gradle -p apps/android --no-daemon connectedDebugAndroidTest --stacktrace
+          script: |
+            gradle -p apps/android --no-daemon connectedDebugAndroidTest --stacktrace
+            bash apps/android/scripts/test_process_death_recovery.sh
