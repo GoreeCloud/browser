@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -258,6 +259,24 @@ int main() {
         recovered.status().health ==
         NormalSessionRuntimeHealth::transition_rejected);
     require(store.history.size() == before);
+  }
+
+  {
+    MemoryNormalSessionStore store;
+    auto exhausted = lifecycle(1, NormalSessionLifecycleState::running);
+    exhausted.journal_id = "journal-exhausted";
+    exhausted.profile_id = "default";
+    exhausted.session_epoch = "exhausted";
+    exhausted.sequence = std::numeric_limits<std::uint64_t>::max();
+    store.journal = {exhausted};
+
+    NormalSessionRuntimeCoordinator recovered(
+        store, options("new-after-exhausted"), deterministic_clock());
+    require(!recovered.resume_recovered_session());
+    require(
+        recovered.status().health ==
+        NormalSessionRuntimeHealth::transition_rejected);
+    require(store.history.empty());
   }
 
   {
