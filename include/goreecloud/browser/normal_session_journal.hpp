@@ -234,6 +234,11 @@ class NormalSessionJournalPolicy {
     return supplied == checksum_for(copy);
   }
 
+  [[nodiscard]] static bool valid_journal_entry(
+      const NormalSessionJournalEntry& entry) {
+    return valid_entry(entry);
+  }
+
   [[nodiscard]] static bool safe_restoration_url(std::string_view url) {
     if (url.empty()) return true;
     if (url.size() > kMaxNormalSessionUrlBytes) return false;
