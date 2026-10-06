@@ -10,6 +10,11 @@ package io.goreecloud.browser
 object BrowserTabRecreationPolicy {
     private const val INTERNAL_HOME = "goreecloud://start"
 
+    fun acceptsSameProcess(savedToken: String?, currentToken: String): Boolean =
+        savedToken != null &&
+            currentToken.isNotBlank() &&
+            savedToken == currentToken
+
     fun restore(
         ids: List<String>?,
         urls: List<String>?,
