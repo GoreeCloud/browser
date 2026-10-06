@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <cassert>
+#include <cstdlib>
 #include <optional>
 #include <string>
 #include <vector>
@@ -7,6 +7,10 @@
 #include "goreecloud/browser/normal_session_journal.hpp"
 
 namespace {
+
+void require(bool condition) {
+  if (!condition) std::abort();
+}
 
 goreecloud::browser::NormalSessionJournalEntry entry(
     std::uint64_t sequence,
@@ -109,40 +113,40 @@ int main() {
   std::reverse(shuffled.begin(), shuffled.end());
 
   auto replayed = NormalSessionJournalPolicy::replay(std::nullopt, shuffled);
-  assert(replayed.accepted);
-  assert(replayed.restore_eligible);
-  assert(replayed.inferred_abnormal_termination);
-  assert(replayed.journal_high_water_mark == 11);
-  assert(replayed.lifecycle_state == NormalSessionLifecycleState::running);
-  assert(replayed.windows.size() == 1);
-  assert(replayed.windows.front().window_id == "window-main");
-  assert(replayed.windows.front().tabs.size() == 1);
-  assert(replayed.windows.front().tabs.front().tab_id == "tab-1");
-  assert(replayed.windows.front().tabs.front().url == "https://example.com/one/updated");
-  assert(replayed.windows.front().tabs.front().title == "Updated One");
-  assert(replayed.windows.front().active_tab_id == "tab-1");
-  assert(replayed.windows.front().tabs.front().active);
-  assert(std::find(replayed.retired_tab_ids.begin(), replayed.retired_tab_ids.end(), "tab-2") !=
+  require(replayed.accepted);
+  require(replayed.restore_eligible);
+  require(replayed.inferred_abnormal_termination);
+  require(replayed.journal_high_water_mark == 11);
+  require(replayed.lifecycle_state == NormalSessionLifecycleState::running);
+  require(replayed.windows.size() == 1);
+  require(replayed.windows.front().window_id == "window-main");
+  require(replayed.windows.front().tabs.size() == 1);
+  require(replayed.windows.front().tabs.front().tab_id == "tab-1");
+  require(replayed.windows.front().tabs.front().url == "https://example.com/one/updated");
+  require(replayed.windows.front().tabs.front().title == "Updated One");
+  require(replayed.windows.front().active_tab_id == "tab-1");
+  require(replayed.windows.front().tabs.front().active);
+  require(std::find(replayed.retired_tab_ids.begin(), replayed.retired_tab_ids.end(), "tab-2") !=
          replayed.retired_tab_ids.end());
 
   auto sealed = NormalSessionJournalPolicy::checkpoint_from_replay(
       replayed, "checkpoint-001", 1'800'000'100'000ULL);
-  assert(sealed.has_value());
-  assert(NormalSessionJournalPolicy::valid_checkpoint(*sealed));
-  assert(sealed->journal_high_water_mark == 11);
-  assert(sealed->retired_tab_ids.size() == 1);
-  assert(sealed->retired_tab_ids.front() == "tab-2");
+  require(sealed.has_value());
+  require(NormalSessionJournalPolicy::valid_checkpoint(*sealed));
+  require(sealed->journal_high_water_mark == 11);
+  require(sealed->retired_tab_ids.size() == 1);
+  require(sealed->retired_tab_ids.front() == "tab-2");
 
   // Stale records at or below the checkpoint high-water mark are ignored even
   // when supplied again after compaction.
   auto clean = lifecycle(12, NormalSessionLifecycleState::clean_shutdown);
   auto clean_replay = NormalSessionJournalPolicy::replay(
       sealed, std::vector<NormalSessionJournalEntry>{second, clean});
-  assert(clean_replay.accepted);
-  assert(!clean_replay.restore_eligible);
-  assert(!clean_replay.inferred_abnormal_termination);
-  assert(clean_replay.lifecycle_state == NormalSessionLifecycleState::clean_shutdown);
-  assert(clean_replay.windows.front().tabs.size() == 1);
+  require(clean_replay.accepted);
+  require(!clean_replay.restore_eligible);
+  require(!clean_replay.inferred_abnormal_termination);
+  require(clean_replay.lifecycle_state == NormalSessionLifecycleState::clean_shutdown);
+  require(clean_replay.windows.front().tabs.size() == 1);
 
   // Stable tab identifiers cannot be reused after a committed close, even
   // after compaction has removed the original open/close records.
@@ -150,27 +154,27 @@ int main() {
       12, "tab-2", "https://example.com/resurrected", "Resurrected", 1);
   auto rejected_resurrection = NormalSessionJournalPolicy::replay(
       sealed, std::vector<NormalSessionJournalEntry>{resurrection});
-  assert(!rejected_resurrection.accepted);
+  require(!rejected_resurrection.accepted);
 
   // Corrupt checkpoint bytes/integrity never become Browser state.
   auto corrupt = *sealed;
   corrupt.integrity_checksum.push_back('0');
   auto corrupt_replay = NormalSessionJournalPolicy::replay(
       corrupt, std::vector<NormalSessionJournalEntry>{});
-  assert(!corrupt_replay.accepted);
+  require(!corrupt_replay.accepted);
 
   // Unsupported durable schema versions fail closed.
   auto unsupported_checkpoint = *sealed;
   unsupported_checkpoint.schema_version = kNormalSessionJournalSchemaVersion + 1;
   auto unsupported_replay = NormalSessionJournalPolicy::replay(
       unsupported_checkpoint, std::vector<NormalSessionJournalEntry>{});
-  assert(!unsupported_replay.accepted);
+  require(!unsupported_replay.accepted);
 
   auto unsupported_entry = running;
   unsupported_entry.schema_version = kNormalSessionJournalSchemaVersion + 1;
   auto unsupported_journal = NormalSessionJournalPolicy::replay(
       std::nullopt, std::vector<NormalSessionJournalEntry>{unsupported_entry});
-  assert(!unsupported_journal.accepted);
+  require(!unsupported_journal.accepted);
 
   // Private/Isolated Private durable records are not accepted by this Normal
   // persistence contract.
@@ -178,7 +182,7 @@ int main() {
   private_entry.privacy_context_id = "private";
   auto private_replay = NormalSessionJournalPolicy::replay(
       std::nullopt, std::vector<NormalSessionJournalEntry>{private_entry});
-  assert(!private_replay.accepted);
+  require(!private_replay.accepted);
 
   // Credential-bearing HTTP(S) locations must never enter the durable
   // restoration projection.
@@ -187,7 +191,7 @@ int main() {
   auto credential_replay = NormalSessionJournalPolicy::replay(
       std::nullopt,
       std::vector<NormalSessionJournalEntry>{start, window, credential_url});
-  assert(!credential_replay.accepted);
+  require(!credential_replay.accepted);
 
   // Conflicting reuse of one journal sequence is corruption, not a last-write
   // wins update.
@@ -202,34 +206,34 @@ int main() {
           title_first,
           conflicting_title,
       });
-  assert(!conflict.accepted);
+  require(!conflict.accepted);
 
   // Checkpoint construction rejects impossible active-tab references before
   // the checkpoint can be sealed.
   auto impossible = *sealed;
   impossible.integrity_checksum.clear();
   impossible.windows.front().active_tab_id = "missing-tab";
-  assert(!NormalSessionJournalPolicy::seal_checkpoint(impossible).has_value());
+  require(!NormalSessionJournalPolicy::seal_checkpoint(impossible).has_value());
 
   auto duplicate_tombstone = *sealed;
   duplicate_tombstone.integrity_checksum.clear();
   duplicate_tombstone.retired_tab_ids.push_back("tab-2");
-  assert(!NormalSessionJournalPolicy::seal_checkpoint(duplicate_tombstone).has_value());
+  require(!NormalSessionJournalPolicy::seal_checkpoint(duplicate_tombstone).has_value());
 
   // Determinism: the same durable input in a different physical order yields
   // the same Browser-owned logical projection.
   auto reordered_input = shuffled;
   std::rotate(reordered_input.begin(), reordered_input.begin() + 3, reordered_input.end());
   auto replayed_again = NormalSessionJournalPolicy::replay(std::nullopt, reordered_input);
-  assert(replayed_again.accepted);
-  assert(replayed_again.journal_high_water_mark == replayed.journal_high_water_mark);
-  assert(replayed_again.windows.size() == replayed.windows.size());
-  assert(replayed_again.windows.front().tabs.size() == replayed.windows.front().tabs.size());
-  assert(replayed_again.windows.front().tabs.front().tab_id ==
+  require(replayed_again.accepted);
+  require(replayed_again.journal_high_water_mark == replayed.journal_high_water_mark);
+  require(replayed_again.windows.size() == replayed.windows.size());
+  require(replayed_again.windows.front().tabs.size() == replayed.windows.front().tabs.size());
+  require(replayed_again.windows.front().tabs.front().tab_id ==
          replayed.windows.front().tabs.front().tab_id);
-  assert(replayed_again.windows.front().tabs.front().url ==
+  require(replayed_again.windows.front().tabs.front().url ==
          replayed.windows.front().tabs.front().url);
-  assert(replayed_again.retired_tab_ids == replayed.retired_tab_ids);
+  require(replayed_again.retired_tab_ids == replayed.retired_tab_ids);
 
   return 0;
 }
