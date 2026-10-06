@@ -87,6 +87,9 @@ class AdvancedTabManager {
 
   virtual bool duplicate_tabs(const std::vector<std::string>& tab_ids, bool new_window) = 0;
   virtual bool move_tabs(const std::vector<std::string>& tab_ids, const std::string& window_id) = 0;
+  [[nodiscard]] virtual bool can_close_tabs(
+      const std::vector<std::string>& tab_ids,
+      bool explicit_protected_close) const = 0;
   virtual bool close_tabs(const std::vector<std::string>& tab_ids, bool explicit_protected_close) = 0;
   virtual bool reload_tabs(const std::vector<std::string>& tab_ids) = 0;
   virtual bool pin_tabs(const std::vector<std::string>& tab_ids, bool pinned) = 0;

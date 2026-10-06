@@ -37,15 +37,24 @@ class InMemoryAdvancedTabManager final : public AdvancedTabManager {
     return true;
   }
 
-  bool close_tabs(const std::vector<std::string>& tab_ids,
-                  bool explicit_protected_close) override {
+  [[nodiscard]] bool can_close_tabs(
+      const std::vector<std::string>& tab_ids,
+      bool explicit_protected_close) const override {
     if (!all_exist(tab_ids)) return false;
     for (const auto& id : tab_ids) {
-      if (tabs_[id].protection == TabProtection::protected_tab &&
+      const auto found = tabs_.find(id);
+      if (found == tabs_.end()) return false;
+      if (found->second.protection == TabProtection::protected_tab &&
           !explicit_protected_close) {
         return false;
       }
     }
+    return true;
+  }
+
+  bool close_tabs(const std::vector<std::string>& tab_ids,
+                  bool explicit_protected_close) override {
+    if (!can_close_tabs(tab_ids, explicit_protected_close)) return false;
     for (const auto& id : tab_ids) {
       closed_.push_back({ClosedSessionItem::Kind::tab, id, "memory:" + id});
       tabs_.erase(id);

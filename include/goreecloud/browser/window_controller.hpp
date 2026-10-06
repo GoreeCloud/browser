@@ -13,6 +13,7 @@
 #include "goreecloud/browser/advanced_tab_manager.hpp"
 #include "goreecloud/browser/engine.hpp"
 #include "goreecloud/browser/internal_pages.hpp"
+#include "goreecloud/browser/normal_session_runtime.hpp"
 #include "goreecloud/browser/tab.hpp"
 
 namespace goreecloud::browser {
@@ -23,14 +24,17 @@ class WindowController {
                             bool private_window = false,
                             AdvancedTabManager* tab_manager = nullptr,
                             std::string window_id = "window-1",
-                            std::string private_session_id = {})
+                            std::string private_session_id = {},
+                            NormalSessionRuntimeObserver* session_observer = nullptr)
       : context_(context),
         private_window_(private_window),
         tab_manager_(tab_manager),
         window_id_(std::move(window_id)),
-        private_session_id_(std::move(private_session_id)) {}
+        private_session_id_(std::move(private_session_id)),
+        session_observer_(session_observer) {}
 
   [[nodiscard]] Tab& new_tab(std::string initial_url = std::string{kNewTabUrl}) {
+    const auto requested_url = initial_url;
     EngineViewOptions options;
     options.initial_url = std::move(initial_url);
 
@@ -52,21 +56,48 @@ class WindowController {
       tabs_.pop_back();
       throw std::runtime_error("Advanced Tab Manager rejected new tab");
     }
-    activate(tabs_.size() - 1);
+
+    const auto index = tabs_.size() - 1;
+    activate(index, false);
+    if (session_observer_) {
+      const auto state = tabs_.back()->engine_view().navigation_state();
+      const auto& durable_url = state.url.empty() ? requested_url : state.url;
+      (void)session_observer_->normal_tab_opened(
+          window_id_, id, durable_url, state.title, index);
+      (void)session_observer_->normal_tab_selected(window_id_, id);
+    }
     return *tabs_.back();
   }
 
-  [[nodiscard]] bool close_tab(std::string_view id, bool explicit_protected_close = false) {
+  [[nodiscard]] bool close_tab(
+      std::string_view id,
+      bool explicit_protected_close = false) {
     const auto it = std::find_if(tabs_.begin(), tabs_.end(), [id](const auto& tab) {
       return tab->id() == id;
     });
     if (it == tabs_.end()) return false;
+
+    const std::string removed_id{(*it)->id()};
     if (tab_manager_ &&
-        !tab_manager_->close_tabs({std::string{id}}, explicit_protected_close)) {
+        !tab_manager_->can_close_tabs({removed_id}, explicit_protected_close)) {
       return false;
     }
 
-    const auto removed_index = static_cast<std::size_t>(std::distance(tabs_.begin(), it));
+    // Commit the durable tombstone before destructive in-memory mutation.
+    // If persistence has failed closed, preserve the live tab rather than
+    // creating stale durable state that could resurrect it after a crash.
+    if (session_observer_ &&
+        !session_observer_->normal_tab_closed(window_id_, removed_id)) {
+      return false;
+    }
+
+    if (tab_manager_ &&
+        !tab_manager_->close_tabs({removed_id}, explicit_protected_close)) {
+      return false;
+    }
+
+    const auto removed_index =
+        static_cast<std::size_t>(std::distance(tabs_.begin(), it));
     (*it)->set_lifecycle_state(TabLifecycleState::Closed);
     tabs_.erase(it);
     selected_tab_ids_.erase(
@@ -78,7 +109,7 @@ class WindowController {
       return true;
     }
     if (!active_index_.has_value() || removed_index <= *active_index_) {
-      activate(std::min(removed_index, tabs_.size() - 1));
+      activate(std::min(removed_index, tabs_.size() - 1), false);
     }
     return true;
   }
@@ -139,6 +170,9 @@ class WindowController {
           break;
         }
       }
+    }
+    if (session_observer_) {
+      (void)session_observer_->normal_tab_reordered(window_id_, id, new_index);
     }
     return true;
   }
@@ -292,7 +326,24 @@ class WindowController {
   }
 
   void navigate_active(std::string_view url) {
-    if (auto* tab = active_tab()) tab->engine_view().navigate(url);
+    if (auto* tab = active_tab()) {
+      const auto tab_id = tab->id();
+      tab->engine_view().navigate(url);
+      if (session_observer_) {
+        (void)session_observer_->normal_tab_navigated(window_id_, tab_id, url);
+      }
+    }
+  }
+
+  void sync_navigation_metadata() {
+    if (!session_observer_) return;
+    for (const auto& tab : tabs_) {
+      const auto state = tab->engine_view().navigation_state();
+      (void)session_observer_->normal_tab_navigated(
+          window_id_, tab->id(), state.url);
+      (void)session_observer_->normal_tab_titled(
+          window_id_, tab->id(), state.title);
+    }
   }
 
   void open_home() { navigate_active(kHomeUrl); }
@@ -342,9 +393,15 @@ class WindowController {
         }
       }
     }
+    if (session_observer_) {
+      for (std::size_t index = 0; index < tabs_.size(); ++index) {
+        (void)session_observer_->normal_tab_reordered(
+            window_id_, tabs_[index]->id(), index);
+      }
+    }
   }
 
-  void activate(std::size_t index) {
+  void activate(std::size_t index, bool notify = true) {
     for (std::size_t i = 0; i < tabs_.size(); ++i) {
       tabs_[i]->set_lifecycle_state(i == index ? TabLifecycleState::Active
                                               : TabLifecycleState::Background);
@@ -352,6 +409,10 @@ class WindowController {
     active_index_ = index;
     selected_tab_ids_.clear();
     selected_tab_ids_.push_back(tabs_[index]->id());
+    if (notify && session_observer_) {
+      (void)session_observer_->normal_tab_selected(
+          window_id_, tabs_[index]->id());
+    }
   }
 
   EngineContext& context_;
@@ -359,6 +420,7 @@ class WindowController {
   AdvancedTabManager* tab_manager_{nullptr};
   std::string window_id_;
   std::string private_session_id_;
+  NormalSessionRuntimeObserver* session_observer_{nullptr};
   std::vector<std::unique_ptr<Tab>> tabs_;
   std::vector<std::string> selected_tab_ids_;
   std::optional<std::size_t> active_index_;
