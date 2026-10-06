@@ -12,7 +12,7 @@
 #include <utility>
 #include <vector>
 
-#include "goreecloud/browser/normal_session_store.hpp"
+#include "goreecloud/browser/normal_session_journal.hpp"
 
 namespace goreecloud::browser {
 
