@@ -1,5 +1,20 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-06 — Normal-session journal and checkpoint recovery foundation
+
+### Added
+
+- Added a versioned Normal-only Browser session journal contract with stable journal, profile, privacy-context, session-epoch, window, and tab identifiers independent from transient engine instances.
+- Added deterministic sequence-sorted replay for lifecycle, window, open/select/close, navigation, title, and tab-order operations, including exact duplicate idempotence and conflicting-sequence rejection.
+- Added retired window/tab tombstones and checkpoint journal high-water metadata so stale pre-compaction records and late callbacks cannot resurrect committed closes.
+- Added bounded safe HTTP(S)/start-page restoration projections that reject credential-bearing URLs and exclude Private/Isolated Private durable records.
+- Added a bounded file-backed journal/checkpoint store with per-record corruption detection, atomic checkpoint replacement, checkpoint-first compaction, partial-write rejection, and compaction verification against replayed durable state.
+- Added Release and Debug CTest coverage for deterministic replay, corruption, partial writes, unsupported schema, private-context rejection, credential-bearing URLs, impossible active references, forged compaction checkpoints, stale-record replay, and tombstone preservation.
+
+### Acceptance boundary
+
+This is a Development persistence/replay foundation only. It does not enable Android or desktop process-death restoration, runtime journal emission/checkpoint scheduling, released-version schema migrations, private crash survival, profiles/Webspaces, Sync/Everkeep projection, authenticated adversarial-storage protection, representative-device fault acceptance, production approval, Stable, Seal, or Anchor.
+
 ## 2026-10-06 — Android live regular-tab runtime
 
 ### Added
