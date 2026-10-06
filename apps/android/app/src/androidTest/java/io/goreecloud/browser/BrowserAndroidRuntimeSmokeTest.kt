@@ -194,6 +194,12 @@ class BrowserAndroidRuntimeSmokeTest {
             scenario.onActivity { activity ->
                 val views = collectViews(activity.window.decorView)
                 assertSame(firstWebView.get(), views.filterIsInstance<WebView>().single())
+                assertTrue(
+                    views.filterIsInstance<TextView>().any {
+                        it.contentDescription?.toString()?.startsWith("Tab 1:") == true &&
+                            it.text?.toString() == BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
+                    },
+                )
                 views.filterIsInstance<ImageButton>()
                     .first { it.contentDescription?.toString()?.startsWith("Close tab 1:") == true }
                     .performClick()
