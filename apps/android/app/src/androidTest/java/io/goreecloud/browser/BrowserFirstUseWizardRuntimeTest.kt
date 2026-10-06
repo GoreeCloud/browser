@@ -39,7 +39,7 @@ class BrowserFirstUseWizardRuntimeTest {
             assertTrue(waitForText("Privacy & security by default"))
             clickText("Continue")
 
-            assertTrue(waitForText("Browse with clear boundaries"))
+            assertTrue(waitForText("Browse with tabs and clear boundaries"))
             clickText("Start browsing")
 
             assertTrue(waitUntil {

@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -125,6 +127,165 @@ class BrowserAndroidRuntimeSmokeTest {
                 observed.contains("Search authorization required") &&
                     observed.contains("Your query was not sent to GoreeCloud Search"),
             )
+        }
+    }
+
+    @Test
+    fun liveTabsUseIndependentWebViewsAndIsolateBackgroundFailureChrome() {
+        val backgroundFailureUrl = "http://127.0.0.1:1/goreecloud-tab-background-smoke"
+        val firstWebView = AtomicReference<WebView>()
+        val secondWebView = AtomicReference<WebView>()
+
+        ActivityScenario.launch(BrowserActivityV2::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                val views = collectViews(activity.window.decorView)
+                firstWebView.set(views.filterIsInstance<WebView>().single())
+                views.filterIsInstance<ImageButton>()
+                    .first { it.contentDescription?.toString() == "New tab" }
+                    .performClick()
+
+                val afterOpen = collectViews(activity.window.decorView)
+                secondWebView.set(afterOpen.filterIsInstance<WebView>().single())
+                assertNotSame(
+                    "Expected a distinct WebView for the new logical tab",
+                    firstWebView.get(),
+                    secondWebView.get(),
+                )
+                assertEquals(
+                    "Expected two visible Browser tab labels after opening a tab",
+                    2,
+                    afterOpen.filterIsInstance<TextView>()
+                        .count { it.contentDescription?.toString()?.startsWith("Tab ") == true },
+                )
+
+                afterOpen.filterIsInstance<TextView>()
+                    .first { it.contentDescription?.toString()?.startsWith("Tab 1:") == true }
+                    .performClick()
+
+                val afterSwitch = collectViews(activity.window.decorView)
+                assertSame(
+                    "Expected tab 1 to reattach its original live WebView",
+                    firstWebView.get(),
+                    afterSwitch.filterIsInstance<WebView>().single(),
+                )
+
+                afterSwitch.filterIsInstance<EditText>()
+                    .first { it.contentDescription?.toString() == "Search or address bar" }
+                    .setText(backgroundFailureUrl)
+                afterSwitch.filterIsInstance<ImageButton>()
+                    .first { it.contentDescription?.toString() == "Go" }
+                    .performClick()
+                collectViews(activity.window.decorView)
+                    .filterIsInstance<TextView>()
+                    .first { it.contentDescription?.toString()?.startsWith("Tab 2:") == true }
+                    .performClick()
+            }
+
+            Thread.sleep(1_000)
+
+            scenario.onActivity { activity ->
+                val views = collectViews(activity.window.decorView)
+                assertSame(
+                    "Expected tab 2 to remain the attached WebView while tab 1 fails in background",
+                    secondWebView.get(),
+                    views.filterIsInstance<WebView>().single(),
+                )
+                assertTrue(
+                    "Background tab failure must not overwrite selected-tab Browser chrome",
+                    views.filterIsInstance<TextView>()
+                        .any { it.text?.toString() == PageTitlePresentation.PRODUCT_TITLE },
+                )
+                views.filterIsInstance<TextView>()
+                    .first { it.contentDescription?.toString()?.startsWith("Tab 1:") == true }
+                    .performClick()
+            }
+
+            assertTrue(
+                "Expected background tab failure state to become visible when reselected",
+                waitForChromeText(scenario, BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE),
+            )
+
+            scenario.onActivity { activity ->
+                val views = collectViews(activity.window.decorView)
+                assertSame(
+                    "Expected tab 1 to reattach its original WebView after selection",
+                    firstWebView.get(),
+                    views.filterIsInstance<WebView>().single(),
+                )
+                assertTrue(
+                    "Expected Browser-owned Page unavailable to remain the tab 1 label",
+                    views.filterIsInstance<TextView>().any {
+                        it.contentDescription?.toString()?.startsWith("Tab 1:") == true &&
+                            it.text?.toString() == BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
+                    },
+                )
+                views.filterIsInstance<ImageButton>()
+                    .first { it.contentDescription?.toString()?.startsWith("Close tab 1:") == true }
+                    .performClick()
+
+                val afterClose = collectViews(activity.window.decorView)
+                assertSame(
+                    "Expected closing selected tab 1 to attach tab 2's original WebView",
+                    secondWebView.get(),
+                    afterClose.filterIsInstance<WebView>().single(),
+                )
+                assertEquals(
+                    "Expected one Browser tab label after closing tab 1",
+                    1,
+                    afterClose.filterIsInstance<TextView>()
+                        .count { it.contentDescription?.toString()?.startsWith("Tab ") == true },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun liveTabOrderSelectionAndSafeNavigationSurviveActivityRecreation() {
+        val secondTabUrl = "https://example.com/goreecloud-tab-recreation"
+
+        ActivityScenario.launch(BrowserActivityV2::class.java).use { scenario ->
+            scenario.onActivity { activity ->
+                var views = collectViews(activity.window.decorView)
+                views.filterIsInstance<ImageButton>()
+                    .first { it.contentDescription?.toString() == "New tab" }
+                    .performClick()
+
+                views = collectViews(activity.window.decorView)
+                views.filterIsInstance<EditText>()
+                    .first { it.contentDescription?.toString() == "Search or address bar" }
+                    .setText(secondTabUrl)
+                views.filterIsInstance<ImageButton>()
+                    .first { it.contentDescription?.toString() == "Go" }
+                    .performClick()
+                collectViews(activity.window.decorView)
+                    .filterIsInstance<TextView>()
+                    .first { it.contentDescription?.toString()?.startsWith("Tab 1:") == true }
+                    .performClick()
+            }
+
+            scenario.recreate()
+
+            scenario.onActivity { activity ->
+                val views = collectViews(activity.window.decorView)
+                val tabs = views.filterIsInstance<TextView>()
+                    .filter { it.contentDescription?.toString()?.startsWith("Tab ") == true }
+                assertEquals(2, tabs.size)
+                assertTrue(tabs[0].contentDescription.toString().startsWith("Tab 1:"))
+                assertTrue(tabs[0].contentDescription.toString().endsWith(", selected"))
+                assertTrue(tabs[1].contentDescription.toString().startsWith("Tab 2:"))
+                assertEquals(1, views.filterIsInstance<WebView>().size)
+
+                tabs[1].performClick()
+                val afterSwitch = collectViews(activity.window.decorView)
+                assertEquals(
+                    "example.com/goreecloud-tab-recreation",
+                    afterSwitch.filterIsInstance<EditText>()
+                        .first { it.contentDescription?.toString() == "Search or address bar" }
+                        .text
+                        .toString(),
+                )
+                assertEquals(1, afterSwitch.filterIsInstance<WebView>().size)
+            }
         }
     }
 

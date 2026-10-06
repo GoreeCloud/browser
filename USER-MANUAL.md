@@ -89,13 +89,21 @@ A fresh Android Browser profile opens a required three-step setup before ordinar
 
 - GoreeCloud Browser ownership versus the Android System WebView engine dependency;
 - the current fail-closed privacy and security defaults, including blocked mixed content, third-party-cookie defaults, certificate-error handling, website-permission denial, and the Clear browsing data control; and
-- direct website navigation, the current non-transmitting free-text Search boundary, Find in page, and the Page controls surface.
+- opening, switching, and closing regular tabs, direct website navigation, the current non-transmitting free-text Search boundary, Find in page, and the Page controls surface.
 
 Setup progress is stored only in Browser-local Android preferences. Progress is written synchronously before Browser advances to the next setup step, so Activity recreation resumes from the last durably accepted step rather than assuming an unsaved transition. The initial setup cannot be skipped. After completion, **Guidance & tips** can replay the setup voluntarily; replay can be dismissed without changing the completed first-use state.
 
-Optional contextual tips are enabled by default after setup. The current compact Browser tip explains the direct-address versus fail-closed free-text Search boundary and can be dismissed with **Got it**. Guidance & tips can disable or re-enable optional tips and show the dismissed tip again.
+Optional contextual tips are enabled by default after setup. The current compact Browser tip points users to the tab strip while preserving the direct-address versus fail-closed free-text Search boundary, and it can be dismissed with **Got it**. Guidance & tips can disable or re-enable optional tips and show the dismissed tip again.
 
 First-use and tip state is device-local. It is not an account setting, Browser Sync dataset, Privacy Shield decision, telemetry signal, website permission, or provider authorization.
+
+### Regular tabs
+
+The Android Development Browser has a Browser-owned tab strip for regular tabs. **New tab** creates a separate live WebView with a stable Browser tab identity, selecting a tab attaches only that tab's WebView to the visible page region, and **Close tab** destroys the closed tab's live WebView. Browser keeps at least one regular tab open.
+
+Background tabs may continue receiving engine callbacks, but those callbacks update only the owning tab and cannot replace the selected tab's Browser chrome. Site information, Copy/Share disclosure, Find in page, Reload/Stop, and other page-specific actions use the selected tab.
+
+Same-process Android Activity recreation preserves the ordered regular-tab graph, active selection, canonical safe website locations, normalized tab titles, transient WebView bundles, and payload-minimized blocked/failure recovery markers. Browser tags this state with a per-process token and rejects it after Browser process restart, so it is not durable process-death/session recovery. Browser does not yet claim Normal-session journal/checkpoint restoration, Private/Isolated Private tab persistence, profiles/Webspaces, tab groups, memory-pressure discard recovery, or representative-device multi-tab acceptance.
 
 ### Find in page
 
@@ -118,7 +126,7 @@ Page controls groups several page-level settings into one compact Glaze surface:
 - JavaScript can be enabled or disabled for the current Browser session.
 - Images can be enabled or disabled for automatic page loading in the current Browser session.
 
-JavaScript and Images default to On for ordinary web compatibility. Changing either setting reloads the current HTTP(S) page so the new setting applies consistently. Their state survives Android Activity recreation but is not stored as a durable Browser preference and is not synchronized.
+JavaScript and Images default to On for ordinary web compatibility. Changing either setting reloads the current HTTP(S) page so the new setting applies consistently. Their state survives same-process Android Activity recreation but is rejected after Browser process restart, is not stored as a durable Browser preference, and is not synchronized.
 
 Disabling JavaScript or automatic image loading may cause websites to lose functionality or content. Browser does not describe these controls as Privacy Shield policy or as a security verdict.
 
@@ -126,13 +134,13 @@ Disabling JavaScript or automatic image loading may cause websites to lose funct
 
 Desktop site changes the current Browser session to a desktop-style website presentation. Browser derives the desktop user agent from the active WebView engine user agent instead of pinning a separate stale Chromium version, enables wide-viewport/overview presentation, and reloads the current website when necessary.
 
-Desktop site is session-local. It survives Android Activity recreation through saved state but is not stored as a durable Browser preference and is not synchronized.
+Desktop site is session-local. It survives same-process Android Activity recreation through saved state, is rejected after Browser process restart, and is not stored as a durable Browser preference or synchronized.
 
 ### Clear browsing data
 
 Clear browsing data always opens a confirmation surface before deletion. The confirmation identifies both the data that will be cleared and the settings that will remain.
 
-The current Development action clears Android WebView cookies and website sign-in state, website storage, cached web content, form data, WebView navigation history, and WebView SSL preferences. After clearing, Browser returns to its local Start page and clears the prior back-navigation history again after that page finishes loading.
+The current Development action clears Android WebView cookies and website sign-in state, website storage, cached web content, form data, navigation history, and SSL preferences across every live regular-tab WebView; global cookies and website storage are cleared once. After clearing, Browser returns to its local Start page and clears the prior back-navigation history again after that page finishes loading.
 
 Browser preferences such as Page text size and Android app permissions are preserved. This action is app-wide for GoreeCloud Browser's Android WebView data; it is not yet a profile-scoped privacy-context control.
 

@@ -135,6 +135,43 @@ class GlazeNativeStyle(private val context: Context) {
         )
     }
 
+    fun styleTabStrip(view: LinearLayout) {
+        view.gravity = Gravity.CENTER_VERTICAL
+        view.setPadding(0, dp(2), 0, dp(6))
+    }
+
+    fun styleTabChip(view: TextView, selected: Boolean) {
+        view.gravity = Gravity.CENTER_VERTICAL
+        view.setTextColor(if (selected) palette.textPrimary else palette.textSecondary)
+        view.textSize = 13f
+        view.minHeight = dp(GlazeContract.GENERAL_TARGET_DP)
+        view.minimumHeight = dp(GlazeContract.GENERAL_TARGET_DP)
+        view.setPadding(dp(14), 0, dp(14), 0)
+        view.isClickable = true
+        view.isFocusable = true
+        view.background = if (selected) {
+            material(
+                GlazeContract.MaterialLevel.Glaze,
+                dp(GlazeContract.CHROME_CONTROL_CORNER_DP),
+                focused = true,
+                outlined = true,
+            )
+        } else {
+            interactiveBackground(
+                GlazeContract.MaterialLevel.Surface,
+                GlazeContract.MaterialLevel.SoftGlaze,
+                GlazeContract.CHROME_CONTROL_CORNER_DP,
+            )
+        }
+    }
+
+    fun styleTabAction(button: ImageButton, selected: Boolean = false) {
+        styleChromeButton(
+            button,
+            if (selected) GlazeContract.ButtonRole.Soft else GlazeContract.ButtonRole.Quiet,
+        )
+    }
+
     fun styleAddressField(field: EditText) {
         field.setTextColor(palette.textPrimary)
         field.setHintTextColor(palette.textSecondary)
