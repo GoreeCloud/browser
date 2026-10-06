@@ -185,6 +185,83 @@ int main() {
 
   {
     MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator first(
+        store, options("recoverable"), deterministic_clock());
+    require(first.begin());
+    require(first.normal_window_opened("window-recover"));
+    require(first.normal_tab_opened(
+        "window-recover", "tab-recover", "https://example.com/recover", "Recover", 0));
+    require(first.normal_tab_selected("window-recover", "tab-recover"));
+    const auto crashed_high_water = first.status().committed_sequence;
+
+    NormalSessionRuntimeCoordinator recovered(
+        store, options("new-process"), deterministic_clock());
+    require(
+        recovered.classify_startup() ==
+        NormalSessionStartupClassification::abnormal_termination);
+    require(recovered.resume_recovered_session());
+    require(recovered.status().health == NormalSessionRuntimeHealth::healthy);
+    require(
+        recovered.status().startup ==
+        NormalSessionStartupClassification::abnormal_termination);
+    require(recovered.status().committed_sequence == crashed_high_water + 2);
+    require(store.history[crashed_high_water].lifecycle_state ==
+            NormalSessionLifecycleState::restoring);
+    require(store.history[crashed_high_water + 1].lifecycle_state ==
+            NormalSessionLifecycleState::running);
+    require(store.history.back().journal_id == "journal-recoverable");
+    require(store.history.back().session_epoch == "recoverable");
+    require(recovered.normal_tab_navigated(
+        "window-recover", "tab-recover", "https://example.com/continued"));
+    const auto replayed = store.replay_from_disk();
+    require(replayed.accepted);
+    require(replayed.windows.size() == 1);
+    require(replayed.windows.front().tabs.size() == 1);
+    require(replayed.windows.front().tabs.front().url ==
+            "https://example.com/continued");
+  }
+
+  {
+    MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator first(
+        store, options("empty-crash"), deterministic_clock());
+    require(first.begin());
+    require(store.history.size() == 2);
+
+    NormalSessionRuntimeCoordinator recovered(
+        store, options("empty-new-process"), deterministic_clock());
+    require(recovered.resume_recovered_session());
+    require(recovered.status().committed_sequence == 4);
+    require(recovered.normal_window_opened("window-after-empty-crash"));
+    require(recovered.normal_tab_opened(
+        "window-after-empty-crash", "tab-after-empty-crash", "", "", 0));
+    const auto replayed = store.replay_from_disk();
+    require(replayed.accepted);
+    require(replayed.windows.size() == 1);
+    require(replayed.windows.front().tabs.size() == 1);
+  }
+
+  {
+    MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator first(
+        store, options("profile-crash"), deterministic_clock());
+    require(first.begin());
+    require(first.normal_window_opened("window-profile"));
+
+    auto mismatched = options("other-process");
+    mismatched.profile_id = "other-profile";
+    NormalSessionRuntimeCoordinator recovered(
+        store, std::move(mismatched), deterministic_clock());
+    const auto before = store.history.size();
+    require(!recovered.resume_recovered_session());
+    require(
+        recovered.status().health ==
+        NormalSessionRuntimeHealth::transition_rejected);
+    require(store.history.size() == before);
+  }
+
+  {
+    MemoryNormalSessionStore store;
     store.fail_append_sequence = 4;
     NormalSessionRuntimeCoordinator runtime(
         store, options("append-failure"), deterministic_clock());
