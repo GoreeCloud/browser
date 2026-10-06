@@ -147,6 +147,49 @@ class NormalSessionRuntimeCoordinator final : public NormalSessionRuntimeObserve
     return true;
   }
 
+  [[nodiscard]] bool resume_recovered_session() {
+    if (status_.health != NormalSessionRuntimeHealth::inactive) {
+      return status_.health == NormalSessionRuntimeHealth::healthy;
+    }
+    if (!valid_options()) {
+      status_.health = NormalSessionRuntimeHealth::transition_rejected;
+      return false;
+    }
+
+    const auto replayed = store_.replay_from_disk();
+    if (!replayed.accepted) {
+      status_.startup = NormalSessionStartupClassification::unavailable;
+      status_.health = NormalSessionRuntimeHealth::storage_unavailable;
+      return false;
+    }
+    if (replayed.lifecycle_state == NormalSessionLifecycleState::clean_shutdown ||
+        replayed.journal_high_water_mark == 0 ||
+        replayed.journal_id.empty() ||
+        replayed.session_epoch.empty() ||
+        replayed.profile_id != options_.profile_id ||
+        replayed.privacy_context_id != kNormalPrivacyContextId) {
+      status_.startup = NormalSessionStartupClassification::abnormal_termination;
+      status_.health = NormalSessionRuntimeHealth::transition_rejected;
+      return false;
+    }
+
+    status_.startup = NormalSessionStartupClassification::abnormal_termination;
+    committed_state_ = replayed;
+    options_.journal_id = replayed.journal_id;
+    options_.session_epoch = replayed.session_epoch;
+    next_sequence_ = replayed.journal_high_water_mark + 1;
+    status_.committed_sequence = replayed.journal_high_water_mark;
+    status_.durable_state_current = true;
+    status_.health = NormalSessionRuntimeHealth::healthy;
+    mutations_since_checkpoint_ = 0;
+
+    if (!record_lifecycle(NormalSessionLifecycleState::restoring, false) ||
+        !record_lifecycle(NormalSessionLifecycleState::running, false)) {
+      return false;
+    }
+    return true;
+  }
+
   [[nodiscard]] bool background() {
     if (!record_lifecycle(NormalSessionLifecycleState::backgrounding, false)) {
       return false;
