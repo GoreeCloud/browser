@@ -1,5 +1,26 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-06 — Android Normal-session abnormal process recovery
+
+### Added
+
+- Connected the Android Development Browser to the existing Browser-owned C++ Normal-session journal/checkpoint authority through a thin JNI adapter rather than adding a Kotlin persistence format.
+- Added a pinned Android native build path using NDK 27.2.12479018 and CMake 3.22.1, with arm64-v8a and x86_64 recovery-library packaging checks.
+- Added Kotlin defense-in-depth validation for recovered tab IDs, order, active selection, bounded safe HTTP(S)/Start locations, and normalized titles before any WebView is created.
+- Added abnormal app-process recovery of the accepted Normal regular-tab graph while preserving the existing process-token-bound same-process Activity recreation path.
+- Recovered tabs create fresh WebViews; Browser does not treat raw WebView saved state, engine memory, form contents, reusable credentials, blocked-navigation payloads, remote failure details, or session-local Page-control choices as durable recovery authority.
+- Added runtime journaling from Android tab open/select/close/navigation/title activity, Browser background/resume lifecycle integration, clean-shutdown suppression, fail-fresh handling for invalid durable state, and durable-before-delete enforcement for tab close.
+- Added managed Android 15 recovery evidence that exercises both a process-local coordinator boundary and a shell-driven abnormal app-process fixture followed by target-process termination/force-stop, relaunch, and UIAutomator verification of the recovered active tab and safe omnibox projection.
+
+### Privacy and authority boundary
+
+Ordinary durable recovery is Normal-context only. Private and Isolated Private state is excluded by the underlying recovery authority and is not promoted into this Android path. The durable model contains only the bounded logical state admitted by the Browser core; it does not restore cookies, authentication material, form contents, arbitrary page bodies, blocked-target payloads, or raw engine objects.
+
+### Acceptance boundary
+
+This is Android Development Normal-session abnormal process-death recovery. Released-version schema migration, Private/Isolated Private crash-survival design, profiles/Webspaces, representative physical-device/OEM/WebView/network fault acceptance, sustained performance/accessibility, production signing/recovery approval, Stable, Seal, and Anchor remain open.
+
+
 ## 2026-10-06 — Normal-session runtime lifecycle journaling
 
 ### Added
