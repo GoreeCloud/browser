@@ -41,7 +41,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
-- Browser-owned regular-tab strip with independent live WebViews, stable logical tab IDs, vector new/close controls, selected-tab-only visible engine binding, background callback isolation, and bounded Android Activity recreation of tab order/selection without claiming durable process-death recovery.
+- Browser-owned regular-tab strip with independent live WebViews, stable logical tab IDs, vector new/close controls, selected-tab-only visible engine binding, background callback isolation, and bounded same-process Android Activity recreation of tab order/selection with stale-state rejection after process restart, without claiming durable process-death recovery.
 - Direct HTTP/HTTPS navigation.
 - Direct-navigation safety rejects credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous/invalid numeric IPv4 host forms.
 - Internationalized HTTP(S) DNS hosts are canonicalized to lowercase ASCII A-label identity before Android navigation and unfocused address presentation; malformed STD3 labels and bracketed non-IPv6 authorities fail closed.
@@ -117,7 +117,7 @@ See `docs/HEALTH_READINESS_CONTRACT.md`. Manager/Observability runtime integrati
 
 ## Planned / incomplete Android capabilities
 
-- Complete multi-tab/session lifecycle beyond the implemented Android live regular-tab strip and Activity recreation, including durable Normal-session recovery, Private/Isolated Private semantics, profiles/Webspaces, discard/recreation, large-scale tab UX, and representative-device acceptance.
+- Complete multi-tab/session lifecycle beyond the implemented Android live regular-tab strip and same-process Activity recreation, including durable Normal-session recovery, Private/Isolated Private semantics, profiles/Webspaces, discard/recreation, large-scale tab UX, and representative-device acceptance.
 - Private Browsing and Close & Forget runtime isolation.
 - Browser-owned website permission prompts.
 - Wardveil-authenticated download staging, scan, release, hold, and quarantine handoff.
