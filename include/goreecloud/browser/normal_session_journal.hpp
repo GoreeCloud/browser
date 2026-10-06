@@ -402,10 +402,10 @@ class NormalSessionJournalPolicy {
         if (retired_windows.contains(entry.window_id)) return false;
         if (find_window(result.windows, entry.window_id) != nullptr) return true;
         if (result.windows.size() >= kMaxRecoveryWindows) return false;
-        result.windows.push_back(RecoverableWindow{
-            .window_id = entry.window_id,
-            .privacy_mode = SessionPrivacyMode::normal,
-        });
+        RecoverableWindow window;
+        window.window_id = entry.window_id;
+        window.privacy_mode = SessionPrivacyMode::normal;
+        result.windows.push_back(std::move(window));
         return true;
       }
 
@@ -437,11 +437,10 @@ class NormalSessionJournalPolicy {
         }
         if (window->tabs.size() >= kMaxRecoveryTabsPerWindow) return false;
 
-        RecoverableTab tab{
-            .tab_id = entry.tab_id,
-            .url = entry.url,
-            .title = entry.title,
-        };
+        RecoverableTab tab;
+        tab.tab_id = entry.tab_id;
+        tab.url = entry.url;
+        tab.title = entry.title;
         const auto position =
             std::min(entry.position.value_or(window->tabs.size()), window->tabs.size());
         window->tabs.insert(window->tabs.begin() + static_cast<std::ptrdiff_t>(position),
