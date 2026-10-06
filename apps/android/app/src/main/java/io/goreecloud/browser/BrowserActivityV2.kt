@@ -533,8 +533,10 @@ class BrowserActivityV2 : Activity() {
                     runtime.blockedWebNavigationVisible = false
                     updateTabLocation(tabId, canonical)
                 }
-                runtime.loading = true
-                runtime.progress = view.progress
+                val fixedLocalSafetySurface =
+                    runtime.chromeOverrideTitle != null || runtime.blockedWebNavigationVisible
+                runtime.loading = !fixedLocalSafetySurface
+                runtime.progress = if (fixedLocalSafetySurface) 100 else view.progress
                 if (isAttachedTab(tabId)) {
                     applyActiveRuntimeState(tabId)
                     refreshChrome()
@@ -603,8 +605,10 @@ class BrowserActivityV2 : Activity() {
         view.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
                 val runtime = tabRuntimeStates[tabId] ?: return
-                runtime.progress = newProgress
-                runtime.loading = newProgress < 100
+                val fixedLocalSafetySurface =
+                    runtime.chromeOverrideTitle != null || runtime.blockedWebNavigationVisible
+                runtime.progress = if (fixedLocalSafetySurface) 100 else newProgress
+                runtime.loading = !fixedLocalSafetySurface && newProgress < 100
                 if (isAttachedTab(tabId)) {
                     applyActiveRuntimeState(tabId)
                     updateNavigationButtons()
