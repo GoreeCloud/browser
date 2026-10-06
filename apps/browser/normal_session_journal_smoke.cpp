@@ -16,15 +16,15 @@ goreecloud::browser::NormalSessionJournalEntry entry(
     std::uint64_t sequence,
     goreecloud::browser::NormalSessionJournalOperation operation) {
   using namespace goreecloud::browser;
-  return NormalSessionJournalEntry{
-      .journal_id = "journal-normal-001",
-      .profile_id = "profile-default",
-      .privacy_context_id = std::string{kNormalPrivacyContextId},
-      .session_epoch = "epoch-001",
-      .sequence = sequence,
-      .created_unix_ms = 1'800'000'000'000ULL + sequence,
-      .operation = operation,
-  };
+  NormalSessionJournalEntry value;
+  value.journal_id = "journal-normal-001";
+  value.profile_id = "profile-default";
+  value.privacy_context_id = std::string{kNormalPrivacyContextId};
+  value.session_epoch = "epoch-001";
+  value.sequence = sequence;
+  value.created_unix_ms = 1'800'000'000'000ULL + sequence;
+  value.operation = operation;
+  return value;
 }
 
 goreecloud::browser::NormalSessionJournalEntry lifecycle(
