@@ -20,5 +20,5 @@ target_compile_options(
 target_include_directories(
   goreecloud_browser_android_session
   PRIVATE
-  "${CMAKE_CURRENT_LIST_DIR}/../../../../../..//include"
+  "${CMAKE_CURRENT_LIST_DIR}/../../../../../../include"
 )
