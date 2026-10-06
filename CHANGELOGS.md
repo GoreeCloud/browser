@@ -8,10 +8,10 @@
 - Normal window/tab open, select, close, navigation, title, and ordering changes now have an optional engine-independent emission path with contiguous sequence numbers; committed sequence advances only after successful append.
 - Semantic duplicate callbacks and late navigation/title callbacks for already-closed tabs are suppressed rather than creating duplicate Browser state.
 - Normal persistence starts lazily on the first Normal window; private-only Browser sessions do not start the coordinator and private windows never receive the Normal-session observer.
-- Background lifecycle transitions force a checkpoint cycle, periodic mutation counts can schedule bounded compaction, and clean shutdown is durably marked and compacted before Browser teardown.
+- Background lifecycle transitions force a checkpoint cycle, periodic mutation counts can schedule bounded compaction, and clean shutdown checkpoints first then appends the authoritative clean marker last so checkpoint/marker failure remains classifiable as abnormal.
 - Startup classification distinguishes no durable state, prior clean shutdown, stale/abnormal state, and unavailable/corrupt state without enabling restoration. Abnormal prior state is preserved as recovery-pending rather than overwritten.
-- Append, checkpoint, storage, or transition failures latch a bounded fail-closed runtime health state and stop recovery claims without crashing the browsing runtime.
-- Added Release/Debug CTest coverage for append failure, checkpoint failure, contiguous sequencing, duplicate/late callbacks, clean-vs-abnormal classification, private exclusion, BrowserApplication lifecycle wiring, and clean shutdown.
+- Append, checkpoint, storage, or transition failures latch a bounded fail-closed runtime health state and stop recovery claims without crashing the browsing runtime. Normal tab/window closes commit their durable tombstone before destructive deletion; if that append fails, the live object remains present instead of creating stale recoverable state.
+- Added Release/Debug CTest coverage for append failure, checkpoint failure, clean-marker failure, close-tombstone failure, contiguous sequencing, duplicate/late callbacks, clean-vs-abnormal classification, private exclusion, BrowserApplication lifecycle wiring, and clean shutdown.
 
 ### Acceptance boundary
 
