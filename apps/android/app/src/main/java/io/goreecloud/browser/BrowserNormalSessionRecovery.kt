@@ -238,9 +238,8 @@ internal object BrowserNormalSessionProcess {
     }
 
     @Synchronized
-    fun simulateProcessDeathForTest(session: BrowserNormalSessionRecovery) {
-        if (current !== session) return
-        session.closeWithoutClean()
+    fun resetForProcessBoundaryTest() {
+        current?.closeWithoutClean()
         current = null
     }
 }
