@@ -162,19 +162,15 @@ class NormalSessionRuntimeCoordinator final : public NormalSessionRuntimeObserve
     if (status_.health == NormalSessionRuntimeHealth::clean_shutdown) return true;
     if (status_.health != NormalSessionRuntimeHealth::healthy) return false;
 
-    if (!record_lifecycle(NormalSessionLifecycleState::clean_shutdown, false)) {
+    // A durable CLEAN_SHUTDOWN marker suppresses crash recovery on the next
+    // startup, so it must be the final committed operation. Checkpoint first;
+    // if checkpointing or the final append fails, durable state remains
+    // non-clean and startup classifies it as abnormal.
+    if (!checkpoint_cycle(NormalSessionLifecycleState::clean_shutdown)) {
       return false;
     }
-    const auto checkpoint = make_checkpoint();
-    if (!checkpoint.has_value() || !store_.compact(*checkpoint)) {
-      status_.health = NormalSessionRuntimeHealth::checkpoint_write_failed;
-      status_.durable_state_current = false;
-      return false;
-    }
-    ++status_.successful_checkpoints;
     status_.health = NormalSessionRuntimeHealth::clean_shutdown;
     status_.durable_state_current = true;
-    mutations_since_checkpoint_ = 0;
     return true;
   }
 
