@@ -146,8 +146,13 @@ class BrowserAndroidRuntimeSmokeTest {
 
                 val afterOpen = collectViews(activity.window.decorView)
                 secondWebView.set(afterOpen.filterIsInstance<WebView>().single())
-                assertNotSame(firstWebView.get(), secondWebView.get())
+                assertNotSame(
+                    "Expected a distinct WebView for the new logical tab",
+                    firstWebView.get(),
+                    secondWebView.get(),
+                )
                 assertEquals(
+                    "Expected two visible Browser tab labels after opening a tab",
                     2,
                     afterOpen.filterIsInstance<TextView>()
                         .count { it.contentDescription?.toString()?.startsWith("Tab ") == true },
@@ -158,7 +163,11 @@ class BrowserAndroidRuntimeSmokeTest {
                     .performClick()
 
                 val afterSwitch = collectViews(activity.window.decorView)
-                assertSame(firstWebView.get(), afterSwitch.filterIsInstance<WebView>().single())
+                assertSame(
+                    "Expected tab 1 to reattach its original live WebView",
+                    firstWebView.get(),
+                    afterSwitch.filterIsInstance<WebView>().single(),
+                )
 
                 afterSwitch.filterIsInstance<EditText>()
                     .first { it.contentDescription?.toString() == "Search or address bar" }
@@ -176,8 +185,13 @@ class BrowserAndroidRuntimeSmokeTest {
 
             scenario.onActivity { activity ->
                 val views = collectViews(activity.window.decorView)
-                assertSame(secondWebView.get(), views.filterIsInstance<WebView>().single())
+                assertSame(
+                    "Expected tab 2 to remain the attached WebView while tab 1 fails in background",
+                    secondWebView.get(),
+                    views.filterIsInstance<WebView>().single(),
+                )
                 assertTrue(
+                    "Background tab failure must not overwrite selected-tab Browser chrome",
                     views.filterIsInstance<TextView>()
                         .none { it.text?.toString() == BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE },
                 )
@@ -193,8 +207,13 @@ class BrowserAndroidRuntimeSmokeTest {
 
             scenario.onActivity { activity ->
                 val views = collectViews(activity.window.decorView)
-                assertSame(firstWebView.get(), views.filterIsInstance<WebView>().single())
+                assertSame(
+                    "Expected tab 1 to reattach its original WebView after selection",
+                    firstWebView.get(),
+                    views.filterIsInstance<WebView>().single(),
+                )
                 assertTrue(
+                    "Expected Browser-owned Page unavailable to remain the tab 1 label",
                     views.filterIsInstance<TextView>().any {
                         it.contentDescription?.toString()?.startsWith("Tab 1:") == true &&
                             it.text?.toString() == BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
@@ -205,8 +224,13 @@ class BrowserAndroidRuntimeSmokeTest {
                     .performClick()
 
                 val afterClose = collectViews(activity.window.decorView)
-                assertSame(secondWebView.get(), afterClose.filterIsInstance<WebView>().single())
+                assertSame(
+                    "Expected closing selected tab 1 to attach tab 2's original WebView",
+                    secondWebView.get(),
+                    afterClose.filterIsInstance<WebView>().single(),
+                )
                 assertEquals(
+                    "Expected one Browser tab label after closing tab 1",
                     1,
                     afterClose.filterIsInstance<TextView>()
                         .count { it.contentDescription?.toString()?.startsWith("Tab ") == true },
