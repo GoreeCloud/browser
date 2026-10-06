@@ -102,11 +102,12 @@ class BrowserActivityV2 : Activity() {
                 currentToken = PROCESS_INSTANCE_TOKEN,
             )
         }
+        val durableStartup = BrowserNormalSessionRecovery.attach(this)
         desktopSiteEnabled = recreationState?.getBoolean(STATE_DESKTOP_SITE, false) == true
         pageScriptsEnabled = recreationState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
         pageImagesEnabled = recreationState?.getBoolean(STATE_PAGE_IMAGES, true) ?: true
         buildBrowserSurface()
-        restoreOrCreateTabSession(recreationState)
+        restoreOrCreateTabSession(recreationState, durableStartup)
 
         if (recreationState == null) {
             val external = intent?.data?.toString().orEmpty()
@@ -124,6 +125,16 @@ class BrowserActivityV2 : Activity() {
         setIntent(intent)
         val external = intent.data?.toString().orEmpty()
         if (NavigationResolver.isAllowedWebUrl(external)) navigate(external) else showStartPage()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        BrowserNormalSessionRecovery.resume()
+    }
+
+    override fun onStop() {
+        BrowserNormalSessionRecovery.background()
+        super.onStop()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -169,6 +180,9 @@ class BrowserActivityV2 : Activity() {
         tabWebViews.clear()
         tabRuntimeStates.clear()
         attachedTabId = null
+        if (isFinishing && !isChangingConfigurations) {
+            BrowserNormalSessionRecovery.finishCleanly()
+        }
         super.onDestroy()
     }
 
@@ -353,11 +367,26 @@ class BrowserActivityV2 : Activity() {
         updateNavigationButtons()
     }
 
-    private fun restoreOrCreateTabSession(savedInstanceState: Bundle?) {
-        val restored = savedInstanceState?.let(::restoreTabGraph)
-        tabSessionState = restored ?: BrowserTabSessionPolicy.initial(
-            BrowserLogicalTab(newTabId(), INTERNAL_HOME),
-        )
+    private fun restoreOrCreateTabSession(
+        savedInstanceState: Bundle?,
+        durableStartup: BrowserDurableStartup,
+    ) {
+        val recreated = savedInstanceState?.let(::restoreTabGraph)
+        val recovered = if (savedInstanceState == null) durableStartup.state else null
+        tabSessionState = recreated
+            ?: recovered
+            ?: BrowserTabSessionPolicy.initial(
+                BrowserLogicalTab(newTabId(), INTERNAL_HOME),
+            )
+
+        if (
+            savedInstanceState == null &&
+            durableStartup.kind != BrowserDurableStartupKind.Recovered &&
+            durableStartup.kind != BrowserDurableStartupKind.Reused
+        ) {
+            BrowserNormalSessionRecovery.seedFreshState(tabSessionState)
+        }
+
         tabWebViews.clear()
         tabRuntimeStates.clear()
 
@@ -697,6 +726,7 @@ class BrowserActivityV2 : Activity() {
         when (val mutation = BrowserTabSessionPolicy.updateLocation(tabSessionState, tabId, url)) {
             is BrowserTabMutation.Updated -> {
                 tabSessionState = mutation.state
+                BrowserNormalSessionRecovery.tabNavigated(tabId, url)
                 renderTabStrip()
             }
             else -> Unit
@@ -707,6 +737,9 @@ class BrowserActivityV2 : Activity() {
         when (val mutation = BrowserTabSessionPolicy.updateTitle(tabSessionState, tabId, title)) {
             is BrowserTabMutation.Updated -> {
                 tabSessionState = mutation.state
+                BrowserNormalSessionRecovery.tabTitled(tabId, mutation.state.tabs
+                    .firstOrNull { it.id == tabId }
+                    ?.title)
                 renderTabStrip()
             }
             else -> Unit
@@ -719,7 +752,10 @@ class BrowserActivityV2 : Activity() {
 
         if (tabSessionState.activeTabId != tabId) {
             when (val mutation = BrowserTabSessionPolicy.select(tabSessionState, tabId)) {
-                is BrowserTabMutation.Updated -> tabSessionState = mutation.state
+                is BrowserTabMutation.Updated -> {
+                    tabSessionState = mutation.state
+                    BrowserNormalSessionRecovery.tabSelected(tabId)
+                }
                 else -> return
             }
         }
@@ -757,6 +793,10 @@ class BrowserActivityV2 : Activity() {
             is BrowserTabMutation.Updated -> {
                 captureActiveRuntimeState()
                 tabSessionState = mutation.state
+                BrowserNormalSessionRecovery.tabOpened(
+                    tab,
+                    tabSessionState.tabs.indexOfFirst { it.id == tab.id },
+                )
                 tabRuntimeStates[tab.id] = TabRuntimeState(currentUrl = INTERNAL_HOME)
                 tabWebViews[tab.id] = createTabWebView(tab.id)
                 activateTab(tab.id, persistSelection = false)
@@ -776,6 +816,14 @@ class BrowserActivityV2 : Activity() {
                 ).show()
             }
             is BrowserTabMutation.Updated -> {
+                if (!BrowserNormalSessionRecovery.tabClosedBeforeMutation(tabId)) {
+                    Toast.makeText(
+                        this,
+                        "Browser could not commit recovery state, so this tab stayed open.",
+                        Toast.LENGTH_LONG,
+                    ).show()
+                    return
+                }
                 if (attachedTabId == tabId) captureActiveRuntimeState()
                 val removed = tabWebViews.remove(tabId)
                 tabRuntimeStates.remove(tabId)
