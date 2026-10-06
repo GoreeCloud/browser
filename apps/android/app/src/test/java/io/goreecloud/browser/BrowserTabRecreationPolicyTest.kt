@@ -7,6 +7,23 @@ import org.junit.Test
 
 class BrowserTabRecreationPolicyTest {
     @Test
+    fun acceptsOnlyExactSameProcessToken() {
+        assertTrue(BrowserTabRecreationPolicy.acceptsSameProcess("process-a", "process-a"))
+        assertEquals(
+            false,
+            BrowserTabRecreationPolicy.acceptsSameProcess("process-a", "process-b"),
+        )
+        assertEquals(
+            false,
+            BrowserTabRecreationPolicy.acceptsSameProcess(null, "process-a"),
+        )
+        assertEquals(
+            false,
+            BrowserTabRecreationPolicy.acceptsSameProcess("process-a", ""),
+        )
+    }
+
+    @Test
     fun restoresCanonicalSafeOrderedTabGraph() {
         val restored = BrowserTabRecreationPolicy.restore(
             ids = listOf("tab-a", "tab-b"),
