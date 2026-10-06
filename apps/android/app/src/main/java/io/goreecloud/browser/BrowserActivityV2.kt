@@ -96,13 +96,16 @@ class BrowserActivityV2 : Activity() {
             getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
                 .getInt(PREF_PAGE_TEXT_ZOOM, PageTextZoom.DEFAULT_PERCENT),
         )
-        desktopSiteEnabled = savedInstanceState?.getBoolean(STATE_DESKTOP_SITE, false) == true
-        pageScriptsEnabled = savedInstanceState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
-        pageImagesEnabled = savedInstanceState?.getBoolean(STATE_PAGE_IMAGES, true) ?: true
+        val recreationState = savedInstanceState?.takeIf {
+            it.getString(STATE_PROCESS_INSTANCE_TOKEN) == PROCESS_INSTANCE_TOKEN
+        }
+        desktopSiteEnabled = recreationState?.getBoolean(STATE_DESKTOP_SITE, false) == true
+        pageScriptsEnabled = recreationState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
+        pageImagesEnabled = recreationState?.getBoolean(STATE_PAGE_IMAGES, true) ?: true
         buildBrowserSurface()
-        restoreOrCreateTabSession(savedInstanceState)
+        restoreOrCreateTabSession(recreationState)
 
-        if (savedInstanceState == null) {
+        if (recreationState == null) {
             val external = intent?.data?.toString().orEmpty()
             if (NavigationResolver.isAllowedWebUrl(external)) navigate(external)
         }
@@ -121,6 +124,7 @@ class BrowserActivityV2 : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(STATE_PROCESS_INSTANCE_TOKEN, PROCESS_INSTANCE_TOKEN)
         captureActiveRuntimeState()
         saveTabGraph(outState)
         tabWebViews.forEach { (tabId, view) ->
@@ -2254,6 +2258,8 @@ class BrowserActivityV2 : Activity() {
         private const val INTERNAL_HOME = "goreecloud://start"
         private const val START_BASE_URL = "https://start.goreecloud.local/"
         private const val BLOCKED_WEB_NAVIGATION_TITLE = "Navigation blocked"
+        private val PROCESS_INSTANCE_TOKEN = UUID.randomUUID().toString()
+        private const val STATE_PROCESS_INSTANCE_TOKEN = "goreecloud.browser.process_instance"
         private const val STATE_TAB_IDS = "goreecloud.browser.tabs.ids"
         private const val STATE_TAB_URLS = "goreecloud.browser.tabs.urls"
         private const val STATE_TAB_TITLES = "goreecloud.browser.tabs.titles"
