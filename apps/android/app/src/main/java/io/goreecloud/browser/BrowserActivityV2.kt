@@ -651,8 +651,8 @@ class BrowserActivityV2 : Activity() {
 
     private fun newTabId(): String = "tab-" + UUID.randomUUID().toString()
 
-    private fun isActiveTab(tabId: String): Boolean =
-        ::tabSessionState.isInitialized && tabSessionState.activeTabId == tabId
+    private fun isAttachedTab(tabId: String): Boolean =
+        attachedTabId == tabId
 
     private fun captureActiveRuntimeState() {
         val tabId = attachedTabId ?: return
