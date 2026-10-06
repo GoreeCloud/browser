@@ -103,7 +103,7 @@ The Android Development Browser has a Browser-owned tab strip for regular tabs. 
 
 Background tabs may continue receiving engine callbacks, but those callbacks update only the owning tab and cannot replace the selected tab's Browser chrome. Site information, Copy/Share disclosure, Find in page, Reload/Stop, and other page-specific actions use the selected tab.
 
-Android Activity recreation preserves the ordered regular-tab graph, active selection, canonical safe website locations, normalized tab titles, transient WebView bundles, and payload-minimized blocked/failure recovery markers. This is not durable process-death/session recovery. Browser does not yet claim Normal-session journal/checkpoint restoration, Private/Isolated Private tab persistence, profiles/Webspaces, tab groups, memory-pressure discard recovery, or representative-device multi-tab acceptance.
+Same-process Android Activity recreation preserves the ordered regular-tab graph, active selection, canonical safe website locations, normalized tab titles, transient WebView bundles, and payload-minimized blocked/failure recovery markers. Browser tags this state with a per-process token and rejects it after Browser process restart, so it is not durable process-death/session recovery. Browser does not yet claim Normal-session journal/checkpoint restoration, Private/Isolated Private tab persistence, profiles/Webspaces, tab groups, memory-pressure discard recovery, or representative-device multi-tab acceptance.
 
 ### Find in page
 
@@ -126,7 +126,7 @@ Page controls groups several page-level settings into one compact Glaze surface:
 - JavaScript can be enabled or disabled for the current Browser session.
 - Images can be enabled or disabled for automatic page loading in the current Browser session.
 
-JavaScript and Images default to On for ordinary web compatibility. Changing either setting reloads the current HTTP(S) page so the new setting applies consistently. Their state survives Android Activity recreation but is not stored as a durable Browser preference and is not synchronized.
+JavaScript and Images default to On for ordinary web compatibility. Changing either setting reloads the current HTTP(S) page so the new setting applies consistently. Their state survives same-process Android Activity recreation but is rejected after Browser process restart, is not stored as a durable Browser preference, and is not synchronized.
 
 Disabling JavaScript or automatic image loading may cause websites to lose functionality or content. Browser does not describe these controls as Privacy Shield policy or as a security verdict.
 
@@ -134,7 +134,7 @@ Disabling JavaScript or automatic image loading may cause websites to lose funct
 
 Desktop site changes the current Browser session to a desktop-style website presentation. Browser derives the desktop user agent from the active WebView engine user agent instead of pinning a separate stale Chromium version, enables wide-viewport/overview presentation, and reloads the current website when necessary.
 
-Desktop site is session-local. It survives Android Activity recreation through saved state but is not stored as a durable Browser preference and is not synchronized.
+Desktop site is session-local. It survives same-process Android Activity recreation through saved state, is rejected after Browser process restart, and is not stored as a durable Browser preference or synchronized.
 
 ### Clear browsing data
 
