@@ -41,6 +41,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
+- Browser-owned regular-tab strip with independent live WebViews, stable logical tab IDs, vector new/close controls, selected-tab-only visible engine binding, background callback isolation, and bounded Android Activity recreation of tab order/selection without claiming durable process-death recovery.
 - Direct HTTP/HTTPS navigation.
 - Direct-navigation safety rejects credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous/invalid numeric IPv4 host forms.
 - Internationalized HTTP(S) DNS hosts are canonicalized to lowercase ASCII A-label identity before Android navigation and unfocused address presentation; malformed STD3 labels and bracketed non-IPv6 authorities fail closed.
@@ -59,7 +60,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Session-local Desktop site mode that derives a desktop-style user agent from the active WebView engine version, enables wide-viewport presentation, and can return to the original mobile user agent without pinning Browser to a stale Chromium version.
 - Confirmed Clear browsing data control for Android WebView cookies/sign-in state, website storage, cache, form data, navigation history, and SSL preferences while preserving Browser preferences and Android app permissions.
 - Compact Browser-owned Page controls sheet groups Text size, Desktop site, session-local JavaScript enable/disable, and session-local automatic image loading enable/disable without turning those choices into durable profile or Sync policy.
-- Resumable three-step first-use setup explains Browser/engine ownership, current privacy/security defaults, Search boundaries, and Page controls. Fresh setup is required, voluntary replay is dismissible, optional contextual tips are device-local, and all setup/tip state stays outside account/Sync authority.
+- Resumable three-step first-use setup explains Browser/engine ownership, current privacy/security defaults, live regular-tab controls, Search boundaries, and Page controls. Fresh setup is required, voluntary replay is dismissible, optional contextual tips are device-local, and all setup/tip state stays outside account/Sync authority.
 - Website permissions and geolocation denied until Browser-owned policy surfaces are accepted.
 - Downloads blocked until the Android path satisfies the authoritative Wardveil release contract.
 - Unit tests for Browser-owned navigation resolution.
@@ -116,7 +117,7 @@ See `docs/HEALTH_READINESS_CONTRACT.md`. Manager/Observability runtime integrati
 
 ## Planned / incomplete Android capabilities
 
-- Browser-owned tab strip/tab switcher and multi-tab lifecycle.
+- Complete multi-tab/session lifecycle beyond the implemented Android live regular-tab strip and Activity recreation, including durable Normal-session recovery, Private/Isolated Private semantics, profiles/Webspaces, discard/recreation, large-scale tab UX, and representative-device acceptance.
 - Private Browsing and Close & Forget runtime isolation.
 - Browser-owned website permission prompts.
 - Wardveil-authenticated download staging, scan, release, hold, and quarantine handoff.
