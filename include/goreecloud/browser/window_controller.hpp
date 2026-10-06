@@ -69,27 +69,40 @@ class WindowController {
     return *tabs_.back();
   }
 
-  [[nodiscard]] bool close_tab(std::string_view id, bool explicit_protected_close = false) {
+  [[nodiscard]] bool close_tab(
+      std::string_view id,
+      bool explicit_protected_close = false) {
     const auto it = std::find_if(tabs_.begin(), tabs_.end(), [id](const auto& tab) {
       return tab->id() == id;
     });
     if (it == tabs_.end()) return false;
+
+    const std::string removed_id{(*it)->id()};
     if (tab_manager_ &&
-        !tab_manager_->close_tabs({std::string{id}}, explicit_protected_close)) {
+        !tab_manager_->can_close_tabs({removed_id}, explicit_protected_close)) {
       return false;
     }
 
-    const auto removed_index = static_cast<std::size_t>(std::distance(tabs_.begin(), it));
-    const std::string removed_id{(*it)->id()};
+    // Commit the durable tombstone before destructive in-memory mutation.
+    // If persistence has failed closed, preserve the live tab rather than
+    // creating stale durable state that could resurrect it after a crash.
+    if (session_observer_ &&
+        !session_observer_->normal_tab_closed(window_id_, removed_id)) {
+      return false;
+    }
+
+    if (tab_manager_ &&
+        !tab_manager_->close_tabs({removed_id}, explicit_protected_close)) {
+      return false;
+    }
+
+    const auto removed_index =
+        static_cast<std::size_t>(std::distance(tabs_.begin(), it));
     (*it)->set_lifecycle_state(TabLifecycleState::Closed);
     tabs_.erase(it);
     selected_tab_ids_.erase(
         std::remove(selected_tab_ids_.begin(), selected_tab_ids_.end(), id),
         selected_tab_ids_.end());
-
-    if (session_observer_) {
-      (void)session_observer_->normal_tab_closed(window_id_, removed_id);
-    }
 
     if (tabs_.empty()) {
       active_index_.reset();
