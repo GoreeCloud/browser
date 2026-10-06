@@ -528,7 +528,7 @@ class BrowserActivityV2 : Activity() {
                 }
                 runtime.loading = true
                 runtime.progress = view.progress
-                if (isActiveTab(tabId)) {
+                if (isAttachedTab(tabId)) {
                     applyActiveRuntimeState(tabId)
                     refreshChrome()
                 }
@@ -553,11 +553,11 @@ class BrowserActivityV2 : Activity() {
 
                 runtime.loading = false
                 runtime.progress = 100
-                if (clearHistoryAfterNextPageFinished && isActiveTab(tabId)) {
+                if (clearHistoryAfterNextPageFinished && isAttachedTab(tabId)) {
                     view.clearHistory()
                     clearHistoryAfterNextPageFinished = false
                 }
-                if (isActiveTab(tabId)) {
+                if (isAttachedTab(tabId)) {
                     applyActiveRuntimeState(tabId)
                     refreshChrome()
                 }
@@ -598,7 +598,7 @@ class BrowserActivityV2 : Activity() {
                 val runtime = tabRuntimeStates[tabId] ?: return
                 runtime.progress = newProgress
                 runtime.loading = newProgress < 100
-                if (isActiveTab(tabId)) {
+                if (isAttachedTab(tabId)) {
                     applyActiveRuntimeState(tabId)
                     updateNavigationButtons()
                 }
@@ -611,7 +611,7 @@ class BrowserActivityV2 : Activity() {
                         tabId,
                         PageTitlePresentation.safe(title, runtime.currentUrl),
                     )
-                    if (isActiveTab(tabId)) refreshChrome()
+                    if (isAttachedTab(tabId)) refreshChrome()
                 }
             }
 
@@ -621,7 +621,7 @@ class BrowserActivityV2 : Activity() {
         }
 
         view.setDownloadListener { _, _, _, _, _ ->
-            if (isActiveTab(tabId)) {
+            if (isAttachedTab(tabId)) {
                 Toast.makeText(
                     this,
                     "Downloads remain gated until Wardveil download integration is ready.",
@@ -983,7 +983,7 @@ class BrowserActivityV2 : Activity() {
             null,
         )
 
-        if (isActiveTab(tabId)) {
+        if (isAttachedTab(tabId)) {
             applyActiveRuntimeState(tabId)
             addressField.clearFocus()
             hideKeyboard()
@@ -1021,7 +1021,7 @@ class BrowserActivityV2 : Activity() {
             null,
         )
 
-        if (isActiveTab(tabId)) {
+        if (isAttachedTab(tabId)) {
             applyActiveRuntimeState(tabId)
             addressField.clearFocus()
             hideKeyboard()
