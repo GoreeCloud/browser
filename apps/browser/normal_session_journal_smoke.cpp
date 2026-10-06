@@ -211,6 +211,11 @@ int main() {
   impossible.windows.front().active_tab_id = "missing-tab";
   assert(!NormalSessionJournalPolicy::seal_checkpoint(impossible).has_value());
 
+  auto duplicate_tombstone = *sealed;
+  duplicate_tombstone.integrity_checksum.clear();
+  duplicate_tombstone.retired_tab_ids.push_back("tab-2");
+  assert(!NormalSessionJournalPolicy::seal_checkpoint(duplicate_tombstone).has_value());
+
   // Determinism: the same durable input in a different physical order yields
   // the same Browser-owned logical projection.
   auto reordered_input = shuffled;
