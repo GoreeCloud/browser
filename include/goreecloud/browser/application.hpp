@@ -12,6 +12,7 @@
 #include "goreecloud/browser/engine.hpp"
 #include "goreecloud/browser/in_memory_tab_manager.hpp"
 #include "goreecloud/browser/internal_pages.hpp"
+#include "goreecloud/browser/normal_session_runtime.hpp"
 #include "goreecloud/browser/private_browsing.hpp"
 #include "goreecloud/browser/window_controller.hpp"
 
@@ -29,8 +30,11 @@ struct BrowserApplicationOptions {
 class BrowserApplication {
  public:
   BrowserApplication(std::unique_ptr<BrowserEngine> engine,
-                     BrowserApplicationOptions options = {})
-      : engine_(std::move(engine)), options_(std::move(options)) {
+                     BrowserApplicationOptions options = {},
+                     NormalSessionRuntimeCoordinator* session_runtime = nullptr)
+      : engine_(std::move(engine)),
+        options_(std::move(options)),
+        session_runtime_(session_runtime) {
     if (!engine_) {
       throw std::invalid_argument("BrowserApplication requires a BrowserEngine");
     }
@@ -67,12 +71,17 @@ class BrowserApplication {
   }
 
   void shutdown() noexcept {
+    if (normal_session_started_ && session_runtime_) {
+      (void)session_runtime_->clean_shutdown();
+    }
     windows_.clear();
     tab_manager_ = InMemoryAdvancedTabManager{};
     private_contexts_.clear();
     default_context_.reset();
     engine_->shutdown();
     initialized_ = false;
+    normal_session_started_ = false;
+    normal_session_attempted_ = false;
   }
 
   [[nodiscard]] WindowController& new_window(bool private_window) {
@@ -83,8 +92,18 @@ class BrowserApplication {
     if (!ensure_default_context()) {
       throw std::runtime_error("Default Browser context unavailable");
     }
+    ensure_normal_session_started();
+    const auto window_id = next_window_id();
+    auto* observer =
+        normal_session_started_ && session_runtime_ &&
+                session_runtime_->accepting_runtime_events()
+            ? static_cast<NormalSessionRuntimeObserver*>(session_runtime_)
+            : nullptr;
     windows_.push_back(std::make_unique<WindowController>(
-        *default_context_, false, &tab_manager_, next_window_id()));
+        *default_context_, false, &tab_manager_, window_id, std::string{}, observer));
+    if (observer) {
+      (void)observer->normal_window_opened(window_id);
+    }
     return *windows_.back();
   }
 
@@ -93,7 +112,7 @@ class BrowserApplication {
     auto* context = ensure_private_context(private_session_id);
     if (!context) throw std::runtime_error("Private Browser context unavailable");
     windows_.push_back(std::make_unique<WindowController>(
-        *context, true, nullptr, next_window_id(), private_session_id));
+        *context, true, nullptr, next_window_id(), private_session_id, nullptr));
     return *windows_.back();
   }
 
@@ -141,6 +160,53 @@ class BrowserApplication {
     return static_cast<bool>(default_context_);
   }
 
+  [[nodiscard]] bool close_window(std::string_view window_id) {
+    require_initialized();
+    const auto found = std::find_if(
+        windows_.begin(), windows_.end(),
+        [window_id](const auto& window) {
+          return window && window->window_id() == window_id;
+        });
+    if (found == windows_.end()) return false;
+
+    const bool normal_window = !(*found)->private_window();
+    const std::string durable_id{(*found)->window_id()};
+    windows_.erase(found);
+    if (normal_window && normal_session_started_ && session_runtime_ &&
+        session_runtime_->accepting_runtime_events()) {
+      (void)session_runtime_->normal_window_closed(durable_id);
+    }
+    return true;
+  }
+
+  void background_normal_session() {
+    if (normal_session_started_ && session_runtime_ &&
+        session_runtime_->accepting_runtime_events()) {
+      (void)session_runtime_->background();
+    }
+  }
+
+  void resume_normal_session() {
+    if (normal_session_started_ && session_runtime_ &&
+        session_runtime_->accepting_runtime_events()) {
+      (void)session_runtime_->resume();
+    }
+  }
+
+  void pump_events() {
+    require_initialized();
+    engine_->pump_events();
+    for (const auto& window : windows_) {
+      if (window && !window->private_window()) {
+        window->sync_navigation_metadata();
+      }
+    }
+  }
+
+  [[nodiscard]] const NormalSessionRuntimeStatus* normal_session_status() const noexcept {
+    return session_runtime_ ? &session_runtime_->status() : nullptr;
+  }
+
   [[nodiscard]] BrowserEngine& engine() noexcept { return *engine_; }
   [[nodiscard]] const BrowserEngine& engine() const noexcept { return *engine_; }
   [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }
@@ -155,6 +221,12 @@ class BrowserApplication {
   }
 
  private:
+  void ensure_normal_session_started() {
+    if (!session_runtime_ || normal_session_attempted_) return;
+    normal_session_attempted_ = true;
+    normal_session_started_ = session_runtime_->begin();
+  }
+
   bool ensure_default_context() {
     if (default_context_) return true;
 
@@ -203,8 +275,11 @@ class BrowserApplication {
   std::unordered_map<std::string, std::unique_ptr<EngineContext>> private_contexts_;
   InMemoryAdvancedTabManager tab_manager_;
   std::vector<std::unique_ptr<WindowController>> windows_;
+  NormalSessionRuntimeCoordinator* session_runtime_{nullptr};
   std::uint64_t next_window_id_{1};
   bool initialized_{false};
+  bool normal_session_attempted_{false};
+  bool normal_session_started_{false};
 };
 
 }  // namespace goreecloud::browser
