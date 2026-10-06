@@ -8,13 +8,13 @@
 - Added a Glaze-native horizontally scrollable tab strip with accessible selected-tab labels plus vector new-tab and close-tab controls.
 - Keep exactly one tab WebView attached to the visible content host; background WebView callbacks update only their owning tab state and cannot overwrite the selected tab's Browser chrome.
 - Preserved the current fail-closed navigation, blocked-deep-link, `Page unavailable`, Search, disclosure, permission, download, and conservative WebView boundaries per tab.
-- Added bounded Activity-recreation metadata for tab IDs, canonical safe locations, normalized titles, tab order, active selection, and payload-minimized local safety markers; no durable tab-session store is introduced.
+- Added bounded same-process Activity-recreation metadata for tab IDs, canonical safe locations, normalized titles, tab order, active selection, and payload-minimized local safety markers; a per-process token rejects stale instance state after Browser process restart, and no durable tab-session store is introduced.
 - Page controls apply coherently across all live tab WebViews, and Clear browsing data clears every live WebView while global cookies and website storage are cleared once.
 - Updated first-use guidance and contextual tips to teach the new tab strip without claiming durable process-death recovery.
 
 ### Acceptance boundary
 
-This is Development live regular-tab runtime plus Android Activity recreation. Durable Normal-session journaling/checkpoints and process-death recovery remain separate work under the Section 18 recovery contract. Private/Isolated Private tabs, profiles/Webspaces, memory-pressure discard/recreation, tab groups, large-scale tab UX, representative-device accessibility/performance, production approval, Stable, Seal, and Anchor remain open.
+This is Development live regular-tab runtime plus same-process Android Activity recreation. Browser process restart fails fresh rather than treating Android instance state as durable session authority. Durable Normal-session journaling/checkpoints and process-death recovery remain separate work under the Section 18 recovery contract. Private/Isolated Private tabs, profiles/Webspaces, memory-pressure discard/recreation, tab groups, large-scale tab UX, representative-device accessibility/performance, production approval, Stable, Seal, and Anchor remain open.
 
 
 ## 2026-10-05 — Android local failure recreation recovery
