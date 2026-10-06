@@ -22,12 +22,12 @@ namespace goreecloud::browser {
 
 inline constexpr std::uintmax_t kMaxNormalSessionDurableFileBytes = 8U * 1024U * 1024U;
 
-class FileNormalSessionStore {
+class FileNormalSessionStore final : public NormalSessionDurableStore {
  public:
   explicit FileNormalSessionStore(std::filesystem::path directory)
       : directory_(std::move(directory)) {}
 
-  [[nodiscard]] bool append(const NormalSessionJournalEntry& entry) {
+  [[nodiscard]] bool append(const NormalSessionJournalEntry& entry) override {
     if (!NormalSessionJournalPolicy::valid_journal_entry(entry)) return false;
 
     std::error_code error;
@@ -51,7 +51,7 @@ class FileNormalSessionStore {
     return out.good();
   }
 
-  [[nodiscard]] bool compact(const NormalSessionCheckpoint& checkpoint) {
+  [[nodiscard]] bool compact(const NormalSessionCheckpoint& checkpoint) override {
     if (!NormalSessionJournalPolicy::valid_checkpoint(checkpoint)) return false;
 
     std::optional<NormalSessionCheckpoint> base_checkpoint;
@@ -101,7 +101,7 @@ class FileNormalSessionStore {
     return atomic_replace(journal_path(), journal_bytes);
   }
 
-  [[nodiscard]] NormalSessionReplayResult replay_from_disk() const {
+  [[nodiscard]] NormalSessionReplayResult replay_from_disk() const override {
     std::optional<NormalSessionCheckpoint> checkpoint;
     std::error_code error;
     const auto checkpoint_exists = std::filesystem::exists(checkpoint_path(), error);
