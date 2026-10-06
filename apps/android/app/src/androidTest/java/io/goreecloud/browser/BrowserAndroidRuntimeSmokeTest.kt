@@ -193,7 +193,7 @@ class BrowserAndroidRuntimeSmokeTest {
                 assertTrue(
                     "Background tab failure must not overwrite selected-tab Browser chrome",
                     views.filterIsInstance<TextView>()
-                        .none { it.text?.toString() == BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE },
+                        .any { it.text?.toString() == PageTitlePresentation.PRODUCT_TITLE },
                 )
                 views.filterIsInstance<TextView>()
                     .first { it.contentDescription?.toString()?.startsWith("Tab 1:") == true }
