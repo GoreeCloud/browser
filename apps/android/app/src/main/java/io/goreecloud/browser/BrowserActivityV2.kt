@@ -1296,7 +1296,7 @@ class BrowserActivityV2 : Activity() {
         }
 
         val message = TextView(this).apply {
-            text = "Tip: enter a full website address to navigate directly. Free-text Search stays local until governed Search authorization is available."
+            text = "Tip: use the tab strip to keep pages separate. Full website addresses navigate directly, while free-text Search stays local until governed Search authorization is available."
         }
         glaze.styleMenuSubtitle(message)
         row.addView(
@@ -1412,8 +1412,8 @@ class BrowserActivityV2 : Activity() {
                 "Browser chrome, navigation policy, privacy controls, and local state are GoreeCloud-owned. Android System WebView supplies the web engine behind those Browser-owned boundaries.",
             "Privacy & security by default" to
                 "Mixed content is blocked, third-party cookies are off by default, file/content access is disabled, certificate errors fail closed, and website permission requests stay denied until governed authority is available. Clear browsing data is always available from the Browser menu.",
-            "Browse with clear boundaries" to
-                "Enter complete website addresses directly. Free-text Search remains local until accepted GoreeCloud Search authorization is available. Find in page stays inside the current WebView, and Page controls groups text size, Desktop site, JavaScript, and automatic image loading. Optional tips never hide security or failure messages.",
+            "Browse with tabs and clear boundaries" to
+                "Open, switch, and close regular tabs from the tab strip. Each live tab keeps its page separate, while Browser shows only the selected tab in the content area. Free-text Search remains local until accepted GoreeCloud Search authorization is available. Find in page and Page controls apply to the selected page, and optional tips never hide security or failure messages.",
         )
 
         var step = BrowserFirstUsePolicy.normalizeStep(firstUsePreferences.state().step)
