@@ -92,6 +92,19 @@ int main() {
   title.title = "After checkpoint capture";
   assert(store.append(title));
 
+  // A structurally valid but semantically forged checkpoint may not advance
+  // the durable high-water mark or trim journal records it does not represent.
+  auto forged = *checkpoint;
+  forged.integrity_checksum.clear();
+  forged.windows.front().tabs.clear();
+  forged.windows.front().active_tab_id.reset();
+  const auto forged_sealed = NormalSessionJournalPolicy::seal_checkpoint(forged);
+  assert(forged_sealed.has_value());
+  assert(!store.compact(*forged_sealed));
+  const auto untrimmed = store.read_journal();
+  assert(untrimmed.has_value());
+  assert(untrimmed->size() == 5);
+
   // Compaction writes the checkpoint first, then trims only records covered by
   // its high-water mark. A later committed record must remain in the journal.
   assert(store.compact(*checkpoint));
