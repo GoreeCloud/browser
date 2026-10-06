@@ -205,6 +205,13 @@ jobs:
             set -eu
             gradle -p apps/android --no-daemon connectedDebugAndroidTest --stacktrace
 
+            app_apk="apps/android/app/build/outputs/apk/debug/app-debug.apk"
+            test_apk="$(find apps/android/app/build/outputs/apk/androidTest/debug -maxdepth 1 -type f -name '*-androidTest.apk' -print -quit)"
+            test -f "$app_apk"
+            test -n "$test_apk"
+            adb install -r "$app_apk" >/dev/null
+            adb install -r "$test_apk" >/dev/null
+
             instrumentation="$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\) (target=io.goreecloud.browser.beta)$/\1/p' | head -n 1 | tr -d '\r')"
             test -n "$instrumentation"
             adb shell am instrument -w \
