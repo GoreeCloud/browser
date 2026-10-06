@@ -175,6 +175,8 @@ class AndroidNormalSessionBridge {
         recovered_.reset();
         seeded_ = false;
         runtime_.reset();
+        if (!store_.erase_all()) return;
+        start_fresh();
       }
       return;
     }
