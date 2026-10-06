@@ -606,7 +606,11 @@ class BrowserActivityV2 : Activity() {
 
             override fun onReceivedTitle(view: WebView, title: String?) {
                 val runtime = tabRuntimeStates[tabId] ?: return
-                if (NavigationResolver.isAllowedWebUrl(runtime.currentUrl)) {
+                if (
+                    runtime.chromeOverrideTitle == null &&
+                    !runtime.blockedWebNavigationVisible &&
+                    NavigationResolver.isAllowedWebUrl(runtime.currentUrl)
+                ) {
                     updateTabTitle(
                         tabId,
                         PageTitlePresentation.safe(title, runtime.currentUrl),
