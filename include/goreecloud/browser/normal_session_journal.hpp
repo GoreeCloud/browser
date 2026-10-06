@@ -217,6 +217,8 @@ class NormalSessionJournalPolicy {
   [[nodiscard]] static std::optional<NormalSessionCheckpoint> seal_checkpoint(
       NormalSessionCheckpoint checkpoint) {
     checkpoint.integrity_checksum.clear();
+    std::sort(checkpoint.retired_window_ids.begin(), checkpoint.retired_window_ids.end());
+    std::sort(checkpoint.retired_tab_ids.begin(), checkpoint.retired_tab_ids.end());
     if (!valid_checkpoint_structure(checkpoint)) {
       return std::nullopt;
     }
@@ -569,11 +571,20 @@ class NormalSessionJournalPolicy {
       }
     }
 
+    std::unordered_set<std::string> retired_window_ids;
     for (const auto& retired : result.retired_window_ids) {
-      if (!valid_identity(retired) || window_ids.contains(retired)) return false;
+      if (!valid_identity(retired) || window_ids.contains(retired) ||
+          !retired_window_ids.insert(retired).second) {
+        return false;
+      }
     }
+
+    std::unordered_set<std::string> retired_tab_ids;
     for (const auto& retired : result.retired_tab_ids) {
-      if (!valid_identity(retired) || tab_ids.contains(retired)) return false;
+      if (!valid_identity(retired) || tab_ids.contains(retired) ||
+          !retired_tab_ids.insert(retired).second) {
+        return false;
+      }
     }
     return true;
   }
