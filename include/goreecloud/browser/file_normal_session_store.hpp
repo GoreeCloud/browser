@@ -569,12 +569,12 @@ class FileNormalSessionStore {
             *privacy > static_cast<unsigned int>(SessionPrivacyMode::isolated_private)) {
           return std::nullopt;
         }
-        checkpoint.windows.push_back(RecoverableWindow{
-            .window_id = *window_id,
-            .privacy_mode = static_cast<SessionPrivacyMode>(*privacy),
-        });
+        RecoverableWindow window;
+        window.window_id = *window_id;
+        window.privacy_mode = static_cast<SessionPrivacyMode>(*privacy);
+        if (!active->empty()) window.active_tab_id = *active;
+        checkpoint.windows.push_back(std::move(window));
         current_window = &checkpoint.windows.back();
-        if (!active->empty()) current_window->active_tab_id = *active;
       } else if (fields[0] == "T") {
         if (current_window == nullptr || fields.size() != 10) return std::nullopt;
         const auto tab_id = unescape(fields[1]);
@@ -590,15 +590,14 @@ class FileNormalSessionStore {
             !pinned || !active || !last_active || *pinned > 1 || *active > 1) {
           return std::nullopt;
         }
-        RecoverableTab tab{
-            .tab_id = *tab_id,
-            .url = *url,
-            .title = *title,
-            .workspace_id = *workspace,
-            .pinned = *pinned == 1,
-            .active = *active == 1,
-            .last_active_unix_ms = *last_active,
-        };
+        RecoverableTab tab;
+        tab.tab_id = *tab_id;
+        tab.url = *url;
+        tab.title = *title;
+        tab.workspace_id = *workspace;
+        tab.pinned = *pinned == 1;
+        tab.active = *active == 1;
+        tab.last_active_unix_ms = *last_active;
         if (!group->empty()) tab.group_id = *group;
         if (!split->empty()) tab.split_id = *split;
         current_window->tabs.push_back(std::move(tab));
