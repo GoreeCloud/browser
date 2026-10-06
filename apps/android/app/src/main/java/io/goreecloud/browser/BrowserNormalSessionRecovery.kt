@@ -57,7 +57,8 @@ internal class BrowserNormalSessionRecovery private constructor(
     private var closed = false
 
     fun bindInitialState(state: BrowserTabSessionState): Boolean {
-        if (closed || handle == 0L || seeded) return true
+        if (closed || handle == 0L) return false
+        if (seeded) return true
 
         val flat = state.tabs.flatMap { tab ->
             listOf(tab.id, tab.url, tab.title.orEmpty())
