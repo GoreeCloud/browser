@@ -7,6 +7,7 @@ android {
     namespace = "io.goreecloud.browser"
     compileSdk = 35
     ndkVersion = "27.2.12479018"
+    ndkVersion = "27.2.12479018"
 
     defaultConfig {
         applicationId = "io.goreecloud.browser"
