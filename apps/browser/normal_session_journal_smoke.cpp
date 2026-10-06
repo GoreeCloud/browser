@@ -148,6 +148,25 @@ int main() {
   require(clean_replay.lifecycle_state == NormalSessionLifecycleState::clean_shutdown);
   require(clean_replay.windows.front().tabs.size() == 1);
 
+  auto post_shutdown_title = tab_event(
+      13, NormalSessionJournalOperation::title_tab, "tab-1");
+  post_shutdown_title.title = "Too late";
+  auto post_shutdown_replay = NormalSessionJournalPolicy::replay(
+      sealed,
+      std::vector<NormalSessionJournalEntry>{clean, post_shutdown_title});
+  require(!post_shutdown_replay.accepted);
+
+  auto missing_initial = open_window(2);
+  auto missing_initial_replay = NormalSessionJournalPolicy::replay(
+      std::nullopt, std::vector<NormalSessionJournalEntry>{missing_initial});
+  require(!missing_initial_replay.accepted);
+
+  auto gap_after_checkpoint = lifecycle(
+      13, NormalSessionLifecycleState::running);
+  auto gap_replay = NormalSessionJournalPolicy::replay(
+      sealed, std::vector<NormalSessionJournalEntry>{gap_after_checkpoint});
+  require(!gap_replay.accepted);
+
   // Stable tab identifiers cannot be reused after a committed close, even
   // after compaction has removed the original open/close records.
   auto resurrection = open_tab(
