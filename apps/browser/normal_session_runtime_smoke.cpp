@@ -224,6 +224,48 @@ int main() {
   {
     MemoryNormalSessionStore store;
     NormalSessionRuntimeCoordinator runtime(
+        store, options("clean-checkpoint-failure"), deterministic_clock());
+    require(runtime.begin());
+    require(runtime.normal_window_opened("window-1"));
+    store.fail_compact = true;
+    require(!runtime.clean_shutdown());
+    require(
+        runtime.status().health ==
+        NormalSessionRuntimeHealth::checkpoint_write_failed);
+    require(
+        runtime.classify_startup() ==
+        NormalSessionStartupClassification::abnormal_termination);
+    require(!store.history.empty());
+    require(
+        store.history.back().lifecycle_state ==
+        NormalSessionLifecycleState::checkpointing);
+  }
+
+  {
+    MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator runtime(
+        store, options("clean-marker-failure"), deterministic_clock());
+    require(runtime.begin());
+    require(runtime.normal_window_opened("window-1"));
+    store.fail_append_sequence = 5;
+    require(!runtime.clean_shutdown());
+    require(
+        runtime.status().health ==
+        NormalSessionRuntimeHealth::journal_write_failed);
+    require(
+        runtime.classify_startup() ==
+        NormalSessionStartupClassification::abnormal_termination);
+    require(store.checkpoint.has_value());
+    require(
+        store.checkpoint->lifecycle_state ==
+        NormalSessionLifecycleState::checkpointing);
+    require(store.history.size() == 4);
+    require_contiguous(store.history);
+  }
+
+  {
+    MemoryNormalSessionStore store;
+    NormalSessionRuntimeCoordinator runtime(
         store, options("app"), deterministic_clock());
     BrowserApplication browser(
         std::make_unique<DevelopmentEngine>(),
