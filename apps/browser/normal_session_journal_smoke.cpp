@@ -8,6 +8,17 @@
 
 namespace {
 
+[[noreturn]] void fail_requirement(const char* expression, int line) {
+  std::cerr << "Requirement failed at line " << line << ": " << expression << '\n';
+  std::abort();
+}
+
+#define REQUIRE(expression) \
+  do { \
+    if (!(expression)) fail_requirement(#expression, __LINE__); \
+  } while (false)
+
+
 void require(bool condition) {
   if (!condition) std::abort();
 }
