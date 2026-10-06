@@ -66,10 +66,10 @@ jobs:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
 
-      - name: Install Android 35 SDK
+      - name: Install Android 35 SDK and native toolchain
         shell: bash
         run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;27.0.12077973"
 
       - name: Configure exact Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
@@ -98,13 +98,15 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | tee "$BADGING"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump resources "$APK" | tee "$RESOURCES"
           grep -F "package: name='io.goreecloud.browser.beta'" "$BADGING"
-          grep -F "versionCode='10012'" "$BADGING"
-          grep -F "versionName='0.1.0-beta.1+android.12'" "$BADGING"
+          grep -F "versionCode='10013'" "$BADGING"
+          grep -F "versionName='0.1.0-beta.1+android.13'" "$BADGING"
           grep -F "application-label:'GoreeCloud Browser Beta'" "$BADGING"
           grep -F ":mipmap/ic_launcher" "$RESOURCES"
           grep -F ":mipmap/ic_launcher_round" "$RESOURCES"
           grep -F ":drawable/ic_launcher_foreground" "$RESOURCES"
           grep -F ":drawable/ic_launcher_monochrome" "$RESOURCES"
+          unzip -l "$APK" | grep -F "lib/arm64-v8a/libgoreecloud_browser_android_session.so"
+          unzip -l "$APK" | grep -F "lib/x86_64/libgoreecloud_browser_android_session.so"
 
       - name: Record exact source revision and SHA-256
         shell: bash
@@ -157,6 +159,11 @@ jobs:
           cmdline-tools-version: "15859902"
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
+
+      - name: Install Android 35 native toolchain
+        shell: bash
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;27.0.12077973"
 
       - name: Configure exact Gradle
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
