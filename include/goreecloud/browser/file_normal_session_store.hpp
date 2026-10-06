@@ -16,7 +16,7 @@
 #include <utility>
 #include <vector>
 
-#include "goreecloud/browser/normal_session_journal.hpp"
+#include "goreecloud/browser/normal_session_store.hpp"
 
 namespace goreecloud::browser {
 
@@ -149,7 +149,7 @@ class FileNormalSessionStore final : public NormalSessionDurableStore {
     return entries;
   }
 
-  [[nodiscard]] bool erase_all() {
+  [[nodiscard]] bool erase_all() override {
     std::error_code error;
     bool ok = true;
     for (const auto& path : {checkpoint_path(), journal_path()}) {
