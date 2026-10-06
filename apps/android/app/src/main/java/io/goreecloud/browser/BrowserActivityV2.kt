@@ -26,12 +26,14 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import java.util.UUID
 
 /**
  * GoreeCloud Browser Android shell.
@@ -48,6 +50,8 @@ import android.widget.Toast
 class BrowserActivityV2 : Activity() {
     private lateinit var glaze: GlazeNativeStyle
     private lateinit var webView: WebView
+    private lateinit var webHost: FrameLayout
+    private lateinit var tabStrip: LinearLayout
     private lateinit var topChrome: LinearLayout
     private lateinit var addressField: EditText
     private lateinit var pageTitle: TextView
@@ -56,7 +60,20 @@ class BrowserActivityV2 : Activity() {
     private lateinit var reloadButton: ImageButton
     private lateinit var progressBar: ProgressBar
     private lateinit var firstUsePreferences: BrowserFirstUsePreferences
+    private lateinit var tabSessionState: BrowserTabSessionState
+    private val tabWebViews = LinkedHashMap<String, WebView>()
+    private val tabRuntimeStates = LinkedHashMap<String, TabRuntimeState>()
+    private var attachedTabId: String? = null
     private var contextualHintRow: LinearLayout? = null
+
+    private data class TabRuntimeState(
+        var currentUrl: String,
+        var failedMainFrameUrl: String? = null,
+        var chromeOverrideTitle: String? = null,
+        var blockedWebNavigationVisible: Boolean = false,
+        var loading: Boolean = false,
+        var progress: Int = 0,
+    )
 
     private var currentUrl: String = INTERNAL_HOME
     private var loading = false
@@ -83,42 +100,11 @@ class BrowserActivityV2 : Activity() {
         pageScriptsEnabled = savedInstanceState?.getBoolean(STATE_PAGE_SCRIPTS, true) ?: true
         pageImagesEnabled = savedInstanceState?.getBoolean(STATE_PAGE_IMAGES, true) ?: true
         buildBrowserSurface()
-        configureWebView()
+        restoreOrCreateTabSession(savedInstanceState)
 
-        if (savedInstanceState != null && webView.restoreState(savedInstanceState) != null) {
-            blockedWebNavigationVisible =
-                savedInstanceState.getBoolean(STATE_BLOCKED_WEB_NAVIGATION_VISIBLE, false)
-            val restoredUrl = webView.url
-            val restoredDocumentIsBrowserLocal =
-                restoredUrl?.let(::isInternalStartUrl) == true
-            val restoredFailure = BrowserFailureStatePolicy.restorable(
-                retryUrl = savedInstanceState.getString(
-                    BrowserFailureStatePolicy.BUNDLE_RETRY_URL_KEY,
-                ),
-                restoredDocumentIsBrowserLocal = restoredDocumentIsBrowserLocal,
-                blockedWebNavigationVisible = blockedWebNavigationVisible,
-            )
-            when {
-                blockedWebNavigationVisible && restoredDocumentIsBrowserLocal -> {
-                    failedMainFrameUrl = null
-                    currentUrl = INTERNAL_HOME
-                    chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
-                }
-                restoredFailure != null -> {
-                    blockedWebNavigationVisible = false
-                    failedMainFrameUrl = restoredFailure.retryUrl
-                    currentUrl = restoredFailure.retryUrl
-                    chromeOverrideTitle = BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
-                }
-                else -> {
-                    blockedWebNavigationVisible = false
-                    currentUrl = restoredUrl ?: INTERNAL_HOME
-                }
-            }
-            refreshChrome()
-        } else {
+        if (savedInstanceState == null) {
             val external = intent?.data?.toString().orEmpty()
-            if (NavigationResolver.isAllowedWebUrl(external)) navigate(external) else showStartPage()
+            if (NavigationResolver.isAllowedWebUrl(external)) navigate(external)
         }
 
         renderContextualHint()
@@ -135,11 +121,23 @@ class BrowserActivityV2 : Activity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean(STATE_BLOCKED_WEB_NAVIGATION_VISIBLE, blockedWebNavigationVisible)
-        BrowserFailureStatePolicy.persistableRetryUrl(failedMainFrameUrl)?.let { retryUrl ->
-            outState.putString(BrowserFailureStatePolicy.BUNDLE_RETRY_URL_KEY, retryUrl)
+        captureActiveRuntimeState()
+        saveTabGraph(outState)
+        tabWebViews.forEach { (tabId, view) ->
+            val state = Bundle()
+            view.saveState(state)
+            outState.putBundle(STATE_TAB_WEB_PREFIX + tabId, state)
+
+            val runtime = tabRuntimeStates[tabId]
+            outState.putBoolean(
+                STATE_TAB_BLOCKED_PREFIX + tabId,
+                runtime?.blockedWebNavigationVisible == true,
+            )
+            BrowserFailureStatePolicy.persistableRetryUrl(runtime?.failedMainFrameUrl)
+                ?.let { retryUrl ->
+                    outState.putString(STATE_TAB_FAILURE_RETRY_PREFIX + tabId, retryUrl)
+                }
         }
-        webView.saveState(outState)
         outState.putBoolean(STATE_DESKTOP_SITE, desktopSiteEnabled)
         outState.putBoolean(STATE_PAGE_SCRIPTS, pageScriptsEnabled)
         outState.putBoolean(STATE_PAGE_IMAGES, pageImagesEnabled)
@@ -160,14 +158,10 @@ class BrowserActivityV2 : Activity() {
     }
 
     override fun onDestroy() {
-        if (::webView.isInitialized) {
-            webView.stopLoading()
-            webView.webChromeClient = null
-            webView.webViewClient = WebViewClient()
-            webView.loadUrl("about:blank")
-            webView.removeAllViews()
-            webView.destroy()
-        }
+        tabWebViews.values.toList().forEach(::destroyTabWebView)
+        tabWebViews.clear()
+        tabRuntimeStates.clear()
+        attachedTabId = null
         super.onDestroy()
     }
 
@@ -210,6 +204,30 @@ class BrowserActivityV2 : Activity() {
             ),
         )
         topChrome.addView(identityRow)
+
+        tabStrip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        glaze.styleTabStrip(tabStrip)
+        val tabScroller = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            isFillViewport = false
+            contentDescription = "Open tabs"
+            addView(
+                tabStrip,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+        topChrome.addView(
+            tabScroller,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ),
+        )
 
         val omnibox = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -265,10 +283,9 @@ class BrowserActivityV2 : Activity() {
         root.addView(topChrome)
 
         val content = FrameLayout(this)
-        webView = WebView(this)
-        glaze.styleWebContent(webView)
+        webHost = FrameLayout(this)
         content.addView(
-            webView,
+            webHost,
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -329,9 +346,134 @@ class BrowserActivityV2 : Activity() {
         updateNavigationButtons()
     }
 
-    private fun configureWebView() {
+    private fun restoreOrCreateTabSession(savedInstanceState: Bundle?) {
+        val restored = savedInstanceState?.let(::restoreTabGraph)
+        tabSessionState = restored ?: BrowserTabSessionPolicy.initial(
+            BrowserLogicalTab(newTabId(), INTERNAL_HOME),
+        )
+        tabWebViews.clear()
+        tabRuntimeStates.clear()
+
+        tabSessionState.tabs.forEach { tab ->
+            tabRuntimeStates[tab.id] = TabRuntimeState(currentUrl = tab.url)
+            val view = createTabWebView(tab.id)
+            tabWebViews[tab.id] = view
+
+            val restoredWebState = savedInstanceState
+                ?.getBundle(STATE_TAB_WEB_PREFIX + tab.id)
+                ?.let { view.restoreState(it) != null } == true
+
+            if (restoredWebState && savedInstanceState != null) {
+                reconcileRestoredTab(tab, view, savedInstanceState)
+            } else if (tab.url == INTERNAL_HOME) {
+                loadStartPageInto(view)
+            } else {
+                view.loadUrl(tab.url)
+            }
+        }
+
+        activateTab(tabSessionState.activeTabId, persistSelection = false)
+    }
+
+    private fun restoreTabGraph(savedInstanceState: Bundle): BrowserTabSessionState? =
+        BrowserTabRecreationPolicy.restore(
+            ids = savedInstanceState.getStringArrayList(STATE_TAB_IDS),
+            urls = savedInstanceState.getStringArrayList(STATE_TAB_URLS),
+            titles = savedInstanceState.getStringArrayList(STATE_TAB_TITLES),
+            activeTabId = savedInstanceState.getString(STATE_ACTIVE_TAB_ID),
+        )
+
+    private fun saveTabGraph(outState: Bundle) {
+        val normalized = BrowserTabRecreationPolicy.normalized(tabSessionState) ?: return
+        outState.putStringArrayList(
+            STATE_TAB_IDS,
+            ArrayList(normalized.tabs.map { it.id }),
+        )
+        outState.putStringArrayList(
+            STATE_TAB_URLS,
+            ArrayList(normalized.tabs.map { it.url }),
+        )
+        outState.putStringArrayList(
+            STATE_TAB_TITLES,
+            ArrayList(normalized.tabs.map { it.title.orEmpty() }),
+        )
+        outState.putString(STATE_ACTIVE_TAB_ID, normalized.activeTabId)
+    }
+
+    private fun reconcileRestoredTab(
+        tab: BrowserLogicalTab,
+        view: WebView,
+        savedInstanceState: Bundle,
+    ) {
+        val runtime = tabRuntimeStates.getValue(tab.id)
+        val restoredUrl = view.url
+        val restoredDocumentIsBrowserLocal =
+            restoredUrl?.let(::isInternalStartUrl) == true
+        val blockedVisible = savedInstanceState.getBoolean(
+            STATE_TAB_BLOCKED_PREFIX + tab.id,
+            false,
+        )
+        val restoredFailure = BrowserFailureStatePolicy.restorable(
+            retryUrl = savedInstanceState.getString(
+                STATE_TAB_FAILURE_RETRY_PREFIX + tab.id,
+            ),
+            restoredDocumentIsBrowserLocal = restoredDocumentIsBrowserLocal,
+            blockedWebNavigationVisible = blockedVisible,
+        )
+
+        when {
+            blockedVisible && restoredDocumentIsBrowserLocal -> {
+                runtime.currentUrl = INTERNAL_HOME
+                runtime.failedMainFrameUrl = null
+                runtime.chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
+                runtime.blockedWebNavigationVisible = true
+                updateTabLocation(tab.id, INTERNAL_HOME)
+                updateTabTitle(tab.id, BLOCKED_WEB_NAVIGATION_TITLE)
+            }
+            restoredFailure != null -> {
+                runtime.currentUrl = restoredFailure.retryUrl
+                runtime.failedMainFrameUrl = restoredFailure.retryUrl
+                runtime.chromeOverrideTitle = BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
+                runtime.blockedWebNavigationVisible = false
+                updateTabLocation(tab.id, restoredFailure.retryUrl)
+                updateTabTitle(tab.id, BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE)
+            }
+            restoredUrl != null && NavigationResolver.isAllowedWebUrl(restoredUrl) -> {
+                val canonical = NavigationResolver.canonicalizeWebUrl(restoredUrl) ?: tab.url
+                runtime.currentUrl = canonical
+                runtime.failedMainFrameUrl = null
+                runtime.chromeOverrideTitle = null
+                runtime.blockedWebNavigationVisible = false
+                updateTabLocation(tab.id, canonical)
+            }
+            restoredUrl?.equals("about:blank", ignoreCase = true) == true &&
+                NavigationResolver.isAllowedWebUrl(tab.url) -> {
+                runtime.currentUrl = tab.url
+                runtime.failedMainFrameUrl = null
+                runtime.chromeOverrideTitle = null
+                runtime.blockedWebNavigationVisible = false
+            }
+            else -> {
+                runtime.currentUrl = INTERNAL_HOME
+                runtime.failedMainFrameUrl = null
+                runtime.chromeOverrideTitle = null
+                runtime.blockedWebNavigationVisible = false
+                updateTabLocation(tab.id, INTERNAL_HOME)
+                updateTabTitle(tab.id, null)
+            }
+        }
+    }
+
+    private fun createTabWebView(tabId: String): WebView =
+        WebView(this).also { view ->
+            glaze.styleWebContent(view)
+            view.contentDescription = "Web content"
+            configureWebView(view, tabId)
+        }
+
+    private fun configureWebView(view: WebView, tabId: String) {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
-        webView.settings.apply {
+        view.settings.apply {
             javaScriptEnabled = pageScriptsEnabled
             domStorageEnabled = true
             loadsImagesAutomatically = pageImagesEnabled
@@ -345,8 +487,10 @@ class BrowserActivityV2 : Activity() {
             textZoom = pageTextZoomPercent
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) safeBrowsingEnabled = true
-            mobileUserAgent =
-                "$userAgentString GoreeCloudBrowser/${BuildConfig.VERSION_NAME} Android"
+            if (!::mobileUserAgent.isInitialized) {
+                mobileUserAgent =
+                    "$userAgentString GoreeCloudBrowser/${BuildConfig.VERSION_NAME} Android"
+            }
             userAgentString = if (desktopSiteEnabled) {
                 DesktopUserAgent.fromMobile(mobileUserAgent)
             } else {
@@ -358,43 +502,65 @@ class BrowserActivityV2 : Activity() {
 
         CookieManager.getInstance().apply {
             setAcceptCookie(true)
-            setAcceptThirdPartyCookies(webView, false)
+            setAcceptThirdPartyCookies(view, false)
         }
 
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+        view.webViewClient = object : WebViewClient() {
+            override fun shouldOverrideUrlLoading(
+                view: WebView,
+                request: WebResourceRequest,
+            ): Boolean {
                 val target = request.url.toString()
                 if (NavigationResolver.isAllowedWebUrl(target)) return false
-                if (request.isForMainFrame) showBlockedWebNavigation(target)
+                if (request.isForMainFrame) showBlockedWebNavigation(tabId, target)
                 return true
             }
 
             override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+                val runtime = tabRuntimeStates[tabId] ?: return
                 if (!isInternalStartUrl(url)) {
-                    currentUrl = url
-                    failedMainFrameUrl = null
-                    chromeOverrideTitle = null
-                    blockedWebNavigationVisible = false
+                    val canonical = NavigationResolver.canonicalizeWebUrl(url) ?: return
+                    runtime.currentUrl = canonical
+                    runtime.failedMainFrameUrl = null
+                    runtime.chromeOverrideTitle = null
+                    runtime.blockedWebNavigationVisible = false
+                    updateTabLocation(tabId, canonical)
                 }
-                loading = true
-                progressBar.visibility = View.VISIBLE
-                refreshChrome()
+                runtime.loading = true
+                runtime.progress = view.progress
+                if (isActiveTab(tabId)) {
+                    applyActiveRuntimeState(tabId)
+                    refreshChrome()
+                }
             }
 
             override fun onPageFinished(view: WebView, url: String) {
+                val runtime = tabRuntimeStates[tabId] ?: return
                 if (isInternalStartUrl(url)) {
-                    if (currentUrl != INTERNAL_HOME && chromeOverrideTitle == null) return
+                    if (
+                        runtime.currentUrl != INTERNAL_HOME &&
+                        runtime.chromeOverrideTitle == null &&
+                        !runtime.blockedWebNavigationVisible
+                    ) {
+                        return
+                    }
                 } else {
-                    if (!MainFrameFailureGuard.shouldAccept(currentUrl, url)) return
-                    currentUrl = url
+                    if (!MainFrameFailureGuard.shouldAccept(runtime.currentUrl, url)) return
+                    val canonical = NavigationResolver.canonicalizeWebUrl(url) ?: return
+                    runtime.currentUrl = canonical
+                    updateTabLocation(tabId, canonical)
                 }
-                loading = false
-                progressBar.visibility = View.GONE
-                if (clearHistoryAfterNextPageFinished) {
+
+                runtime.loading = false
+                runtime.progress = 100
+                if (clearHistoryAfterNextPageFinished && isActiveTab(tabId)) {
                     view.clearHistory()
                     clearHistoryAfterNextPageFinished = false
                 }
-                refreshChrome()
+                if (isActiveTab(tabId)) {
+                    applyActiveRuntimeState(tabId)
+                    refreshChrome()
+                }
             }
 
             override fun onReceivedError(
@@ -402,31 +568,51 @@ class BrowserActivityV2 : Activity() {
                 request: WebResourceRequest,
                 error: WebResourceError,
             ) {
+                val runtime = tabRuntimeStates[tabId] ?: return
                 val failedUrl = request.url.toString()
                 if (
                     !request.isForMainFrame ||
                     isInternalStartUrl(failedUrl) ||
-                    !MainFrameFailureGuard.shouldAccept(currentUrl, failedUrl)
+                    !MainFrameFailureGuard.shouldAccept(runtime.currentUrl, failedUrl)
                 ) {
                     return
                 }
-                showPageUnavailable(failedUrl)
+                showPageUnavailable(tabId, failedUrl)
             }
 
-            override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
+            override fun onReceivedSslError(
+                view: WebView,
+                handler: SslErrorHandler,
+                error: SslError,
+            ) {
                 handler.cancel()
-                if (MainFrameFailureGuard.shouldAccept(currentUrl, error.url)) {
-                    showPageUnavailable(error.url)
+                val runtime = tabRuntimeStates[tabId] ?: return
+                if (MainFrameFailureGuard.shouldAccept(runtime.currentUrl, error.url)) {
+                    showPageUnavailable(tabId, error.url)
                 }
             }
         }
 
-        webView.webChromeClient = object : WebChromeClient() {
+        view.webChromeClient = object : WebChromeClient() {
             override fun onProgressChanged(view: WebView, newProgress: Int) {
-                progressBar.progress = newProgress
-                loading = newProgress < 100
-                progressBar.visibility = if (loading) View.VISIBLE else View.GONE
-                updateNavigationButtons()
+                val runtime = tabRuntimeStates[tabId] ?: return
+                runtime.progress = newProgress
+                runtime.loading = newProgress < 100
+                if (isActiveTab(tabId)) {
+                    applyActiveRuntimeState(tabId)
+                    updateNavigationButtons()
+                }
+            }
+
+            override fun onReceivedTitle(view: WebView, title: String?) {
+                val runtime = tabRuntimeStates[tabId] ?: return
+                if (NavigationResolver.isAllowedWebUrl(runtime.currentUrl)) {
+                    updateTabTitle(
+                        tabId,
+                        PageTitlePresentation.safe(title, runtime.currentUrl),
+                    )
+                    if (isActiveTab(tabId)) refreshChrome()
+                }
             }
 
             override fun onPermissionRequest(request: PermissionRequest) {
@@ -434,13 +620,256 @@ class BrowserActivityV2 : Activity() {
             }
         }
 
-        webView.setDownloadListener { _, _, _, _, _ ->
-            Toast.makeText(
-                this,
-                "Downloads remain gated until Wardveil download integration is ready.",
-                Toast.LENGTH_LONG,
-            ).show()
+        view.setDownloadListener { _, _, _, _, _ ->
+            if (isActiveTab(tabId)) {
+                Toast.makeText(
+                    this,
+                    "Downloads remain gated until Wardveil download integration is ready.",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
         }
+    }
+
+    private fun applyCurrentPageSettings(view: WebView) {
+        view.settings.apply {
+            javaScriptEnabled = pageScriptsEnabled
+            loadsImagesAutomatically = pageImagesEnabled
+            blockNetworkImage = !pageImagesEnabled
+            textZoom = pageTextZoomPercent
+            if (::mobileUserAgent.isInitialized) {
+                userAgentString = if (desktopSiteEnabled) {
+                    DesktopUserAgent.fromMobile(mobileUserAgent)
+                } else {
+                    mobileUserAgent
+                }
+            }
+            useWideViewPort = desktopSiteEnabled
+            loadWithOverviewMode = desktopSiteEnabled
+        }
+    }
+
+    private fun newTabId(): String = "tab-" + UUID.randomUUID().toString()
+
+    private fun isActiveTab(tabId: String): Boolean =
+        ::tabSessionState.isInitialized && tabSessionState.activeTabId == tabId
+
+    private fun captureActiveRuntimeState() {
+        val tabId = attachedTabId ?: return
+        val runtime = tabRuntimeStates[tabId] ?: return
+        runtime.currentUrl = currentUrl
+        runtime.failedMainFrameUrl = failedMainFrameUrl
+        runtime.chromeOverrideTitle = chromeOverrideTitle
+        runtime.blockedWebNavigationVisible = blockedWebNavigationVisible
+        runtime.loading = loading
+        if (::progressBar.isInitialized) runtime.progress = progressBar.progress
+    }
+
+    private fun applyActiveRuntimeState(tabId: String) {
+        val runtime = tabRuntimeStates[tabId] ?: return
+        currentUrl = runtime.currentUrl
+        failedMainFrameUrl = runtime.failedMainFrameUrl
+        chromeOverrideTitle = runtime.chromeOverrideTitle
+        blockedWebNavigationVisible = runtime.blockedWebNavigationVisible
+        loading = runtime.loading
+        if (::progressBar.isInitialized) {
+            progressBar.progress = runtime.progress
+            progressBar.visibility = if (runtime.loading) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun updateTabLocation(tabId: String, url: String) {
+        when (val mutation = BrowserTabSessionPolicy.updateLocation(tabSessionState, tabId, url)) {
+            is BrowserTabMutation.Updated -> {
+                tabSessionState = mutation.state
+                renderTabStrip()
+            }
+            else -> Unit
+        }
+    }
+
+    private fun updateTabTitle(tabId: String, title: String?) {
+        when (val mutation = BrowserTabSessionPolicy.updateTitle(tabSessionState, tabId, title)) {
+            is BrowserTabMutation.Updated -> {
+                tabSessionState = mutation.state
+                renderTabStrip()
+            }
+            else -> Unit
+        }
+    }
+
+    private fun activateTab(tabId: String, persistSelection: Boolean = true) {
+        val view = tabWebViews[tabId] ?: return
+        captureActiveRuntimeState()
+
+        if (tabSessionState.activeTabId != tabId) {
+            when (val mutation = BrowserTabSessionPolicy.select(tabSessionState, tabId)) {
+                is BrowserTabMutation.Updated -> tabSessionState = mutation.state
+                else -> return
+            }
+        }
+
+        webView = view
+        attachedTabId = tabId
+        applyCurrentPageSettings(webView)
+        applyActiveRuntimeState(tabId)
+
+        webHost.removeAllViews()
+        webHost.addView(
+            webView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        webView.requestFocus()
+        renderTabStrip()
+        refreshChrome()
+
+        if (persistSelection) captureActiveRuntimeState()
+    }
+
+    private fun openNewTab() {
+        val tab = BrowserLogicalTab(newTabId(), INTERNAL_HOME)
+        when (val mutation = BrowserTabSessionPolicy.open(tabSessionState, tab)) {
+            BrowserTabMutation.MaxTabsReached -> {
+                Toast.makeText(
+                    this,
+                    "Browser supports up to ${BrowserTabSessionPolicy.MAX_TABS} open tabs.",
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+            is BrowserTabMutation.Updated -> {
+                captureActiveRuntimeState()
+                tabSessionState = mutation.state
+                tabRuntimeStates[tab.id] = TabRuntimeState(currentUrl = INTERNAL_HOME)
+                tabWebViews[tab.id] = createTabWebView(tab.id)
+                activateTab(tab.id, persistSelection = false)
+                showStartPage()
+            }
+            else -> Unit
+        }
+    }
+
+    private fun closeTab(tabId: String) {
+        when (val mutation = BrowserTabSessionPolicy.close(tabSessionState, tabId)) {
+            BrowserTabMutation.LastTabProtected -> {
+                Toast.makeText(
+                    this,
+                    "Keep at least one Browser tab open.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            is BrowserTabMutation.Updated -> {
+                if (attachedTabId == tabId) captureActiveRuntimeState()
+                val removed = tabWebViews.remove(tabId)
+                tabRuntimeStates.remove(tabId)
+                tabSessionState = mutation.state
+                removed?.let(::destroyTabWebView)
+                if (attachedTabId == tabId) attachedTabId = null
+                activateTab(tabSessionState.activeTabId, persistSelection = false)
+            }
+            else -> Unit
+        }
+    }
+
+    private fun destroyTabWebView(view: WebView) {
+        if (::webHost.isInitialized && view.parent === webHost) {
+            webHost.removeView(view)
+        }
+        view.stopLoading()
+        view.webChromeClient = null
+        view.webViewClient = WebViewClient()
+        view.loadUrl("about:blank")
+        view.removeAllViews()
+        view.destroy()
+    }
+
+    private fun renderTabStrip() {
+        if (!::tabStrip.isInitialized || !::tabSessionState.isInitialized) return
+        tabStrip.removeAllViews()
+
+        tabSessionState.tabs.forEachIndexed { index, tab ->
+            val selected = tab.id == tabSessionState.activeTabId
+            val labelText = tabLabel(tab)
+            val group = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+
+            val label = TextView(this).apply {
+                text = labelText
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                contentDescription =
+                    "Tab ${index + 1}: $labelText" + if (selected) ", selected" else ""
+                isSelected = selected
+                setOnClickListener { activateTab(tab.id) }
+            }
+            glaze.styleTabChip(label, selected)
+            group.addView(
+                label,
+                LinearLayout.LayoutParams(dp(136), dp(GlazeContract.GENERAL_TARGET_DP)),
+            )
+
+            if (tabSessionState.tabs.size > 1) {
+                val close = ImageButton(this).apply {
+                    setImageResource(R.drawable.ic_tab_close)
+                    contentDescription = "Close tab ${index + 1}: $labelText"
+                    setOnClickListener { closeTab(tab.id) }
+                }
+                glaze.styleTabAction(close, selected)
+                group.addView(
+                    close,
+                    LinearLayout.LayoutParams(
+                        dp(GlazeContract.GENERAL_TARGET_DP),
+                        dp(GlazeContract.GENERAL_TARGET_DP),
+                    ),
+                )
+            }
+
+            tabStrip.addView(
+                group,
+                LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    marginEnd = dp(6)
+                },
+            )
+        }
+
+        val add = ImageButton(this).apply {
+            setImageResource(R.drawable.ic_tab_add)
+            contentDescription = "New tab"
+            setOnClickListener { openNewTab() }
+        }
+        glaze.styleTabAction(add)
+        tabStrip.addView(
+            add,
+            LinearLayout.LayoutParams(
+                dp(GlazeContract.GENERAL_TARGET_DP),
+                dp(GlazeContract.GENERAL_TARGET_DP),
+            ),
+        )
+    }
+
+    private fun tabLabel(tab: BrowserLogicalTab): String {
+        if (tab.url == INTERNAL_HOME) return "New tab"
+        val title = tab.title?.takeIf { it.isNotBlank() }
+        return (title ?: AddressPresentation.condensed(tab.url))
+            .replace('\n', ' ')
+            .take(MAX_TAB_LABEL_LENGTH)
+    }
+
+    private fun loadStartPageInto(view: WebView) {
+        view.loadDataWithBaseURL(
+            START_BASE_URL,
+            startHtml(),
+            "text/html",
+            "UTF-8",
+            null,
+        )
     }
 
     private fun navigate(raw: String) {
@@ -457,6 +886,9 @@ class BrowserActivityV2 : Activity() {
         chromeOverrideTitle = null
         blockedWebNavigationVisible = false
         currentUrl = target
+        updateTabLocation(tabSessionState.activeTabId, target)
+        updateTabTitle(tabSessionState.activeTabId, null)
+        captureActiveRuntimeState()
         addressField.clearFocus()
         hideKeyboard()
         webView.loadUrl(target)
@@ -469,9 +901,12 @@ class BrowserActivityV2 : Activity() {
         chromeOverrideTitle = null
         blockedWebNavigationVisible = false
         currentUrl = INTERNAL_HOME
+        updateTabLocation(tabSessionState.activeTabId, INTERNAL_HOME)
+        updateTabTitle(tabSessionState.activeTabId, null)
+        captureActiveRuntimeState()
         addressField.clearFocus()
         hideKeyboard()
-        webView.loadDataWithBaseURL(START_BASE_URL, startHtml(), "text/html", "UTF-8", null)
+        loadStartPageInto(webView)
         refreshChrome()
     }
 
@@ -480,6 +915,9 @@ class BrowserActivityV2 : Activity() {
         chromeOverrideTitle = null
         blockedWebNavigationVisible = false
         currentUrl = INTERNAL_HOME
+        updateTabLocation(tabSessionState.activeTabId, INTERNAL_HOME)
+        updateTabTitle(tabSessionState.activeTabId, "Search authorization required")
+        captureActiveRuntimeState()
         addressField.clearFocus()
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(query)
@@ -500,6 +938,9 @@ class BrowserActivityV2 : Activity() {
         chromeOverrideTitle = null
         blockedWebNavigationVisible = false
         currentUrl = INTERNAL_HOME
+        updateTabLocation(tabSessionState.activeTabId, INTERNAL_HOME)
+        updateTabTitle(tabSessionState.activeTabId, "Navigation blocked")
+        captureActiveRuntimeState()
         addressField.clearFocus()
         hideKeyboard()
         val escaped = android.text.TextUtils.htmlEncode(input)
@@ -516,15 +957,22 @@ class BrowserActivityV2 : Activity() {
     }
 
     private fun showBlockedWebNavigation(target: String) {
-        failedMainFrameUrl = null
-        chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
-        blockedWebNavigationVisible = true
-        currentUrl = INTERNAL_HOME
-        loading = false
-        progressBar.visibility = View.GONE
-        addressField.clearFocus()
-        hideKeyboard()
-        webView.loadDataWithBaseURL(
+        showBlockedWebNavigation(tabSessionState.activeTabId, target)
+    }
+
+    private fun showBlockedWebNavigation(tabId: String, target: String) {
+        val runtime = tabRuntimeStates[tabId] ?: return
+        runtime.failedMainFrameUrl = null
+        runtime.chromeOverrideTitle = BLOCKED_WEB_NAVIGATION_TITLE
+        runtime.blockedWebNavigationVisible = true
+        runtime.currentUrl = INTERNAL_HOME
+        runtime.loading = false
+        runtime.progress = 0
+        updateTabLocation(tabId, INTERNAL_HOME)
+        updateTabTitle(tabId, BLOCKED_WEB_NAVIGATION_TITLE)
+
+        val view = tabWebViews[tabId] ?: return
+        view.loadDataWithBaseURL(
             START_BASE_URL,
             BrowserLocalPages.blockedWebNavigationHtml(
                 baseCss(),
@@ -534,30 +982,51 @@ class BrowserActivityV2 : Activity() {
             "UTF-8",
             null,
         )
-        refreshChrome()
+
+        if (isActiveTab(tabId)) {
+            applyActiveRuntimeState(tabId)
+            addressField.clearFocus()
+            hideKeyboard()
+            refreshChrome()
+        }
     }
 
     private fun showPageUnavailable(failedUrl: String?) {
-        blockedWebNavigationVisible = false
+        showPageUnavailable(tabSessionState.activeTabId, failedUrl)
+    }
+
+    private fun showPageUnavailable(tabId: String, failedUrl: String?) {
+        val runtime = tabRuntimeStates[tabId] ?: return
         val retryUrl = failedUrl
             ?.takeIf(NavigationResolver::isAllowedWebUrl)
-            ?: currentUrl.takeIf(NavigationResolver::isAllowedWebUrl)
+            ?: runtime.currentUrl.takeIf(NavigationResolver::isAllowedWebUrl)
 
-        failedMainFrameUrl = retryUrl
-        chromeOverrideTitle = BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
-        if (retryUrl != null) currentUrl = retryUrl
-        loading = false
-        progressBar.visibility = View.GONE
-        addressField.clearFocus()
-        hideKeyboard()
-        webView.loadDataWithBaseURL(
+        runtime.failedMainFrameUrl = retryUrl
+        runtime.chromeOverrideTitle = BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE
+        runtime.blockedWebNavigationVisible = false
+        if (retryUrl != null) {
+            runtime.currentUrl = retryUrl
+            updateTabLocation(tabId, retryUrl)
+        }
+        updateTabTitle(tabId, BrowserFailureStatePolicy.PAGE_UNAVAILABLE_TITLE)
+        runtime.loading = false
+        runtime.progress = 0
+
+        val view = tabWebViews[tabId] ?: return
+        view.loadDataWithBaseURL(
             START_BASE_URL,
             BrowserLocalPages.pageUnavailableHtml(baseCss()),
             "text/html",
             "UTF-8",
             null,
         )
-        refreshChrome()
+
+        if (isActiveTab(tabId)) {
+            applyActiveRuntimeState(tabId)
+            addressField.clearFocus()
+            hideKeyboard()
+            refreshChrome()
+        }
     }
 
     private fun startHtml(): String = """
@@ -593,11 +1062,17 @@ class BrowserActivityV2 : Activity() {
     }
 
     private fun updateNavigationButtons() {
-        if (::backButton.isInitialized) setEnabled(backButton, webView.canGoBack())
-        if (::forwardButton.isInitialized) setEnabled(forwardButton, webView.canGoForward())
+        val hasActiveWebView = ::webView.isInitialized
+        if (::backButton.isInitialized) {
+            setEnabled(backButton, hasActiveWebView && webView.canGoBack())
+        }
+        if (::forwardButton.isInitialized) {
+            setEnabled(forwardButton, hasActiveWebView && webView.canGoForward())
+        }
         if (::reloadButton.isInitialized) {
             reloadButton.setImageResource(if (loading) R.drawable.ic_stop else R.drawable.ic_reload)
             reloadButton.contentDescription = if (loading) "Stop loading" else "Reload"
+            setEnabled(reloadButton, hasActiveWebView)
         }
     }
 
@@ -656,6 +1131,10 @@ class BrowserActivityV2 : Activity() {
             )
         }
 
+        addAction("New tab") { openNewTab() }
+        if (tabSessionState.tabs.size > 1) {
+            addAction("Close current tab") { closeTab(tabSessionState.activeTabId) }
+        }
         addAction("Site information") { showSiteInformation() }
         addAction("Privacy & security") { showPrivacyAndSecurityStatus() }
         addAction("Find in page") { showFindInPage() }
@@ -1531,7 +2010,7 @@ class BrowserActivityV2 : Activity() {
     private fun applyPageTextZoom(percent: Int) {
         val normalized = PageTextZoom.normalize(percent)
         pageTextZoomPercent = normalized
-        webView.settings.textZoom = normalized
+        tabWebViews.values.forEach { it.settings.textZoom = normalized }
         getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
             .edit()
             .putInt(PREF_PAGE_TEXT_ZOOM, normalized)
@@ -1541,15 +2020,17 @@ class BrowserActivityV2 : Activity() {
     private fun setPageScriptsEnabled(enabled: Boolean) {
         if (pageScriptsEnabled == enabled) return
         pageScriptsEnabled = enabled
-        webView.settings.javaScriptEnabled = enabled
+        tabWebViews.values.forEach { it.settings.javaScriptEnabled = enabled }
         reloadWebsiteAfterPageControlChange()
     }
 
     private fun setPageImagesEnabled(enabled: Boolean) {
         if (pageImagesEnabled == enabled) return
         pageImagesEnabled = enabled
-        webView.settings.loadsImagesAutomatically = enabled
-        webView.settings.blockNetworkImage = !enabled
+        tabWebViews.values.forEach { view ->
+            view.settings.loadsImagesAutomatically = enabled
+            view.settings.blockNetworkImage = !enabled
+        }
         reloadWebsiteAfterPageControlChange()
     }
 
@@ -1566,14 +2047,16 @@ class BrowserActivityV2 : Activity() {
     private fun setDesktopSiteEnabled(enabled: Boolean) {
         if (desktopSiteEnabled == enabled) return
         desktopSiteEnabled = enabled
-        webView.settings.apply {
-            userAgentString = if (enabled) {
-                DesktopUserAgent.fromMobile(mobileUserAgent)
-            } else {
-                mobileUserAgent
+        tabWebViews.values.forEach { view ->
+            view.settings.apply {
+                userAgentString = if (enabled) {
+                    DesktopUserAgent.fromMobile(mobileUserAgent)
+                } else {
+                    mobileUserAgent
+                }
+                useWideViewPort = enabled
+                loadWithOverviewMode = enabled
             }
-            useWideViewPort = enabled
-            loadWithOverviewMode = enabled
         }
 
         if (NavigationResolver.isAllowedWebUrl(currentUrl)) {
@@ -1703,7 +2186,7 @@ class BrowserActivityV2 : Activity() {
         clear.setOnClickListener {
             setTextActionEnabled(clear, false)
             setTextActionEnabled(cancel, false)
-            BrowserBrowsingDataCleaner.clear(webView) {
+            BrowserBrowsingDataCleaner.clear(tabWebViews.values.toList()) {
                 runOnUiThread {
                     clearHistoryAfterNextPageFinished = true
                     showStartPage()
@@ -1767,8 +2250,14 @@ class BrowserActivityV2 : Activity() {
         private const val INTERNAL_HOME = "goreecloud://start"
         private const val START_BASE_URL = "https://start.goreecloud.local/"
         private const val BLOCKED_WEB_NAVIGATION_TITLE = "Navigation blocked"
-        private const val STATE_BLOCKED_WEB_NAVIGATION_VISIBLE =
-            "goreecloud.browser.blocked_web_navigation_visible"
+        private const val STATE_TAB_IDS = "goreecloud.browser.tabs.ids"
+        private const val STATE_TAB_URLS = "goreecloud.browser.tabs.urls"
+        private const val STATE_TAB_TITLES = "goreecloud.browser.tabs.titles"
+        private const val STATE_ACTIVE_TAB_ID = "goreecloud.browser.tabs.active"
+        private const val STATE_TAB_WEB_PREFIX = "goreecloud.browser.tabs.web:"
+        private const val STATE_TAB_BLOCKED_PREFIX = "goreecloud.browser.tabs.blocked:"
+        private const val STATE_TAB_FAILURE_RETRY_PREFIX = "goreecloud.browser.tabs.failure:"
+        private const val MAX_TAB_LABEL_LENGTH = 32
         private const val PREFERENCES_NAME = "goreecloud_browser_preferences"
         private const val PREF_PAGE_TEXT_ZOOM = "page_text_zoom_percent"
         private const val STATE_DESKTOP_SITE = "desktop_site_enabled"
