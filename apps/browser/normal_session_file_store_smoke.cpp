@@ -174,7 +174,7 @@ int main() {
     std::ofstream out(
         root / "normal-session.journal",
         std::ios::binary | std::ios::app);
-    require(out);
+    require(out.good());
     out << "J\tpartial";
   }
   require(!store.read_journal().has_value());
@@ -198,7 +198,7 @@ int main() {
     std::ofstream out(
         root / "normal-session.checkpoint",
         std::ios::binary | std::ios::app);
-    require(out);
+    require(out.good());
     out << "unexpected\n";
   }
   require(!store.read_checkpoint().has_value());
