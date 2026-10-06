@@ -110,6 +110,15 @@ jobs:
           grep -F ":drawable/ic_launcher_foreground" "$RESOURCES"
           grep -F ":drawable/ic_launcher_monochrome" "$RESOURCES"
 
+      - name: Verify packaged native recovery bridge
+        shell: bash
+        run: |
+          APK="apps/android/app/build/outputs/apk/debug/app-debug.apk"
+          NATIVE_LIST="apps/android/app/build/outputs/apk/debug/native-libs.txt"
+          unzip -l "$APK" | tee "$NATIVE_LIST"
+          grep -F "lib/arm64-v8a/libgoreecloud_browser_android_recovery.so" "$NATIVE_LIST"
+          grep -F "lib/x86_64/libgoreecloud_browser_android_recovery.so" "$NATIVE_LIST"
+
       - name: Record exact source revision and SHA-256
         shell: bash
         run: |
@@ -129,6 +138,7 @@ jobs:
             apps/android/app/build/outputs/apk/debug/SOURCE_REVISION
             apps/android/app/build/outputs/apk/debug/badging.txt
             apps/android/app/build/outputs/apk/debug/resources.txt
+            apps/android/app/build/outputs/apk/debug/native-libs.txt
 
 
   android-emulator:
