@@ -312,6 +312,9 @@ int main() {
     invalid = request();
     invalid.requesting_origin = "https://example.test/path";
     require(!broker.receive(invalid));
+    invalid = request();
+    invalid.resources = {static_cast<PermissionResource>(255)};
+    require(!broker.receive(invalid));
   }
 
   return 0;
