@@ -311,12 +311,12 @@ int main() {
   {
     std::fstream output(path,
                         std::ios::binary | std::ios::in | std::ios::out);
-    require(output);
+    require(static_cast<bool>(output));
     const char bad_magic = 'X';
     output.seekp(0);
     output.write(&bad_magic, 1);
     output.flush();
-    require(output);
+    require(static_cast<bool>(output));
   }
 
   const auto recovered = goreecloud::browser::load_permission_decisions(
