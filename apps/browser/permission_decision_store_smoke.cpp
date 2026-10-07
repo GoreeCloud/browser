@@ -46,6 +46,12 @@ bool has_issue(const goreecloud::browser::PermissionDecisionRestoreResult& resul
          result.issues.end();
 }
 
+bool has_issue(
+    const std::vector<PermissionDecisionStorageIssue>& issues,
+    PermissionDecisionStorageIssue issue) {
+  return std::find(issues.begin(), issues.end(), issue) != issues.end();
+}
+
 void append_u32_little_endian(std::vector<std::uint8_t>& bytes,
                               std::uint32_t value) {
   for (int shift = 0; shift < 32; shift += 8) {
@@ -220,6 +226,33 @@ int main() {
       path, "profile-personal", 1500);
   require(first_load.accepted());
   require(first_load.store.records().size() == 3);
+
+  std::vector<std::uint8_t> authoritative_bytes;
+  require(goreecloud::browser::read_permission_decision_snapshot_file(
+      path, authoritative_bytes));
+
+  const auto regressed_save = goreecloud::browser::save_permission_decisions(
+      path, durable, "profile-personal", 1499);
+  require(has_issue(regressed_save,
+                    PermissionDecisionStorageIssue::clock_regression));
+  std::vector<std::uint8_t> after_regressed_save;
+  require(goreecloud::browser::read_permission_decision_snapshot_file(
+      path, after_regressed_save));
+  require(authoritative_bytes == after_regressed_save);
+
+  PermissionDecisionStore other_profile;
+  auto other_profile_record = decision(PermissionResource::camera);
+  other_profile_record.profile_id = "profile-work";
+  require(other_profile.upsert(other_profile_record, PrivacyContext::normal));
+  const auto profile_mismatch_save =
+      goreecloud::browser::save_permission_decisions(
+          path, other_profile, "profile-work", 1600);
+  require(has_issue(profile_mismatch_save,
+                    PermissionDecisionStorageIssue::profile_mismatch));
+  std::vector<std::uint8_t> after_profile_mismatch_save;
+  require(goreecloud::browser::read_permission_decision_snapshot_file(
+      path, after_profile_mismatch_save));
+  require(authoritative_bytes == after_profile_mismatch_save);
 
   PermissionDecisionStore replacement;
   auto replacement_record = decision(PermissionResource::protected_media,
