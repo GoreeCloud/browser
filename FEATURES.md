@@ -11,12 +11,12 @@ This file records Browser functionality and implementation state. A listed featu
 - Transport-neutral first-party service capability evidence that keeps producer authority outside Browser and fails closed unless an exact capability is current, authoritative, explicitly production-accepted, and—when requested—on the exact expected contract version.
 - Browser-owned Sync submission/retrieval contracts with privacy-safe tombstones, capability/schema validation, pagination, record-ID bounds, and signer-shape validation.
 - Advanced Download Manager core with staged transfer and source-level Wardveil release-gate architecture.
-- Privacy-safe native session-recovery checkpoint/candidate core that excludes Private and Isolated Private windows before persistence, validates bounded persisted window/tab topology and active-tab references, and only considers the newest checkpoint so older crash state cannot silently resurface after a newer clean or private-only session.
+- Privacy-safe Browser-owned Normal-session recovery core with versioned journal/checkpoint persistence, deterministic replay, clean-vs-abnormal lifecycle classification, bounded validated tab/window projections, private-before-persistence exclusion, retired-ID tombstones, and Android Development recovery-resume integration through the C++ authority.
 - Media Hover architecture and first-party Browser feature contracts.
 
 The first-party capability gate is a consumer-side contract only. A healthy transport, a recognized service, or current authoritative producer evidence is insufficient by itself: Browser will not treat a capability as usable through this gate until the producer evidence explicitly states production acceptance. Browser does not create or strengthen Search, Vault, Sync, Identity, Mesh, Privacy Shield, Wardveil Security, Everkeep, DNS, Network, or Bookmarks authority.
 
-The session-recovery core is not yet a user-ready recovery implementation. Durable authenticated-encrypted checkpoint storage, protected platform key integration, Browser lifecycle wiring, restore execution, Glaze recovery UI, Everkeep continuity integration, and runtime acceptance remain pending.
+The session-recovery core and Android adapter are Development functionality, not production recovery acceptance. Android can reconstruct accepted Normal tab identity/order/selection and safe navigation/title projections after an abnormal app-process termination, but it creates fresh WebViews and does not recover raw engine memory, form contents, saved sign-in data, Private/Isolated Private state, or session-local Page-control choices. Released-version migrations, authenticated adversarial-storage protection where required, desktop restore execution, Everkeep continuity, representative physical-device/OEM/WebView fault evidence, and production acceptance remain pending.
 
 ## Native extension Development source foundation
 
@@ -41,7 +41,7 @@ This native extension foundation does not parse or install real `.gcex` archives
 - Android API 26 minimum and API 35 target.
 - Android System WebView/Chromium rendering dependency behind GoreeCloud-owned product behavior.
 - Back, Forward, Reload, Go, unified address/search field, progress state, and web-content region.
-- Browser-owned regular-tab strip with independent live WebViews, stable logical tab IDs, vector new/close controls, selected-tab-only visible engine binding, background callback isolation, and bounded same-process Android Activity recreation of tab order/selection with stale-state rejection after process restart, without claiming durable process-death recovery.
+- Browser-owned regular-tab strip with independent live WebViews, stable logical tab IDs, vector new/close controls, selected-tab-only visible engine binding, and background callback isolation. Same-process Activity recreation uses process-token-bound Android saved state; after abnormal app-process termination, Android Development can instead consume the validated C++ Normal-session projection, rebuild the logical regular-tab graph before WebViews, and resume the active safe URL/title projection with fresh WebViews.
 - Direct HTTP/HTTPS navigation.
 - Direct-navigation safety rejects credential-bearing URLs, unsupported schemes, control-character injection, zero/out-of-range ports, and ambiguous/invalid numeric IPv4 host forms.
 - Internationalized HTTP(S) DNS hosts are canonicalized to lowercase ASCII A-label identity before Android navigation and unfocused address presentation; malformed STD3 labels and bracketed non-IPv6 authorities fail closed.
@@ -117,7 +117,7 @@ See `docs/HEALTH_READINESS_CONTRACT.md`. Manager/Observability runtime integrati
 
 ## Planned / incomplete Android capabilities
 
-- Complete multi-tab/session lifecycle beyond the implemented Android live regular-tab strip and same-process Activity recreation, including durable Normal-session recovery, Private/Isolated Private semantics, profiles/Webspaces, discard/recreation, large-scale tab UX, and representative-device acceptance.
+- Complete multi-tab/session lifecycle beyond the implemented Android live regular-tab strip, same-process Activity recreation, and Development Normal-session abnormal process-death recovery, including released-version migration, Private/Isolated Private semantics, profiles/Webspaces, memory-pressure discard/recreation, large-scale tab UX, OEM/WebView fault coverage, and representative-device acceptance.
 - Private Browsing and Close & Forget runtime isolation.
 - Browser-owned website permission prompts.
 - Wardveil-authenticated download staging, scan, release, hold, and quarantine handoff.

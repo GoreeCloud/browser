@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -113,6 +114,54 @@ class NormalSessionRuntimeCoordinator final : public NormalSessionRuntimeObserve
       return NormalSessionStartupClassification::clean_shutdown;
     }
     return NormalSessionStartupClassification::abnormal_termination;
+  }
+
+  [[nodiscard]] std::optional<NormalSessionReplayResult> recoverable_state() const {
+    const auto replayed = store_.replay_from_disk();
+    if (!replayed.accepted ||
+        replayed.lifecycle_state == NormalSessionLifecycleState::clean_shutdown ||
+        replayed.journal_high_water_mark == 0 ||
+        replayed.windows.empty()) {
+      return std::nullopt;
+    }
+    return replayed;
+  }
+
+  [[nodiscard]] bool resume_recovery() {
+    if (status_.health != NormalSessionRuntimeHealth::inactive) {
+      return status_.health == NormalSessionRuntimeHealth::healthy;
+    }
+    if (!valid_options()) {
+      status_.health = NormalSessionRuntimeHealth::transition_rejected;
+      return false;
+    }
+
+    const auto replayed = recoverable_state();
+    if (!replayed.has_value() ||
+        replayed->journal_id != options_.journal_id ||
+        replayed->profile_id != options_.profile_id ||
+        replayed->privacy_context_id != kNormalPrivacyContextId ||
+        replayed->session_epoch != options_.session_epoch ||
+        replayed->journal_high_water_mark ==
+            std::numeric_limits<std::uint64_t>::max()) {
+      status_.startup = NormalSessionStartupClassification::abnormal_termination;
+      status_.health = NormalSessionRuntimeHealth::transition_rejected;
+      return false;
+    }
+
+    status_.startup = NormalSessionStartupClassification::abnormal_termination;
+    status_.health = NormalSessionRuntimeHealth::healthy;
+    status_.committed_sequence = replayed->journal_high_water_mark;
+    status_.durable_state_current = true;
+    committed_state_ = *replayed;
+    next_sequence_ = replayed->journal_high_water_mark + 1;
+    mutations_since_checkpoint_ = 0;
+
+    if (!record_lifecycle(NormalSessionLifecycleState::restoring, false) ||
+        !record_lifecycle(NormalSessionLifecycleState::running, false)) {
+      return false;
+    }
+    return true;
   }
 
   [[nodiscard]] bool begin() {
