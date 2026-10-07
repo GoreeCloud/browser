@@ -15,6 +15,20 @@
 
 This is a Development Normal-context persistence foundation only. It does not implement Android permission prompt/OS adapters, live GoreeCloud Policy/Privacy Shield/Wardveil authority adapters, Private/Isolated Private ephemeral permission runtime or Close & Forget decision cleanup, privacy-safe diagnostic UX, authenticated-at-rest protection, representative-device acceptance, production approval, Release Candidate, Stable, Seal, or Anchor. CRC32 detects ordinary corruption only and is not an authentication boundary.
 
+
+## 2026-10-07 — Bounded Core CI dependency bootstrap
+
+### Changed
+
+- Added a checked-in Browser-owned apt dependency bootstrap helper with finite retries, package-manager lock timeout, bounded network timeouts, and a hard command runtime limit.
+- Routed the Core CI curl, GTK, and CEF dependency-install lanes through the bounded helper without changing their package sets.
+- Added explicit job-level timeouts to the ordinary Core Release, Core Debug, curl-download, GTK beta-shell, and CEF bootstrap-contract jobs instead of relying on the platform's large default runtime.
+- Added fast syntax and empty-argument contract checks for the dependency bootstrap helper.
+- Preserved exact-source checkout, immutable third-party action references, existing build/test coverage, and fail-closed behavior after bounded package-install attempts are exhausted.
+
+### Acceptance boundary
+
+This is CI reliability hardening only. It does not alter Browser runtime behavior or establish production, Release Candidate, Stable, Seal, or Anchor acceptance.
 ## 2026-10-06 — Normal-session runtime lifecycle journaling
 
 ### Added
