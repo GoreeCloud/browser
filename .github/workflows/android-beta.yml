@@ -203,12 +203,18 @@ jobs:
           disable-animations: true
           script: |
             set -eu
-            gradle -p apps/android --no-daemon assembleDebug assembleDebugAndroidTest connectedDebugAndroidTest --stacktrace
+            gradle -p apps/android --no-daemon connectedDebugAndroidTest --stacktrace
+            # connectedDebugAndroidTest is free to clean or relocate its install inputs.
+            # Re-assemble exact debug artifacts after instrumentation so the subsequent
+            # process-boundary proof never depends on test-task output retention.
+            gradle -p apps/android --no-daemon assembleDebug assembleDebugAndroidTest --stacktrace
 
-            app_apk="apps/android/app/build/outputs/apk/debug/app-debug.apk"
-            test_apk="$(find apps/android/app/build/outputs/apk/androidTest/debug -maxdepth 1 -type f -name '*-androidTest.apk' -print -quit)"
-            test -f "$app_apk"
+            app_apk="$(find apps/android/app/build/outputs/apk/debug -type f -name '*.apk' -print -quit)"
+            test_apk="$(find apps/android/app/build/outputs/apk/androidTest/debug -type f -name '*-androidTest.apk' -print -quit)"
+            test -n "$app_apk"
+            test -s "$app_apk"
             test -n "$test_apk"
+            test -s "$test_apk"
             adb install -r "$app_apk" >/dev/null
             adb install -r "$test_apk" >/dev/null
 
