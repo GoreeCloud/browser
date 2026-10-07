@@ -287,5 +287,71 @@ int main() {
   require(work_close.requests_cancelled == 1);
   require(store.decision_count() == 0);
 
+  {
+    PrivatePermissionDecisionStore bounded_contexts;
+    for (std::size_t index = 0;
+         index < goreecloud::browser::kPrivatePermissionMaxContexts; ++index) {
+      require(bounded_contexts.open_context(PrivatePermissionContext{
+          .profile_id = "profile-bounded",
+          .privacy_context_id = "private-active-" + std::to_string(index),
+          .privacy_context = PrivacyContext::private_browsing,
+          .contract_version = 1,
+      }));
+    }
+    require(!bounded_contexts.open_context(PrivatePermissionContext{
+        .profile_id = "profile-bounded",
+        .privacy_context_id = "private-active-overflow",
+        .privacy_context = PrivacyContext::private_browsing,
+        .contract_version = 1,
+    }));
+  }
+
+  {
+    PrivatePermissionDecisionStore bounded_decisions;
+    require(bounded_decisions.open_context(PrivatePermissionContext{
+        .profile_id = "profile-bounded",
+        .privacy_context_id = "private-decisions",
+        .privacy_context = PrivacyContext::private_browsing,
+        .contract_version = 1,
+    }));
+    for (std::size_t index = 0;
+         index < goreecloud::browser::kPrivatePermissionMaxDecisionsPerContext;
+         ++index) {
+      auto record = decision("profile-bounded", "private-decisions",
+                             PrivacyContext::private_browsing);
+      record.origin = "https://site" + std::to_string(index) + ".test";
+      require(bounded_decisions.upsert(std::move(record)));
+    }
+    auto overflow = decision("profile-bounded", "private-decisions",
+                             PrivacyContext::private_browsing);
+    overflow.origin = "https://overflow.test";
+    require(!bounded_decisions.upsert(std::move(overflow)));
+  }
+
+  {
+    PrivatePermissionDecisionStore bounded_lifetimes;
+    for (std::size_t index = 0;
+         index < goreecloud::browser::kPrivatePermissionMaxContextLifetimes;
+         ++index) {
+      const auto context_id = "private-lifetime-" + std::to_string(index);
+      require(bounded_lifetimes.open_context(PrivatePermissionContext{
+          .profile_id = "profile-bounded",
+          .privacy_context_id = context_id,
+          .privacy_context = PrivacyContext::private_browsing,
+          .contract_version = 1,
+      }));
+      const auto close = bounded_lifetimes.close_context(
+          "profile-bounded", context_id, PrivacyContext::private_browsing);
+      require(close.accepted);
+      require(close.first_close);
+    }
+    require(!bounded_lifetimes.open_context(PrivatePermissionContext{
+        .profile_id = "profile-bounded",
+        .privacy_context_id = "private-lifetime-overflow",
+        .privacy_context = PrivacyContext::private_browsing,
+        .contract_version = 1,
+    }));
+  }
+
   return 0;
 }
