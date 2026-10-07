@@ -11,6 +11,7 @@ permissions:
 jobs:
   linux-core:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -28,6 +29,7 @@ jobs:
 
   linux-core-debug:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,6 +47,7 @@ jobs:
 
   linux-download-curl:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -54,7 +57,7 @@ jobs:
       - name: Verify exact source revision
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
       - name: Install libcurl development package
-        run: sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev
+        run: bash scripts/ci/install-apt-packages.sh libcurl4-openssl-dev
       - name: Configure curl download transport
         run: cmake -S . -B build-curl -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON -DGOREECLOUD_ENABLE_CHROMIUM=OFF -DGOREECLOUD_ENABLE_CEF=OFF -DGOREECLOUD_ENABLE_LINUX_GTK_HOST=OFF -DGOREECLOUD_ENABLE_CURL_DOWNLOAD_TRANSPORT=ON
       - name: Build curl download transport
@@ -64,6 +67,7 @@ jobs:
 
   linux-gtk-beta-shell:
     runs-on: ubuntu-22.04
+    timeout-minutes: 25
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -73,7 +77,10 @@ jobs:
       - name: Verify exact source revision
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
       - name: Install GTK/X11, packaging validators, and libcurl development packages
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libx11-dev pkg-config libcurl4-openssl-dev desktop-file-utils appstream
+        run: >-
+          bash scripts/ci/install-apt-packages.sh
+          libgtk-3-dev libx11-dev pkg-config libcurl4-openssl-dev
+          desktop-file-utils appstream
       - name: Validate Linux desktop and AppStream metadata
         run: |
           desktop-file-validate packaging/linux/io.goreecloud.Browser.desktop
@@ -88,6 +95,7 @@ jobs:
 
   linux-cef-bootstrap-contract:
     runs-on: ubuntu-22.04
+    timeout-minutes: 10
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -101,6 +109,14 @@ jobs:
           python3 -m py_compile scripts/bootstrap_cef_linux.py scripts/record_cef_binary_evidence.py
           bash -n scripts/build_linux_render_beta.sh
           bash -n scripts/run_linux_render_beta.sh
+          bash -n scripts/ci/install-apt-packages.sh
+          if bash scripts/ci/install-apt-packages.sh >/dev/null 2>&1; then
+            echo "apt bootstrap helper accepted an empty package list" >&2
+            exit 1
+          else
+            status=$?
+          fi
+          test "$status" -eq 64
       - name: Verify Linux GTK backend fallback contract
         run: |
           python3 - <<'PY'
@@ -270,8 +286,7 @@ jobs:
         run: test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
       - name: Install Linux CEF/GTK build dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          bash scripts/ci/install-apt-packages.sh \
             python3 cmake ninja-build build-essential pkg-config \
             libgtk-3-dev libx11-dev libcurl4-openssl-dev \
             libnss3-dev libxss-dev libasound2-dev libcups2-dev \
