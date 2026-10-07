@@ -110,6 +110,13 @@ jobs:
           bash -n scripts/build_linux_render_beta.sh
           bash -n scripts/run_linux_render_beta.sh
           bash -n scripts/ci/install-apt-packages.sh
+          if bash scripts/ci/install-apt-packages.sh >/dev/null 2>&1; then
+            echo "apt bootstrap helper accepted an empty package list" >&2
+            exit 1
+          else
+            status=$?
+          fi
+          test "$status" -eq 64
       - name: Verify Linux GTK backend fallback contract
         run: |
           python3 - <<'PY'
