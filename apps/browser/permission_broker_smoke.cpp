@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <cassert>
+#include <cstdlib>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,6 +21,10 @@ using goreecloud::browser::RevalidationContext;
 using goreecloud::browser::UserPermissionDecision;
 
 namespace {
+
+void require(bool condition) {
+  if (!condition) std::abort();
+}
 
 PermissionRequest request(
     std::vector<PermissionResource> resources = {PermissionResource::camera},
@@ -85,39 +89,39 @@ EvaluationContext context_for(
 }  // namespace
 
 int main() {
-  assert(goreecloud::browser::parse_permission_resource("camera").has_value());
-  assert(!goreecloud::browser::parse_permission_resource("unknown").has_value());
-  assert(goreecloud::browser::canonical_web_origin("https://example.test"));
-  assert(goreecloud::browser::canonical_web_origin("https://example.test/"));
-  assert(!goreecloud::browser::canonical_web_origin("https://user@example.test"));
-  assert(!goreecloud::browser::canonical_web_origin("https://example.test/path"));
-  assert(!goreecloud::browser::canonical_web_origin("file:///tmp/example"));
+  require(goreecloud::browser::parse_permission_resource("camera").has_value());
+  require(!goreecloud::browser::parse_permission_resource("unknown").has_value());
+  require(goreecloud::browser::canonical_web_origin("https://example.test"));
+  require(goreecloud::browser::canonical_web_origin("https://example.test/"));
+  require(!goreecloud::browser::canonical_web_origin("https://user@example.test"));
+  require(!goreecloud::browser::canonical_web_origin("https://example.test/path"));
+  require(!goreecloud::browser::canonical_web_origin("file:///tmp/example"));
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
-    assert(!broker.receive(value));
+    require(broker.receive(value));
+    require(!broker.receive(value));
     const auto evaluation =
         broker.evaluate("req-1", context_for(value, {snapshot(PermissionResource::camera)}),
                         2000);
-    assert(evaluation.size() == 1);
-    assert(evaluation.front().decision == PermissionDecision::pending_user_decision);
-    assert(!evaluation.front().engine_grant_allowed);
-    assert(broker.state("req-1") == PermissionLifecycleState::user_decision);
+    require(evaluation.size() == 1);
+    require(evaluation.front().decision == PermissionDecision::pending_user_decision);
+    require(!evaluation.front().engine_grant_allowed);
+    require(broker.state("req-1") == PermissionLifecycleState::user_decision);
   }
 
   {
     PermissionBroker broker;
     auto value = request({PermissionResource::camera,
                           PermissionResource::microphone});
-    assert(broker.receive(value));
+    require(broker.receive(value));
     auto camera = snapshot(PermissionResource::camera);
     auto microphone = snapshot(PermissionResource::microphone);
     microphone.privacy_shield.decision = AuthorityDecision::deny;
     const auto evaluation =
         broker.evaluate("req-1", context_for(value, {camera, microphone}), 2000);
-    assert(evaluation.size() == 2);
+    require(evaluation.size() == 2);
     const auto camera_result = std::find_if(
         evaluation.begin(), evaluation.end(), [](const auto& result) {
           return result.resource == PermissionResource::camera;
@@ -126,18 +130,18 @@ int main() {
         evaluation.begin(), evaluation.end(), [](const auto& result) {
           return result.resource == PermissionResource::microphone;
         });
-    assert(camera_result != evaluation.end());
-    assert(microphone_result != evaluation.end());
-    assert(camera_result->decision == PermissionDecision::pending_user_decision);
-    assert(microphone_result->decision == PermissionDecision::blocked_policy);
-    assert(!microphone_result->engine_grant_allowed);
+    require(camera_result != evaluation.end());
+    require(microphone_result != evaluation.end());
+    require(camera_result->decision == PermissionDecision::pending_user_decision);
+    require(microphone_result->decision == PermissionDecision::blocked_policy);
+    require(!microphone_result->engine_grant_allowed);
   }
 
   {
     PermissionBroker broker;
     auto value = request({PermissionResource::camera,
                           PermissionResource::microphone});
-    assert(broker.receive(value));
+    require(broker.receive(value));
     const auto ctx = context_for(
         value,
         {snapshot(PermissionResource::camera),
@@ -146,79 +150,79 @@ int main() {
     const auto camera = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_once, ctx, 2000);
-    assert(camera.decision == PermissionDecision::allow_once);
-    assert(camera.engine_grant_allowed);
-    assert(broker.state("req-1") == PermissionLifecycleState::user_decision);
+    require(camera.decision == PermissionDecision::allow_once);
+    require(camera.engine_grant_allowed);
+    require(broker.state("req-1") == PermissionLifecycleState::user_decision);
 
     const auto microphone = broker.apply_user_decision(
         "req-1", PermissionResource::microphone,
         UserPermissionDecision::deny_once, ctx, 2000);
-    assert(microphone.decision == PermissionDecision::deny_once);
-    assert(!microphone.engine_grant_allowed);
-    assert(broker.state("req-1") == PermissionLifecycleState::completed);
+    require(microphone.decision == PermissionDecision::deny_once);
+    require(!microphone.engine_grant_allowed);
+    require(broker.state("req-1") == PermissionLifecycleState::completed);
   }
 
   {
     PermissionBroker broker;
     auto value = request({PermissionResource::camera,
                           PermissionResource::microphone});
-    assert(broker.receive(value));
+    require(broker.receive(value));
     auto camera = snapshot(PermissionResource::camera);
     auto microphone = snapshot(PermissionResource::microphone);
     microphone.privacy_shield.decision = AuthorityDecision::deny;
     const auto ctx = context_for(value, {camera, microphone});
 
     const auto evaluation = broker.evaluate("req-1", ctx, 2000);
-    assert(evaluation.size() == 2);
-    assert(broker.state("req-1") == PermissionLifecycleState::user_decision);
+    require(evaluation.size() == 2);
+    require(broker.state("req-1") == PermissionLifecycleState::user_decision);
 
     const auto camera_result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_once, ctx, 2000);
-    assert(camera_result.decision == PermissionDecision::allow_once);
-    assert(camera_result.engine_grant_allowed);
-    assert(broker.state("req-1") == PermissionLifecycleState::completed);
+    require(camera_result.decision == PermissionDecision::allow_once);
+    require(camera_result.engine_grant_allowed);
+    require(broker.state("req-1") == PermissionLifecycleState::completed);
   }
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
+    require(broker.receive(value));
     auto security_block = snapshot(PermissionResource::camera);
     security_block.wardveil_security.decision = AuthorityDecision::deny;
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_once,
         context_for(value, {security_block}), 2000);
-    assert(result.decision == PermissionDecision::blocked_security);
-    assert(!result.engine_grant_allowed);
+    require(result.decision == PermissionDecision::blocked_security);
+    require(!result.engine_grant_allowed);
   }
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
+    require(broker.receive(value));
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_once,
         context_for(value, {snapshot(PermissionResource::camera)}), 2000);
-    assert(result.decision == PermissionDecision::allow_once);
-    assert(result.engine_grant_allowed);
-    assert(!result.persistent_store_allowed);
-    assert(broker.state("req-1") == PermissionLifecycleState::completed);
+    require(result.decision == PermissionDecision::allow_once);
+    require(result.engine_grant_allowed);
+    require(!result.persistent_store_allowed);
+    require(broker.state("req-1") == PermissionLifecycleState::completed);
   }
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
+    require(broker.receive(value));
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_persistent,
         context_for(value, {snapshot(PermissionResource::camera)}), 2000);
-    assert(result.decision == PermissionDecision::allow_persistent);
-    assert(result.engine_grant_allowed);
-    assert(result.persistent_store_allowed);
+    require(result.decision == PermissionDecision::allow_persistent);
+    require(result.engine_grant_allowed);
+    require(result.persistent_store_allowed);
   }
 
   {
@@ -226,45 +230,45 @@ int main() {
     auto value = request({PermissionResource::geolocation},
                          PrivacyContext::private_browsing);
     value.privacy_context_id = "ctx-private";
-    assert(broker.receive(value));
+    require(broker.receive(value));
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::geolocation,
         UserPermissionDecision::allow_persistent,
         context_for(value, {snapshot(PermissionResource::geolocation)}), 2000);
-    assert(result.decision == PermissionDecision::error_fail_closed);
-    assert(!result.engine_grant_allowed);
-    assert(!result.persistent_store_allowed);
+    require(result.decision == PermissionDecision::error_fail_closed);
+    require(!result.engine_grant_allowed);
+    require(!result.persistent_store_allowed);
   }
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
+    require(broker.receive(value));
     auto changed = context_for(value, {snapshot(PermissionResource::camera)});
     changed.current.top_level_origin = "https://navigated.example";
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_once, changed, 2000);
-    assert(result.decision == PermissionDecision::cancelled);
-    assert(!result.engine_grant_allowed);
+    require(result.decision == PermissionDecision::cancelled);
+    require(!result.engine_grant_allowed);
   }
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
+    require(broker.receive(value));
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_once,
         context_for(value, {snapshot(PermissionResource::camera)}), 5000);
-    assert(result.decision == PermissionDecision::expired);
-    assert(!result.engine_grant_allowed);
+    require(result.decision == PermissionDecision::expired);
+    require(!result.engine_grant_allowed);
   }
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
+    require(broker.receive(value));
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::allow_once,
@@ -272,20 +276,20 @@ int main() {
                     {snapshot(PermissionResource::camera,
                               HostOsPermissionState::denied_requestable)}),
         2000);
-    assert(result.decision == PermissionDecision::blocked_os);
-    assert(!result.engine_grant_allowed);
+    require(result.decision == PermissionDecision::blocked_os);
+    require(!result.engine_grant_allowed);
   }
 
   {
     PermissionBroker broker;
     auto value = request();
-    assert(broker.receive(value));
+    require(broker.receive(value));
     const auto result = broker.apply_user_decision(
         "req-1", PermissionResource::camera,
         UserPermissionDecision::deny_session,
         context_for(value, {snapshot(PermissionResource::camera)}), 2000);
-    assert(result.decision == PermissionDecision::deny_session);
-    assert(!result.engine_grant_allowed);
+    require(result.decision == PermissionDecision::deny_session);
+    require(!result.engine_grant_allowed);
   }
 
   {
@@ -293,21 +297,24 @@ int main() {
     auto first = request();
     auto second = request({PermissionResource::microphone});
     second.request_id = "req-2";
-    assert(broker.receive(first));
-    assert(broker.receive(second));
-    assert(broker.close_context("ctx-normal") == 2);
-    assert(broker.state("req-1") == PermissionLifecycleState::completed);
-    assert(broker.state("req-2") == PermissionLifecycleState::completed);
+    require(broker.receive(first));
+    require(broker.receive(second));
+    require(broker.close_context("ctx-normal") == 2);
+    require(broker.state("req-1") == PermissionLifecycleState::completed);
+    require(broker.state("req-2") == PermissionLifecycleState::completed);
   }
 
   {
     PermissionBroker broker;
     auto invalid = request();
     invalid.resources.push_back(PermissionResource::camera);
-    assert(!broker.receive(invalid));
+    require(!broker.receive(invalid));
     invalid = request();
     invalid.requesting_origin = "https://example.test/path";
-    assert(!broker.receive(invalid));
+    require(!broker.receive(invalid));
+    invalid = request();
+    invalid.resources = {static_cast<PermissionResource>(255)};
+    require(!broker.receive(invalid));
   }
 
   return 0;

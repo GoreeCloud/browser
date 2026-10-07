@@ -225,7 +225,8 @@ inline bool valid_permission_request(const PermissionRequest& request) {
 
   std::unordered_set<int> seen;
   for (const auto resource : request.resources) {
-    if (!seen.insert(static_cast<int>(resource)).second) {
+    if (permission_resource_name(resource).empty() ||
+        !seen.insert(static_cast<int>(resource)).second) {
       return false;
     }
   }
@@ -430,6 +431,30 @@ class PermissionBroker {
       (void)request_id;
       if (stored.state != PermissionLifecycleState::completed &&
           stored.request.privacy_context_id == context_id) {
+        resolve_all_unresolved(stored, PermissionDecision::cancelled);
+        stored.state = PermissionLifecycleState::completed;
+        ++cancelled;
+      }
+    }
+    return cancelled;
+  }
+
+  [[nodiscard]] std::size_t close_context(
+      std::string_view profile_id,
+      std::string_view context_id,
+      PrivacyContext privacy_context) {
+    if (!permission_text_safe(profile_id, 128) ||
+        !permission_text_safe(context_id, 128)) {
+      return 0;
+    }
+
+    std::size_t cancelled = 0;
+    for (auto& [request_id, stored] : requests_) {
+      (void)request_id;
+      if (stored.state != PermissionLifecycleState::completed &&
+          stored.request.profile_id == profile_id &&
+          stored.request.privacy_context_id == context_id &&
+          stored.request.privacy_context == privacy_context) {
         resolve_all_unresolved(stored, PermissionDecision::cancelled);
         stored.state = PermissionLifecycleState::completed;
         ++cancelled;
