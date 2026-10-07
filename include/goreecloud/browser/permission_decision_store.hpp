@@ -720,9 +720,22 @@ inline std::vector<PermissionDecisionStorageIssue> save_permission_decisions(
   if (primary_exists) {
     std::vector<std::uint8_t> existing;
     if (read_permission_decision_snapshot_file(path, existing)) {
-      primary_valid = restore_permission_decision_snapshot(
-                          existing, profile_id, now_millis)
-                          .accepted();
+      auto primary = restore_permission_decision_snapshot(
+          existing, profile_id, now_millis);
+      primary_valid = primary.accepted();
+      if (!primary_valid &&
+          (std::find(primary.issues.begin(), primary.issues.end(),
+                     PermissionDecisionStorageIssue::clock_regression) !=
+               primary.issues.end() ||
+           std::find(primary.issues.begin(), primary.issues.end(),
+                     PermissionDecisionStorageIssue::profile_mismatch) !=
+               primary.issues.end() ||
+           std::find(primary.issues.begin(), primary.issues.end(),
+                     PermissionDecisionStorageIssue::unsupported_version) !=
+               primary.issues.end())) {
+        std::filesystem::remove(temp_path, error);
+        return primary.issues;
+      }
     }
   }
   error.clear();
