@@ -84,6 +84,18 @@ std::vector<std::uint8_t> duplicate_first_snapshot_record(
   return duplicated;
 }
 
+std::vector<std::uint8_t> snapshot_with_version(
+    const std::vector<std::uint8_t>& snapshot,
+    std::uint8_t version) {
+  require(snapshot.size() > 8U);
+  std::vector<std::uint8_t> rewritten(snapshot.begin(), snapshot.end() - 4);
+  rewritten[4] = version;
+  const auto checksum =
+      goreecloud::browser::permission_decision_crc32(rewritten);
+  append_u32_little_endian(rewritten, checksum);
+  return rewritten;
+}
+
 }  // namespace
 
 int main() {
@@ -101,6 +113,10 @@ int main() {
   auto transient = decision(PermissionResource::microphone,
                             PermissionDecision::allow_session);
   require(!store.upsert(transient, PrivacyContext::normal));
+
+  auto invalid_resource = decision();
+  invalid_resource.resource = static_cast<PermissionResource>(255);
+  require(!store.upsert(invalid_resource, PrivacyContext::normal));
 
   auto expiring = decision(PermissionResource::geolocation,
                            PermissionDecision::deny_persistent, 1200, 2000);
@@ -167,6 +183,15 @@ int main() {
   require(has_issue(duplicate_result,
                    PermissionDecisionStorageIssue::duplicate_record));
 
+  const auto future_snapshot =
+      snapshot_with_version(one_record_snapshot.bytes, 2U);
+  const auto future_restore =
+      goreecloud::browser::restore_permission_decision_snapshot(
+          future_snapshot, "profile-personal", 1500);
+  require(!future_restore.accepted());
+  require(has_issue(future_restore,
+                    PermissionDecisionStorageIssue::unsupported_version));
+
   const auto restored = goreecloud::browser::restore_permission_decision_snapshot(
       snapshot.bytes, "profile-personal", 1500);
   require(restored.accepted());
@@ -207,12 +232,32 @@ int main() {
   const auto temp_path = goreecloud::browser::permission_decision_temp_path(path);
   const auto backup_path =
       goreecloud::browser::permission_decision_backup_path(path);
+  const auto future_path = std::filesystem::temp_directory_path() /
+                           "goreecloud-browser-permission-decisions-future.snapshot";
   std::error_code error;
   std::filesystem::remove(path, error);
   error.clear();
   std::filesystem::remove(temp_path, error);
   error.clear();
   std::filesystem::remove(backup_path, error);
+  error.clear();
+  std::filesystem::remove(future_path, error);
+
+  require(goreecloud::browser::write_permission_decision_snapshot_file(
+      future_path, future_snapshot));
+  std::vector<std::uint8_t> future_authoritative_bytes;
+  require(goreecloud::browser::read_permission_decision_snapshot_file(
+      future_path, future_authoritative_bytes));
+  const auto future_save = goreecloud::browser::save_permission_decisions(
+      future_path, durable, "profile-personal", 1600);
+  require(has_issue(future_save,
+                    PermissionDecisionStorageIssue::unsupported_version));
+  std::vector<std::uint8_t> after_future_save;
+  require(goreecloud::browser::read_permission_decision_snapshot_file(
+      future_path, after_future_save));
+  require(future_authoritative_bytes == after_future_save);
+  error.clear();
+  std::filesystem::remove(future_path, error);
 
   const auto first_run = goreecloud::browser::load_permission_decisions(
       path, "profile-personal", 1500);
@@ -286,6 +331,8 @@ int main() {
   std::filesystem::remove(temp_path, error);
   error.clear();
   std::filesystem::remove(backup_path, error);
+  error.clear();
+  std::filesystem::remove(future_path, error);
 
   return 0;
 }
