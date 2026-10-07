@@ -84,6 +84,8 @@ This record describes capabilities present in the current GoreeCloud Browser Dev
 - Request/context-close cancellation and core smoke coverage.
 - Browser-owned durable Normal-context permission-decision storage keyed by profile, canonical origin, and typed resource for explicit persistent allow/deny decisions only, with optional expiry, deterministic lookup, revocation/reset, idempotence, stale-replacement rejection, and closed record validation.
 - Versioned bounded permission snapshots with profile and snapshot-clock binding, duplicate-record rejection, CRC32 corruption detection, atomic temp/primary/backup replacement, valid-backup recovery, and preservation of existing authority when a save encounters clock regression, profile mismatch, or an unsupported newer snapshot version. CRC32 is corruption evidence only, not an authenticated-at-rest security boundary.
+- Browser-owned Private/Isolated Private ephemeral session-decision storage with explicit context registration, profile/context/origin/resource isolation, optional expiry, revocation/reset, bounded active/decision/lifetime counts, and no serialization path.
+- Close & Forget permission lifecycle destroys the exact private context's in-memory decisions, records a bounded closed-context tombstone so stale callbacks cannot recreate authority, and uses profile + context ID + privacy-type scoped PermissionBroker cancellation so identically named contexts in another profile remain untouched.
 
 ### Native extension Development foundation
 
@@ -101,7 +103,7 @@ The following foundations exist but remain acceptance-gated and therefore also a
 - Android Browser runtime without representative-device/accessibility/performance/production acceptance.
 - Current repository source mapping targets Glaze V1.7 / 1.7.0 with inherited V1.6.0 runtime behavior, but fresh Browser-specific rendered/accessibility/adaptive/device/performance/rollback/Human Visual Excellence acceptance remains incomplete.
 - Normal-session journal/checkpoint persistence, deterministic replay, and Browser-owned runtime emission/checkpoint scheduling foundation without Android/desktop process-death restore execution, released-version migrations, authenticated adversarial-storage protection, Everkeep integration, or representative recovery acceptance.
-- PermissionBroker without Android prompt/OS/live-authority adapters, Private/Isolated Private ephemeral decision runtime and Close & Forget decision cleanup, privacy-safe permission diagnostics, or representative permission acceptance.
+- PermissionBroker without Android prompt/OS/live-authority adapters, production Close & Forget storage-deletion evidence beyond in-memory permission decisions and pending-request cancellation, privacy-safe permission diagnostics, or representative permission acceptance.
 - Native extension package/signature/permission foundations without installation, execution, sandboxing, privileged APIs, trusted developer-key authority, or production acceptance.
 
 ## Maintenance rule
