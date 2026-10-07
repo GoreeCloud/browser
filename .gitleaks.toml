@@ -14,3 +14,17 @@ targetRules = ["generic-api-key"]
 regexTarget = "line"
 paths = ['''^apps/android/app/src/test/java/io/goreecloud/browser/PrivacyShieldSearchAuthorizationTest\.kt$''']
 regexes = ['''capabilityTokenReference\s*=\s*"[^"]*test[^"]*"''']
+
+# Historical documentation-only false positive from commit
+# af987f763eb56edd264a42ea1bf6f7e1c0d500a0. The sentence was rewritten in
+# current source, but full-history scanning intentionally still evaluates it.
+# Keep this exception limited to the retired exact prose in FEATURES.md; the
+# generic-api-key rule remains active for every other line and path.
+[[allowlists]]
+description = "Retired Browser recovery documentation prose misidentified as a generic API key"
+condition = "AND"
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+paths = ['''^FEATURES\.md$''']
+regexes = ['''does not recover raw engine memory, form contents, credentials, Private/Isolated Private state, or session-local Page-control choices\.''']
+
