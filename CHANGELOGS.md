@@ -1,5 +1,22 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-07 — Ephemeral private permission lifecycle foundation
+
+### Added
+
+- Added Browser-owned in-memory permission decisions for Private and Isolated Private contexts with explicit profile/context registration and exact privacy-context typing.
+- Private decision storage accepts only session-scoped allow/deny outcomes; once decisions remain request-local and persistent decisions remain prohibited.
+- Added profile/context/origin/resource isolation, optional expiry, revocation/reset, stale-replacement rejection, active-context limits, per-context decision limits, and a bounded total context-lifetime/tombstone budget.
+- Close & Forget destroys all permission decisions for the exact private context and leaves a closed-context tombstone so late callbacks cannot reopen or recreate authority during the Browser process lifetime.
+- Added a profile + privacy-context ID + privacy-type scoped PermissionBroker close path so context teardown cannot cancel an identically named context owned by another profile.
+- Unknown/casted permission-resource enum values are now rejected during broker request admission.
+- Converted the PermissionBroker smoke from standard `assert` to always-active checks so Release and Debug CI exercise the permission contract.
+- Added Release/Debug Core smoke coverage for private-vs-isolated separation, cross-profile isolation, expiry, revocation/reset, stale writes, malformed resources, Close & Forget idempotence, stale resurrection prevention, scoped pending-request cancellation, and memory/resource bounds.
+
+### Acceptance boundary
+
+This is a Development in-memory private permission lifecycle only. It adds no serialization, Sync, or ordinary recovery path for private decisions. Android permission prompt/OS integration, live GoreeCloud Policy/Privacy Shield/Wardveil adapters, complete private-context storage destruction outside permission state, privacy-safe diagnostics, representative-device acceptance, production approval, Release Candidate, Stable, Seal, and Anchor remain open.
+
 ## 2026-10-07 — Durable Normal-context permission decision foundation
 
 ### Added
