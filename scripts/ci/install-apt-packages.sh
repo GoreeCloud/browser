@@ -16,8 +16,8 @@ run_apt() {
   local attempt status
 
   for attempt in $(seq 1 "$ATTEMPTS"); do
-    echo "GoreeCloud CI apt \${operation}: attempt \${attempt}/\${ATTEMPTS}" >&2
-    if sudo timeout --signal=TERM --kill-after=15s "\${COMMAND_TIMEOUT_SECONDS}s" \
+    echo "GoreeCloud CI apt ${operation}: attempt ${attempt}/${ATTEMPTS}" >&2
+    if sudo timeout --signal=TERM --kill-after=15s "${COMMAND_TIMEOUT_SECONDS}s" \
       env DEBIAN_FRONTEND=noninteractive \
       apt-get \
         -o Dpkg::Use-Pty=0 \
@@ -31,7 +31,7 @@ run_apt() {
       status=$?
     fi
 
-    echo "GoreeCloud CI apt \${operation}: failed with status \${status}" >&2
+    echo "GoreeCloud CI apt ${operation}: failed with status ${status}" >&2
     if [[ "$attempt" -ge "$ATTEMPTS" ]]; then
       return "$status"
     fi
