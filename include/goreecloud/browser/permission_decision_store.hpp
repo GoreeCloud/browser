@@ -55,6 +55,7 @@ inline bool valid_persistent_permission_decision(
       !permission_text_safe(record.profile_id,
                             kPermissionDecisionMaxProfileBytes) ||
       !canonical_web_origin(record.origin) ||
+      permission_resource_name(record.resource).empty() ||
       !persistent_permission_decision_value(record.decision) ||
       record.source != PermissionDecisionSource::user ||
       record.created_at_millis < 0 || record.expires_at_millis < 0 ||
