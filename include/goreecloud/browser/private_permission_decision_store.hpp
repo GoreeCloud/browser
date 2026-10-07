@@ -16,6 +16,7 @@
 namespace goreecloud::browser {
 
 inline constexpr std::size_t kPrivatePermissionMaxContexts = 128;
+inline constexpr std::size_t kPrivatePermissionMaxContextLifetimes = 4096;
 inline constexpr std::size_t kPrivatePermissionMaxDecisions = 4096;
 inline constexpr std::size_t kPrivatePermissionMaxDecisionsPerContext = 256;
 
@@ -139,7 +140,9 @@ class PrivatePermissionDecisionStore {
              existing->second.privacy_context == context.privacy_context &&
              existing->second.contract_version == context.contract_version;
     }
-    if (contexts_.size() >= kPrivatePermissionMaxContexts) {
+    if (contexts_.size() >= kPrivatePermissionMaxContexts ||
+        contexts_.size() + closed_contexts_.size() >=
+            kPrivatePermissionMaxContextLifetimes) {
       return false;
     }
     contexts_.emplace(key, std::move(context));
