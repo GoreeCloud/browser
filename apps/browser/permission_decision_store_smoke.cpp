@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <string_view>
+#include <vector>
 
 #include "goreecloud/browser/permission_decision_store.hpp"
 
@@ -39,6 +40,38 @@ bool has_issue(const goreecloud::browser::PermissionDecisionRestoreResult& resul
                PermissionDecisionStorageIssue issue) {
   return std::find(result.issues.begin(), result.issues.end(), issue) !=
          result.issues.end();
+}
+
+void append_u32_little_endian(std::vector<std::uint8_t>& bytes,
+                              std::uint32_t value) {
+  for (int shift = 0; shift < 32; shift += 8) {
+    bytes.push_back(static_cast<std::uint8_t>((value >> shift) & 0xffU));
+  }
+}
+
+std::vector<std::uint8_t> duplicate_first_snapshot_record(
+    const std::vector<std::uint8_t>& snapshot,
+    std::string_view profile_id) {
+  assert(snapshot.size() > 4);
+  const std::size_t count_offset =
+      4U + 1U + 3U + 8U + 2U + profile_id.size();
+  const std::size_t record_offset = count_offset + 4U;
+  const std::size_t payload_size = snapshot.size() - 4U;
+  assert(record_offset < payload_size);
+
+  std::vector<std::uint8_t> duplicated(snapshot.begin(),
+                                       snapshot.begin() + payload_size);
+  duplicated[count_offset] = 2U;
+  duplicated[count_offset + 1U] = 0U;
+  duplicated[count_offset + 2U] = 0U;
+  duplicated[count_offset + 3U] = 0U;
+  duplicated.insert(duplicated.end(),
+                    snapshot.begin() + record_offset,
+                    snapshot.begin() + payload_size);
+  const auto checksum = goreecloud::browser::permission_decision_crc32(
+      duplicated);
+  append_u32_little_endian(duplicated, checksum);
+  return duplicated;
 }
 
 }  // namespace
@@ -109,6 +142,21 @@ int main() {
   const auto snapshot = goreecloud::browser::encode_permission_decision_snapshot(
       durable, "profile-personal", 1500);
   assert(snapshot.accepted());
+  PermissionDecisionStore one_record;
+  assert(one_record.upsert(decision(), PrivacyContext::normal));
+  const auto one_record_snapshot =
+      goreecloud::browser::encode_permission_decision_snapshot(
+          one_record, "profile-personal", 1500);
+  assert(one_record_snapshot.accepted());
+  const auto duplicated_snapshot = duplicate_first_snapshot_record(
+      one_record_snapshot.bytes, "profile-personal");
+  const auto duplicate_result =
+      goreecloud::browser::restore_permission_decision_snapshot(
+          duplicated_snapshot, "profile-personal", 1500);
+  assert(!duplicate_result.accepted());
+  assert(has_issue(duplicate_result,
+                   PermissionDecisionStorageIssue::duplicate_record));
+
   const auto restored = goreecloud::browser::restore_permission_decision_snapshot(
       snapshot.bytes, "profile-personal", 1500);
   assert(restored.accepted());
