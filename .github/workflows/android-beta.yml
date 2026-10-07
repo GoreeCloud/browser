@@ -7,6 +7,7 @@ on:
       - "assets/branding/**"
       - "docs/ANDROID_BETA.md"
       - ".github/workflows/android-beta.yml"
+      - "scripts/android-process-recovery-smoke.sh"
   push:
     branches:
       - main
@@ -15,6 +16,7 @@ on:
       - "assets/branding/**"
       - "docs/ANDROID_BETA.md"
       - ".github/workflows/android-beta.yml"
+      - "scripts/android-process-recovery-smoke.sh"
   workflow_dispatch:
 
 permissions:
@@ -201,43 +203,4 @@ jobs:
           target: default
           arch: x86_64
           disable-animations: true
-          script: |
-            set -eu
-            gradle -p apps/android --no-daemon connectedDebugAndroidTest --stacktrace
-            # connectedDebugAndroidTest is free to clean or relocate its install inputs.
-            # Re-assemble exact debug artifacts after instrumentation so the subsequent
-            # process-boundary proof never depends on test-task output retention.
-            gradle -p apps/android --no-daemon assembleDebug assembleDebugAndroidTest --stacktrace
-
-            app_apk="$(find apps/android/app/build/outputs/apk/debug -type f -name '*.apk' -print -quit)"
-            test_apk="$(find apps/android/app/build/outputs/apk/androidTest/debug -type f -name '*-androidTest.apk' -print -quit)"
-            test -n "$app_apk"
-            test -s "$app_apk"
-            test -n "$test_apk"
-            test -s "$test_apk"
-            adb install -r "$app_apk" >/dev/null
-            adb install -r "$test_apk" >/dev/null
-
-            instrumentation="$(adb shell pm list instrumentation | sed -n 's/^instrumentation:\([^ ]*\) (target=io.goreecloud.browser.beta)$/\1/p' | head -n 1 | tr -d '\r')"
-            test -n "$instrumentation"
-            adb shell am instrument -w \
-              -e class io.goreecloud.browser.BrowserProcessRecoveryShellSeedTest \
-              -e goreecloud.recovery.seed 1 \
-              "$instrumentation"
-
-            adb shell am force-stop io.goreecloud.browser.beta
-            adb shell am start -W \
-              -n io.goreecloud.browser.beta/io.goreecloud.browser.BrowserActivityV2
-
-            recovered=0
-            for attempt in $(seq 1 20); do
-              adb shell uiautomator dump /sdcard/goreecloud-recovery.xml >/dev/null
-              adb shell cat /sdcard/goreecloud-recovery.xml > "$RUNNER_TEMP/goreecloud-recovery.xml"
-              if grep -F 'text="example.com/goreecloud-shell-recovery"' "$RUNNER_TEMP/goreecloud-recovery.xml" >/dev/null &&
-                 grep -E 'content-desc="Tab 2: [^"]*, selected"' "$RUNNER_TEMP/goreecloud-recovery.xml" >/dev/null; then
-                recovered=1
-                break
-              fi
-              sleep 0.5
-            done
-            test "$recovered" = 1
+          script: bash scripts/android-process-recovery-smoke.sh
