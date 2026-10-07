@@ -103,7 +103,9 @@ The Android Development Browser has a Browser-owned tab strip for regular tabs. 
 
 Background tabs may continue receiving engine callbacks, but those callbacks update only the owning tab and cannot replace the selected tab's Browser chrome. Site information, Copy/Share disclosure, Find in page, Reload/Stop, and other page-specific actions use the selected tab.
 
-Same-process Android Activity recreation preserves the ordered regular-tab graph, active selection, canonical safe website locations, normalized tab titles, transient WebView bundles, and payload-minimized blocked/failure recovery markers. Browser tags this state with a per-process token and rejects it after Browser process restart, so it is not durable process-death/session recovery. Browser does not yet claim Normal-session journal/checkpoint restoration, Private/Isolated Private tab persistence, profiles/Webspaces, tab groups, memory-pressure discard recovery, or representative-device multi-tab acceptance.
+Same-process Android Activity recreation preserves the ordered regular-tab graph, active selection, canonical safe website locations, normalized tab titles, transient WebView bundles, and payload-minimized blocked/failure recovery markers through process-token-bound Android saved state.
+
+If the Android Browser app process terminates abnormally, the Development build can instead consult the Browser-owned C++ Normal-session journal/checkpoint store. Browser revalidates the recovered regular-tab IDs, order, active selection, safe HTTP(S)/Start locations, and normalized titles before constructing new WebViews. The restored tabs therefore use fresh WebView engine objects; raw WebView memory/history bundles, form contents, reusable credentials, blocked-deep-link payloads, remote failure details, JavaScript/Images/Desktop-site session choices, and Private/Isolated Private state are not restored through this path. A clean Browser shutdown suppresses abnormal-session recovery. Representative physical-device/OEM/WebView fault acceptance, released-version migration, profiles/Webspaces, and production recovery remain open.
 
 ### Find in page
 
@@ -210,7 +212,7 @@ The Android beta does not yet claim:
 - private-browsing and Close & Forget acceptance;
 - Android download/file-upload acceptance;
 - Browser-owned website-permission prompts;
-- complete Android multi-tab/session/settings surfaces;
+- complete multi-profile/private/session migration and production-grade recovery surfaces beyond the Development regular-tab recovery path;
 - production GoreeCloud Identity, Vault, Sync, DNS, Network, Mesh, or Everkeep adapters;
 - Play Store or other store publication;
 - signed update, downgrade, rollback, or application-data migration acceptance;
@@ -222,4 +224,4 @@ When reporting an Android beta problem, include the Browser version, Android ver
 
 ## Acceptance language
 
-A successful GoreeCloud Browser Android CI run proves only the checks performed by that workflow for the exact source revision: unit tests, Android lint, APK assembly, signature/package verification, checksum generation, and artifact creation. It does not by itself establish production security, privacy, accessibility, real-device compatibility, recovery, or Stable qualification.
+A successful GoreeCloud Browser Android CI run proves only the checks performed by that workflow for the exact source revision. The current workflow includes unit tests, Android lint, native C++/JNI build and packaging checks, APK signature/package verification, checksum/artifact evidence, managed Android 15 runtime smoke, and a bounded abnormal app-process recovery scenario. That evidence does not establish production security/privacy/accessibility, representative physical-device/OEM/WebView compatibility, released-version migration, Private/Isolated Private recovery, production recovery acceptance, or Stable qualification.

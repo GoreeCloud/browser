@@ -46,6 +46,17 @@ The Android beta uses Browser-owned native chrome with a compact top omnibox, we
 
 Glaze remains presentation-only. It cannot create authorization, consent, security/privacy truth, provider precedence, navigation authority, service availability, or automatic consequential execution.
 
+## Normal-session recovery boundary
+
+The Android Development beta has two distinct restoration paths:
+
+- **Same-process Activity recreation** keeps the existing Android saved-state path for the live regular-tab graph and transient WebView bundles, guarded by the process-instance token.
+- **Abnormal app-process termination** uses the Browser-owned C++ Normal-session journal/checkpoint store through a thin JNI adapter. Android accepts only the validated logical projection, rechecks tab IDs/order/active selection plus bounded safe HTTP(S)/Start locations and normalized titles, then creates fresh WebViews.
+
+The durable path does not restore raw WebView memory/history bundles, form contents, reusable credentials, blocked-deep-link payloads, remote failure details, JavaScript/Images/Desktop-site session choices, or Private/Isolated Private state. Clean shutdown suppresses abnormal-session restoration. Corrupt, unsupported, or unrepresentable durable state fails fresh when Browser can safely reset the store; Browser does not invent recovery from invalid state.
+
+This is Development Normal-context behavior. Released-version schema migration, representative physical-device/OEM/WebView fault acceptance, Private/Isolated Private crash-survival design, profiles/Webspaces, production recovery approval, Stable, Seal, and Anchor remain open.
+
 ## Glaze V1.7 source mapping
 
 Current Browser source mapping:
@@ -82,7 +93,7 @@ GoreeCloud Sync remains a separately governed application/service capability. Th
 
 Workflow: `.github/workflows/android-beta.yml`
 
-The workflow uses Java 17, Android API 35, Android Build Tools 35.0.0, and Gradle 8.9. The build job runs:
+The workflow uses Java 17, Android API 35, Android Build Tools 35.0.0, Gradle 8.9, pinned Android NDK 27.2.12479018, and pinned CMake 3.22.1. The build job runs:
 
 ```text
 gradle --no-daemon clean testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest
@@ -98,8 +109,10 @@ A dependent Android 15 managed-emulator lane then launches the Browser-owned act
 - Third-party cookies remain disabled.
 - The exact Development package identity is installed.
 - Free-text Search remains on the local authorization-required surface and is not transmitted to GoreeCloud Search.
+- The native recovery bridge loads in the managed Android runtime and regular-tab recovery preserves logical order/active selection while creating fresh transient WebViews.
+- A dedicated shell-driven scenario seeds an abnormal Normal-session fixture through the real JNI bridge, terminates/force-stops the target app process, relaunches the Browser activity, and requires the recovered second-tab selection plus safe recovered omnibox location through UIAutomator.
 
-For pull requests, the workflow checks out the exact pull-request head, verifies `git rev-parse HEAD`, validates launcher identity source provenance, validates APK signature/package/version/label/resources, records `SOURCE_REVISION` and `SHA256SUMS.txt`, and names the retained artifact for the exact evaluated revision.
+For pull requests, the workflow checks out the exact pull-request head, verifies `git rev-parse HEAD`, validates launcher identity source provenance, validates APK signature/package/version/label/resources, requires the recovery JNI library in both `arm64-v8a` and `x86_64` APK payloads, records `SOURCE_REVISION` and `SHA256SUMS.txt`, and names the retained artifact for the exact evaluated revision.
 
 Expected APK path:
 
@@ -107,7 +120,7 @@ Expected APK path:
 apps/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-A green run proves only those checks on that exact Development revision. The emulator lane does not establish physical launcher rendering, real-network browsing quality, sustained performance, accessibility, OEM behavior, production signing, or release qualification.
+A green run proves only those checks on that exact Development revision. The managed emulator can establish the bounded process-recovery scenario described above, but it does not establish representative physical-device launcher rendering, real-network browsing quality, sustained performance, accessibility, OEM/WebView recovery variance, released-version migration, production signing/recovery acceptance, or release qualification.
 
 ## Launcher identity verification
 

@@ -12,6 +12,7 @@ import android.widget.TextView
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -38,6 +39,9 @@ class BrowserAndroidRuntimeSmokeTest {
 
     @Before
     fun completeFirstUseForNonOnboardingSmoke() {
+        BrowserNormalSessionProcess.resetForProcessBoundaryTest()
+        File(context.noBackupFilesDir, "normal-session").deleteRecursively()
+
         val preferences = BrowserFirstUsePreferences(context)
         assertTrue(preferences.complete())
         assertTrue(preferences.setHintsEnabled(false))
@@ -285,6 +289,67 @@ class BrowserAndroidRuntimeSmokeTest {
                         .toString(),
                 )
                 assertEquals(1, afterSwitch.filterIsInstance<WebView>().size)
+            }
+        }
+    }
+
+    @Test
+    fun durableNormalTabsRecoverAcrossProcessBoundaryWithoutWebViewBundleAuthority() {
+        val recoveredUrl = "https://example.com/goreecloud-process-recovery"
+        val previousProcessWebView = AtomicReference<WebView>()
+
+        val firstScenario = ActivityScenario.launch(BrowserActivityV2::class.java)
+        firstScenario.onActivity { activity ->
+            var views = collectViews(activity.window.decorView)
+            views.filterIsInstance<ImageButton>()
+                .first { it.contentDescription?.toString() == "New tab" }
+                .performClick()
+
+            views = collectViews(activity.window.decorView)
+            views.filterIsInstance<EditText>()
+                .first { it.contentDescription?.toString() == "Search or address bar" }
+                .setText(recoveredUrl)
+            views.filterIsInstance<ImageButton>()
+                .first { it.contentDescription?.toString() == "Go" }
+                .performClick()
+
+            val afterNavigation = collectViews(activity.window.decorView)
+            previousProcessWebView.set(afterNavigation.filterIsInstance<WebView>().single())
+            val tabs = afterNavigation.filterIsInstance<TextView>()
+                .filter { it.contentDescription?.toString()?.startsWith("Tab ") == true }
+            assertEquals(2, tabs.size)
+            assertTrue(tabs[1].contentDescription.toString().endsWith(", selected"))
+        }
+
+        // Drop the process-local coordinator without writing CLEAN_SHUTDOWN.
+        // Closing the old Activity afterwards cannot convert the durable state
+        // to clean because the process holder no longer owns that coordinator.
+        BrowserNormalSessionProcess.resetForProcessBoundaryTest()
+        firstScenario.close()
+
+        ActivityScenario.launch(BrowserActivityV2::class.java).use { recoveredScenario ->
+            recoveredScenario.onActivity { activity ->
+                val views = collectViews(activity.window.decorView)
+                val tabs = views.filterIsInstance<TextView>()
+                    .filter { it.contentDescription?.toString()?.startsWith("Tab ") == true }
+
+                assertEquals(2, tabs.size)
+                assertTrue(tabs[0].contentDescription.toString().startsWith("Tab 1:"))
+                assertTrue(tabs[1].contentDescription.toString().startsWith("Tab 2:"))
+                assertTrue(tabs[1].contentDescription.toString().endsWith(", selected"))
+                assertEquals(1, views.filterIsInstance<WebView>().size)
+                assertNotSame(
+                    "Process-boundary recovery must recreate transient WebViews",
+                    previousProcessWebView.get(),
+                    views.filterIsInstance<WebView>().single(),
+                )
+                assertEquals(
+                    "example.com/goreecloud-process-recovery",
+                    views.filterIsInstance<EditText>()
+                        .first { it.contentDescription?.toString() == "Search or address bar" }
+                        .text
+                        .toString(),
+                )
             }
         }
     }
