@@ -175,24 +175,152 @@ inline bool permission_text_safe(std::string_view value,
   });
 }
 
+inline bool valid_origin_ipv4(std::string_view host) {
+  std::size_t offset = 0;
+  int components = 0;
+  while (offset < host.size()) {
+    const auto dot = host.find('.', offset);
+    const auto part = host.substr(
+        offset, dot == std::string_view::npos ? dot : dot - offset);
+    if (part.empty() || part.size() > 3 ||
+        (part.size() > 1 && part.front() == '0')) {
+      return false;
+    }
+    int value = 0;
+    for (const unsigned char ch : part) {
+      if (ch < '0' || ch > '9') {
+        return false;
+      }
+      value = value * 10 + (ch - '0');
+    }
+    if (value > 255 || ++components > 4) {
+      return false;
+    }
+    if (dot == std::string_view::npos) {
+      break;
+    }
+    offset = dot + 1;
+  }
+  return components == 4 && !host.ends_with('.');
+}
+
+inline bool valid_origin_ipv6(std::string_view host) {
+  if (host.empty()) {
+    return false;
+  }
+  std::size_t offset = 0;
+  int components = 0;
+  bool compressed = false;
+  if (host.starts_with("::")) {
+    compressed = true;
+    offset = 2;
+  } else if (host.front() == ':') {
+    return false;
+  }
+
+  while (offset < host.size()) {
+    const auto colon = host.find(':', offset);
+    const auto part = host.substr(
+        offset, colon == std::string_view::npos ? colon : colon - offset);
+    if (part.find('.') != std::string_view::npos) {
+      if (colon != std::string_view::npos || !valid_origin_ipv4(part)) {
+        return false;
+      }
+      components += 2;
+    } else {
+      if (part.empty() || part.size() > 4 ||
+          !std::all_of(part.begin(), part.end(), [](unsigned char ch) {
+            return std::isxdigit(ch) != 0;
+          })) {
+        return false;
+      }
+      ++components;
+    }
+    if (components > 8) {
+      return false;
+    }
+    if (colon == std::string_view::npos) {
+      break;
+    }
+    offset = colon + 1;
+    if (offset < host.size() && host[offset] == ':') {
+      if (compressed) {
+        return false;
+      }
+      compressed = true;
+      ++offset;
+    } else if (offset == host.size()) {
+      return false;
+    }
+  }
+  return compressed ? components < 8 : components == 8;
+}
+
+inline bool valid_origin_dns_host(std::string_view host) {
+  if (host.empty() || host.size() > 253) {
+    return false;
+  }
+  // A final DNS root dot is valid, but internal empty labels are not.
+  if (host.ends_with('.')) {
+    host.remove_suffix(1);
+  }
+  if (host.empty()) {
+    return false;
+  }
+  // Browsers canonicalize numeric hosts as IP addresses. Never accept
+  // non-canonical numeric shortcuts as named origins.
+  if (host.find_first_not_of("0123456789.") ==
+      std::string_view::npos) {
+    return valid_origin_ipv4(host);
+  }
+
+  std::size_t offset = 0;
+  while (offset < host.size()) {
+    const auto dot = host.find('.', offset);
+    const auto label = host.substr(
+        offset, dot == std::string_view::npos ? dot : dot - offset);
+    if (label.empty() || label.size() > 63 ||
+        !std::isalnum(static_cast<unsigned char>(label.front())) ||
+        !std::isalnum(static_cast<unsigned char>(label.back())) ||
+        !std::all_of(label.begin(), label.end(), [](unsigned char ch) {
+          return (ch >= 'a' && ch <= 'z') ||
+                 (ch >= 'A' && ch <= 'Z') ||
+                 (ch >= '0' && ch <= '9') || ch == '-';
+        })) {
+      return false;
+    }
+    if (dot == std::string_view::npos) {
+      break;
+    }
+    offset = dot + 1;
+  }
+  return true;
+}
+
+inline bool valid_origin_port(std::string_view port) {
+  if (port.empty() || port.size() > 5) {
+    return false;
+  }
+  unsigned int value = 0;
+  for (const unsigned char ch : port) {
+    if (ch < '0' || ch > '9') {
+      return false;
+    }
+    value = value * 10 + (ch - '0');
+  }
+  return value > 0 && value <= 65535;
+}
+
 inline bool canonical_web_origin(std::string_view value) {
   if (!permission_text_safe(value, 2048) ||
-      value.find(' ') != std::string_view::npos ||
-      value.find_first_of("?#") != std::string_view::npos ||
-      value.find('@') != std::string_view::npos) {
+      value.find_first_of(" ?#@\\") != std::string_view::npos) {
     return false;
   }
 
-  std::size_t scheme_length = 0;
-  if (value.starts_with("https://")) {
-    scheme_length = 8;
-  } else if (value.starts_with("http://")) {
-    scheme_length = 7;
-  } else {
-    return false;
-  }
-
-  if (value.size() <= scheme_length) {
+  const std::size_t scheme_length =
+      value.starts_with("https://") ? 8 :
+      value.starts_with("http://") ? 7 : 0;
+  if (scheme_length == 0 || value.size() <= scheme_length) {
     return false;
   }
 
@@ -200,13 +328,32 @@ inline bool canonical_web_origin(std::string_view value) {
   if (path != std::string_view::npos && path != value.size() - 1) {
     return false;
   }
+  auto authority = value.substr(
+      scheme_length, path == std::string_view::npos
+                         ? std::string_view::npos : path - scheme_length);
+  if (authority.empty()) {
+    return false;
+  }
 
-  const auto authority =
-      value.substr(scheme_length, path == std::string_view::npos
-                                     ? std::string_view::npos
-                                     : path - scheme_length);
-  return !authority.empty() && authority.front() != ':' &&
-         authority.back() != ':';
+  if (authority.front() == '[') {
+    const auto closing = authority.find(']');
+    if (closing == std::string_view::npos ||
+        !valid_origin_ipv6(authority.substr(1, closing - 1))) {
+      return false;
+    }
+    authority.remove_prefix(closing + 1);
+    return authority.empty() ||
+           (authority.front() == ':' &&
+            valid_origin_port(authority.substr(1)));
+  }
+
+  const auto colon = authority.find(':');
+  const auto host = authority.substr(0, colon);
+  if (!valid_origin_dns_host(host)) {
+    return false;
+  }
+  return colon == std::string_view::npos ||
+         valid_origin_port(authority.substr(colon + 1));
 }
 
 inline bool valid_permission_request(const PermissionRequest& request) {
