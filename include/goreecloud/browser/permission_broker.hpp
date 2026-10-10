@@ -350,18 +350,27 @@ inline bool canonical_web_origin(std::string_view value) {
       return false;
     }
     authority.remove_prefix(closing + 1);
-    return authority.empty() ||
-           (authority.front() == ':' &&
-            valid_origin_port(authority.substr(1)));
+    if (authority.empty()) return true;
+    if (authority.front() != ':') return false;
+    const auto port = authority.substr(1);
+    return valid_origin_port(port) &&
+           !(scheme_length == 7 && port == "80") &&
+           !(scheme_length == 8 && port == "443");
   }
 
   const auto colon = authority.find(':');
   const auto host = authority.substr(0, colon);
-  if (!valid_origin_dns_host(host)) {
+  if (!valid_origin_dns_host(host) ||
+      std::any_of(host.begin(), host.end(), [](unsigned char ch) {
+        return ch >= 'A' && ch <= 'Z';
+      })) {
     return false;
   }
-  return colon == std::string_view::npos ||
-         valid_origin_port(authority.substr(colon + 1));
+  if (colon == std::string_view::npos) return true;
+  const auto port = authority.substr(colon + 1);
+  return valid_origin_port(port) &&
+         !(scheme_length == 7 && port == "80") &&
+         !(scheme_length == 8 && port == "443");
 }
 
 inline bool valid_permission_request(const PermissionRequest& request) {
