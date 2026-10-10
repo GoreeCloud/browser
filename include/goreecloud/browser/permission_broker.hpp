@@ -334,13 +334,11 @@ inline bool canonical_web_origin(std::string_view value) {
     return false;
   }
 
-  const auto path = value.find('/', scheme_length);
-  if (path != std::string_view::npos && path != value.size() - 1) {
+  // A serialized origin has no pathname, including a trailing slash.
+  if (value.find('/', scheme_length) != std::string_view::npos) {
     return false;
   }
-  auto authority = value.substr(
-      scheme_length, path == std::string_view::npos
-                         ? std::string_view::npos : path - scheme_length);
+  auto authority = value.substr(scheme_length);
   if (authority.empty()) {
     return false;
   }
