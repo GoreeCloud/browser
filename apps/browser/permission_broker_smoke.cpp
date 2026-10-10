@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <cstdio>
 #include <string>
 #include <utility>
 #include <vector>
@@ -99,7 +100,10 @@ int main() {
            "https://xn--bcher-kva.example", "https://[::1]",
            "https://[2001:db8::1]:443",
            "https://[::ffff:192.0.2.1]"}) {
-    assert(goreecloud::browser::canonical_web_origin(valid_origin));
+    if (!goreecloud::browser::canonical_web_origin(valid_origin)) {
+      std::fprintf(stderr, "valid origin rejected: %s\n", valid_origin);
+      return 1;
+    }
   }
   for (const char* invalid_origin : {
            "https://", "https://:443", "https://example.test:",
@@ -115,14 +119,21 @@ int main() {
            "https://[1:2:3:4:5:6:7::8]", "https://[:::1]",
            "https://[fe80::1%eth0]", "https://[::1]:65536",
            "https://[::1]evil.test", "https://example.test?x=1"}) {
-    assert(!goreecloud::browser::canonical_web_origin(invalid_origin));
+    if (goreecloud::browser::canonical_web_origin(invalid_origin)) {
+      std::fprintf(stderr, "invalid origin admitted: %s\n", invalid_origin);
+      return 1;
+    }
   }
   {
     auto invalid = request();
     invalid.top_level_origin = "https://example.test:abc";
-    assert(!goreecloud::browser::valid_permission_request(invalid));
+    if (goreecloud::browser::valid_permission_request(invalid)) {
+      return 1;
+    }
     PermissionBroker broker;
-    assert(!broker.receive(invalid));
+    if (broker.receive(invalid)) {
+      return 1;
+    }
   }
 
   {
