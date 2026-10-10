@@ -317,7 +317,8 @@ inline bool valid_origin_port(std::string_view port) {
     }
     value = value * 10 + (ch - '0');
   }
-  return value > 0 && value <= 65535;
+  return value > 0 && value <= 65535 &&
+         (port.size() == 1 || port.front() != '0');
 }
 
 inline bool canonical_web_origin(std::string_view value) {
