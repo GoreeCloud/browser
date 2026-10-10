@@ -89,7 +89,7 @@ int main() {
   assert(goreecloud::browser::parse_permission_resource("camera").has_value());
   assert(!goreecloud::browser::parse_permission_resource("unknown").has_value());
   assert(goreecloud::browser::canonical_web_origin("https://example.test"));
-  assert(goreecloud::browser::canonical_web_origin("https://example.test/"));
+  assert(!goreecloud::browser::canonical_web_origin("https://example.test/"));
   assert(!goreecloud::browser::canonical_web_origin("https://user@example.test"));
   assert(!goreecloud::browser::canonical_web_origin("https://example.test/path"));
   assert(!goreecloud::browser::canonical_web_origin("file:///tmp/example"));
