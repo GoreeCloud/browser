@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdint>
 #include <optional>
@@ -175,38 +176,307 @@ inline bool permission_text_safe(std::string_view value,
   });
 }
 
+inline bool valid_origin_ipv4(std::string_view host) {
+  std::size_t offset = 0;
+  int components = 0;
+  while (offset < host.size()) {
+    const auto dot = host.find('.', offset);
+    const auto part = host.substr(
+        offset, dot == std::string_view::npos ? dot : dot - offset);
+    if (part.empty() || part.size() > 3 ||
+        (part.size() > 1 && part.front() == '0')) {
+      return false;
+    }
+    int value = 0;
+    for (const unsigned char ch : part) {
+      if (ch < '0' || ch > '9') {
+        return false;
+      }
+      value = value * 10 + (ch - '0');
+    }
+    if (value > 255 || ++components > 4) {
+      return false;
+    }
+    if (dot == std::string_view::npos) {
+      break;
+    }
+    offset = dot + 1;
+  }
+  return components == 4 && !host.ends_with('.');
+}
+
+inline bool valid_origin_ipv6(std::string_view host) {
+  if (host.empty()) {
+    return false;
+  }
+  std::size_t offset = 0;
+  int components = 0;
+  bool compressed = false;
+  if (host.starts_with("::")) {
+    compressed = true;
+    offset = 2;
+  } else if (host.front() == ':') {
+    return false;
+  }
+
+  while (offset < host.size()) {
+    const auto colon = host.find(':', offset);
+    const auto part = host.substr(
+        offset, colon == std::string_view::npos ? colon : colon - offset);
+    if (part.find('.') != std::string_view::npos) {
+      if (colon != std::string_view::npos || !valid_origin_ipv4(part)) {
+        return false;
+      }
+      components += 2;
+    } else {
+      if (part.empty() || part.size() > 4 ||
+          !std::all_of(part.begin(), part.end(), [](unsigned char ch) {
+            return std::isxdigit(ch) != 0;
+          })) {
+        return false;
+      }
+      ++components;
+    }
+    if (components > 8) {
+      return false;
+    }
+    if (colon == std::string_view::npos) {
+      break;
+    }
+    offset = colon + 1;
+    if (offset < host.size() && host[offset] == ':') {
+      if (compressed) {
+        return false;
+      }
+      compressed = true;
+      ++offset;
+    } else if (offset == host.size()) {
+      return false;
+    }
+  }
+  return compressed ? components < 8 : components == 8;
+}
+
+inline std::optional<std::string> serialized_origin_ipv6(std::string_view host) {
+  const auto compression = host.find("::");
+  const bool compressed = compression != std::string_view::npos;
+  if (host.empty() ||
+      (compressed &&
+       host.find("::", compression + 2) != std::string_view::npos)) {
+    return std::nullopt;
+  }
+  std::vector<std::uint16_t> left, right;
+  const auto parse = [](std::string_view input, bool allow_ipv4,
+                        std::vector<std::uint16_t>& groups) -> bool {
+    if (input.empty()) return true;
+    std::size_t offset = 0;
+    while (offset < input.size()) {
+      const auto colon = input.find(':', offset);
+      const auto token = input.substr(
+          offset, colon == std::string_view::npos ? colon : colon - offset);
+      if (token.empty()) return false;
+      if (token.find('.') != std::string_view::npos) {
+        if (!allow_ipv4 || colon != std::string_view::npos ||
+            !valid_origin_ipv4(token)) return false;
+        std::uint16_t octets[4]{};
+        std::size_t ip_offset = 0;
+        for (auto& octet : octets) {
+          const auto dot = token.find('.', ip_offset);
+          const auto part = token.substr(
+              ip_offset, dot == std::string_view::npos
+                             ? dot : dot - ip_offset);
+          for (const char digit : part) {
+            octet = static_cast<std::uint16_t>(octet * 10 + digit - '0');
+          }
+          ip_offset = dot == std::string_view::npos
+                          ? token.size() : dot + 1;
+        }
+        groups.push_back(static_cast<std::uint16_t>(
+            (octets[0] << 8) | octets[1]));
+        groups.push_back(static_cast<std::uint16_t>(
+            (octets[2] << 8) | octets[3]));
+      } else {
+        if (token.size() > 4) return false;
+        std::uint16_t group = 0;
+        for (const unsigned char ch : token) {
+          if (!std::isxdigit(ch)) return false;
+          const unsigned int digit =
+              ch >= '0' && ch <= '9' ? ch - '0' :
+              ch >= 'a' && ch <= 'f' ? ch - 'a' + 10 : ch - 'A' + 10;
+          group = static_cast<std::uint16_t>(group * 16 + digit);
+        }
+        groups.push_back(group);
+      }
+      if (groups.size() > 8) return false;
+      if (colon == std::string_view::npos) break;
+      offset = colon + 1;
+      if (offset == input.size()) return false;
+    }
+    return true;
+  };
+  const auto left_part =
+      compressed ? host.substr(0, compression) : host;
+  const auto right_part =
+      compressed ? host.substr(compression + 2) : std::string_view{};
+  if (!parse(left_part, !compressed, left) ||
+      !parse(right_part, true, right)) return std::nullopt;
+  const auto count = left.size() + right.size();
+  if ((compressed && count >= 8) || (!compressed && count != 8)) {
+    return std::nullopt;
+  }
+  std::array<std::uint16_t, 8> groups{};
+  std::copy(left.begin(), left.end(), groups.begin());
+  std::copy(right.begin(), right.end(), groups.end() - right.size());
+  std::size_t best_start = 8, best_length = 1;
+  for (std::size_t i = 0; i < groups.size();) {
+    if (groups[i] != 0) { ++i; continue; }
+    auto end = i;
+    while (end < groups.size() && groups[end] == 0) ++end;
+    if (end - i > best_length) {
+      best_start = i;
+      best_length = end - i;
+    }
+    i = end;
+  }
+  std::string result;
+  constexpr char digits[] = "0123456789abcdef";
+  for (std::size_t i = 0; i < groups.size();) {
+    if (i == best_start) {
+      result += "::";
+      i += best_length;
+      continue;
+    }
+    if (!result.empty() && result.back() != ':') result += ':';
+    bool started = false;
+    for (int shift = 12; shift >= 0; shift -= 4) {
+      const auto digit = static_cast<unsigned>((groups[i] >> shift) & 15u);
+      if (digit != 0 || started || shift == 0) {
+        result += digits[digit];
+        started = true;
+      }
+    }
+    ++i;
+  }
+  return result;
+}
+
+inline bool valid_origin_dns_host(std::string_view host) {
+  if (host.empty() || host.size() > 253) {
+    return false;
+  }
+  // A DNS root dot is valid, but a numeric IPv4 origin cannot
+  // have an alternative root-dot spelling.
+  const bool root_dot = host.ends_with('.');
+  if (root_dot) host.remove_suffix(1);
+  if (host.empty()) return false;
+  if (host.find_first_not_of("0123456789.") ==
+      std::string_view::npos) {
+    return !root_dot && valid_origin_ipv4(host);
+  }
+  // Special-scheme URL parsing treats numeric-looking final labels
+  // as IPv4 candidates, including hexadecimal and octal aliases.
+  const auto last_dot = host.rfind('.');
+  const auto last_label = host.substr(
+      last_dot == std::string_view::npos ? 0 : last_dot + 1);
+  const bool numeric_suffix = std::all_of(
+      last_label.begin(), last_label.end(), [](unsigned char ch) {
+        return ch >= '0' && ch <= '9';
+      });
+  const bool hex_suffix = last_label.size() >= 2 &&
+      last_label.front() == '0' &&
+      (last_label[1] == 'x' || last_label[1] == 'X');
+  if (numeric_suffix || hex_suffix) return false;
+
+  std::size_t offset = 0;
+  while (offset < host.size()) {
+    const auto dot = host.find('.', offset);
+    const auto label = host.substr(
+        offset, dot == std::string_view::npos ? dot : dot - offset);
+    if (label.empty() || label.size() > 63 ||
+        !std::isalnum(static_cast<unsigned char>(label.front())) ||
+        !std::isalnum(static_cast<unsigned char>(label.back())) ||
+        !std::all_of(label.begin(), label.end(), [](unsigned char ch) {
+          return (ch >= 'a' && ch <= 'z') ||
+                 (ch >= 'A' && ch <= 'Z') ||
+                 (ch >= '0' && ch <= '9') || ch == '-';
+        })) {
+      return false;
+    }
+    if (dot == std::string_view::npos) {
+      break;
+    }
+    offset = dot + 1;
+  }
+  return true;
+}
+
+inline bool valid_origin_port(std::string_view port) {
+  if (port.empty() || port.size() > 5) {
+    return false;
+  }
+  unsigned int value = 0;
+  for (const unsigned char ch : port) {
+    if (ch < '0' || ch > '9') {
+      return false;
+    }
+    value = value * 10 + (ch - '0');
+  }
+  return value > 0 && value <= 65535 &&
+         (port.size() == 1 || port.front() != '0');
+}
+
 inline bool canonical_web_origin(std::string_view value) {
   if (!permission_text_safe(value, 2048) ||
-      value.find(' ') != std::string_view::npos ||
-      value.find_first_of("?#") != std::string_view::npos ||
-      value.find('@') != std::string_view::npos) {
+      value.find_first_of(" ?#@\\") != std::string_view::npos) {
     return false;
   }
 
-  std::size_t scheme_length = 0;
-  if (value.starts_with("https://")) {
-    scheme_length = 8;
-  } else if (value.starts_with("http://")) {
-    scheme_length = 7;
-  } else {
+  const std::size_t scheme_length =
+      value.starts_with("https://") ? 8 :
+      value.starts_with("http://") ? 7 : 0;
+  if (scheme_length == 0 || value.size() <= scheme_length) {
     return false;
   }
 
-  if (value.size() <= scheme_length) {
+  // A serialized origin has no pathname, including a trailing slash.
+  if (value.find('/', scheme_length) != std::string_view::npos) {
+    return false;
+  }
+  auto authority = value.substr(scheme_length);
+  if (authority.empty()) {
     return false;
   }
 
-  const auto path = value.find('/', scheme_length);
-  if (path != std::string_view::npos && path != value.size() - 1) {
-    return false;
+  if (authority.front() == '[') {
+    const auto closing = authority.find(']');
+    if (closing == std::string_view::npos ||
+        !valid_origin_ipv6(authority.substr(1, closing - 1)) ||
+        serialized_origin_ipv6(authority.substr(1, closing - 1)) !=
+            std::optional<std::string>(authority.substr(1, closing - 1))) {
+      return false;
+    }
+    authority.remove_prefix(closing + 1);
+    if (authority.empty()) return true;
+    if (authority.front() != ':') return false;
+    const auto port = authority.substr(1);
+    return valid_origin_port(port) &&
+           !(scheme_length == 7 && port == "80") &&
+           !(scheme_length == 8 && port == "443");
   }
 
-  const auto authority =
-      value.substr(scheme_length, path == std::string_view::npos
-                                     ? std::string_view::npos
-                                     : path - scheme_length);
-  return !authority.empty() && authority.front() != ':' &&
-         authority.back() != ':';
+  const auto colon = authority.find(':');
+  const auto host = authority.substr(0, colon);
+  if (!valid_origin_dns_host(host) ||
+      std::any_of(host.begin(), host.end(), [](unsigned char ch) {
+        return ch >= 'A' && ch <= 'Z';
+      })) {
+    return false;
+  }
+  if (colon == std::string_view::npos) return true;
+  const auto port = authority.substr(colon + 1);
+  return valid_origin_port(port) &&
+         !(scheme_length == 7 && port == "80") &&
+         !(scheme_length == 8 && port == "443");
 }
 
 inline bool valid_permission_request(const PermissionRequest& request) {
