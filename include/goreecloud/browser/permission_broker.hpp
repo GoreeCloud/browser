@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cstdint>
 #include <optional>
@@ -254,6 +255,109 @@ inline bool valid_origin_ipv6(std::string_view host) {
     }
   }
   return compressed ? components < 8 : components == 8;
+}
+
+inline std::optional<std::string> serialized_origin_ipv6(std::string_view host) {
+  const auto compression = host.find("::");
+  const bool compressed = compression != std::string_view::npos;
+  if (host.empty() ||
+      (compressed &&
+       host.find("::", compression + 2) != std::string_view::npos)) {
+    return std::nullopt;
+  }
+  std::vector<std::uint16_t> left, right;
+  const auto parse = [](std::string_view input, bool allow_ipv4,
+                        std::vector<std::uint16_t>& groups) -> bool {
+    if (input.empty()) return true;
+    std::size_t offset = 0;
+    while (offset < input.size()) {
+      const auto colon = input.find(':', offset);
+      const auto token = input.substr(
+          offset, colon == std::string_view::npos ? colon : colon - offset);
+      if (token.empty()) return false;
+      if (token.find('.') != std::string_view::npos) {
+        if (!allow_ipv4 || colon != std::string_view::npos ||
+            !valid_origin_ipv4(token)) return false;
+        std::uint16_t octets[4]{};
+        std::size_t ip_offset = 0;
+        for (auto& octet : octets) {
+          const auto dot = token.find('.', ip_offset);
+          const auto part = token.substr(
+              ip_offset, dot == std::string_view::npos
+                             ? dot : dot - ip_offset);
+          for (const char digit : part) {
+            octet = static_cast<std::uint16_t>(octet * 10 + digit - '0');
+          }
+          ip_offset = dot == std::string_view::npos
+                          ? token.size() : dot + 1;
+        }
+        groups.push_back(static_cast<std::uint16_t>(
+            (octets[0] << 8) | octets[1]));
+        groups.push_back(static_cast<std::uint16_t>(
+            (octets[2] << 8) | octets[3]));
+      } else {
+        if (token.size() > 4) return false;
+        std::uint16_t group = 0;
+        for (const unsigned char ch : token) {
+          if (!std::isxdigit(ch)) return false;
+          const unsigned int digit =
+              ch >= '0' && ch <= '9' ? ch - '0' :
+              ch >= 'a' && ch <= 'f' ? ch - 'a' + 10 : ch - 'A' + 10;
+          group = static_cast<std::uint16_t>(group * 16 + digit);
+        }
+        groups.push_back(group);
+      }
+      if (groups.size() > 8) return false;
+      if (colon == std::string_view::npos) break;
+      offset = colon + 1;
+      if (offset == input.size()) return false;
+    }
+    return true;
+  };
+  const auto left_part =
+      compressed ? host.substr(0, compression) : host;
+  const auto right_part =
+      compressed ? host.substr(compression + 2) : std::string_view{};
+  if (!parse(left_part, !compressed, left) ||
+      !parse(right_part, true, right)) return std::nullopt;
+  const auto count = left.size() + right.size();
+  if ((compressed && count >= 8) || (!compressed && count != 8)) {
+    return std::nullopt;
+  }
+  std::array<std::uint16_t, 8> groups{};
+  std::copy(left.begin(), left.end(), groups.begin());
+  std::copy(right.begin(), right.end(), groups.end() - right.size());
+  std::size_t best_start = 8, best_length = 1;
+  for (std::size_t i = 0; i < groups.size();) {
+    if (groups[i] != 0) { ++i; continue; }
+    auto end = i;
+    while (end < groups.size() && groups[end] == 0) ++end;
+    if (end - i > best_length) {
+      best_start = i;
+      best_length = end - i;
+    }
+    i = end;
+  }
+  std::string result;
+  constexpr char digits[] = "0123456789abcdef";
+  for (std::size_t i = 0; i < groups.size();) {
+    if (i == best_start) {
+      result += "::";
+      i += best_length;
+      continue;
+    }
+    if (!result.empty() && result.back() != ':') result += ':';
+    bool started = false;
+    for (int shift = 12; shift >= 0; shift -= 4) {
+      const auto digit = static_cast<unsigned>((groups[i] >> shift) & 15u);
+      if (digit != 0 || started || shift == 0) {
+        result += digits[digit];
+        started = true;
+      }
+    }
+    ++i;
+  }
+  return result;
 }
 
 inline bool valid_origin_dns_host(std::string_view host) {
