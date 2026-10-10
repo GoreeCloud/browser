@@ -1,5 +1,20 @@
 # GoreeCloud Browser — Changelogs
 
+## 2026-10-07 — Durable Normal-context permission decision foundation
+
+### Added
+
+- Added a Browser-owned persistent permission-decision store keyed by profile, canonical web origin, and typed permission resource.
+- Durable storage accepts only explicit persistent allow/deny decisions for Normal privacy context; Private and Isolated Private decisions are rejected at the durable-store boundary.
+- Added optional decision expiry, deterministic lookup, per-resource revocation, origin reset, exact idempotence, stale-replacement rejection, and closed validation for profile/origin/resource/decision/source/version fields.
+- Added bounded versioned snapshots with profile and snapshot-clock binding, duplicate-record rejection, CRC32 corruption detection, atomic temp/primary/backup replacement, and valid-backup recovery.
+- Save operations preserve the existing authoritative file instead of overwriting it when the clock regresses, the file belongs to another profile, or the existing snapshot uses a newer unsupported version.
+- Added Release- and Debug-active Core CI smoke/fault coverage for private-context exclusion, malformed resources, expiry, revocation/reset, stale writes, duplicate records, corruption, profile mismatch, clock regression, unsupported versions, byte-preserving unsafe-save rejection, and backup recovery.
+
+### Acceptance boundary
+
+This is a Development Normal-context persistence foundation only. It does not implement Android permission prompt/OS adapters, live GoreeCloud Policy/Privacy Shield/Wardveil authority adapters, Private/Isolated Private ephemeral permission runtime or Close & Forget decision cleanup, privacy-safe diagnostic UX, authenticated-at-rest protection, representative-device acceptance, production approval, Release Candidate, Stable, Seal, or Anchor. CRC32 detects ordinary corruption only and is not an authentication boundary.
+
 ## 2026-10-07 — Release-active C++ smoke assertion contract
 
 ### Changed
