@@ -93,6 +93,38 @@ int main() {
   assert(!goreecloud::browser::canonical_web_origin("https://example.test/path"));
   assert(!goreecloud::browser::canonical_web_origin("file:///tmp/example"));
 
+  for (const char* valid_origin : {
+           "https://localhost", "https://127.0.0.1:8443",
+           "http://example.test:80", "https://sub.example.test.",
+           "https://xn--bcher-kva.example", "https://[::1]",
+           "https://[2001:db8::1]:443",
+           "https://[::ffff:192.0.2.1]"}) {
+    assert(goreecloud::browser::canonical_web_origin(valid_origin));
+  }
+  for (const char* invalid_origin : {
+           "https://", "https://:443", "https://example.test:",
+           "https://example.test:abc", "https://example.test:0",
+           "https://example.test:65536", "https://example.test:80:90",
+           "https://foo..test", "https://-foo.test",
+           "https://foo-.test", "https://foo_bar.test",
+           "https://example.test%2f.evil.test",
+           "https://example.test\\@evil.test",
+           "https://127.0.0.999", "https://001.2.3.4",
+           "https://1234", "https://[::1",
+           "https://[gggg::1]", "https://[1:2:3:4:5:6:7:8:9]",
+           "https://[1:2:3:4:5:6:7::8]", "https://[:::1]",
+           "https://[fe80::1%eth0]", "https://[::1]:65536",
+           "https://[::1]evil.test", "https://example.test?x=1"}) {
+    assert(!goreecloud::browser::canonical_web_origin(invalid_origin));
+  }
+  {
+    auto invalid = request();
+    invalid.top_level_origin = "https://example.test:abc";
+    assert(!goreecloud::browser::valid_permission_request(invalid));
+    PermissionBroker broker;
+    assert(!broker.receive(invalid));
+  }
+
   {
     PermissionBroker broker;
     auto value = request();
