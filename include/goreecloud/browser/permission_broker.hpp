@@ -450,7 +450,9 @@ inline bool canonical_web_origin(std::string_view value) {
   if (authority.front() == '[') {
     const auto closing = authority.find(']');
     if (closing == std::string_view::npos ||
-        !valid_origin_ipv6(authority.substr(1, closing - 1))) {
+        !valid_origin_ipv6(authority.substr(1, closing - 1)) ||
+        serialized_origin_ipv6(authority.substr(1, closing - 1)) !=
+            std::optional<std::string>(authority.substr(1, closing - 1))) {
       return false;
     }
     authority.remove_prefix(closing + 1);
