@@ -96,10 +96,10 @@ int main() {
 
   for (const char* valid_origin : {
            "https://localhost", "https://127.0.0.1:8443",
-           "http://example.test:80", "https://sub.example.test.",
+           "http://example.test:8080", "https://sub.example.test.",
            "https://xn--bcher-kva.example", "https://[::1]",
-           "https://[2001:db8::1]:443",
-           "https://[::ffff:192.0.2.1]"}) {
+           "https://[2001:db8::1]:444",
+           "https://[::ffff:c000:201]"}) {
     if (!goreecloud::browser::canonical_web_origin(valid_origin)) {
       std::fprintf(stderr, "valid origin rejected: %s\n", valid_origin);
       return 1;
@@ -114,7 +114,16 @@ int main() {
            "https://example.test%2f.evil.test",
            "https://example.test\\@evil.test",
            "https://127.0.0.999", "https://001.2.3.4",
-           "https://1234", "https://[::1",
+           "https://0x7f.0.0.1", "https://0177.0.0.1",
+           "https://127.1", "https://127.0.0.1.",
+           "https://example.123", "https://example.0x7f",
+           "https://1234", "https://EXAMPLE.test",
+           "http://example.test:80", "https://example.test:443",
+           "https://example.test:0444", "https://example.test/",
+           "https://[0:0:0:0:0:0:0:1]",
+           "https://[::ffff:192.0.2.1]",
+           "https://[2001:db8::1]:443",
+           "https://[::1",
            "https://[gggg::1]", "https://[1:2:3:4:5:6:7:8:9]",
            "https://[1:2:3:4:5:6:7::8]", "https://[:::1]",
            "https://[fe80::1%eth0]", "https://[::1]:65536",
