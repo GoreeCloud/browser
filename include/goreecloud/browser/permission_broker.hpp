@@ -260,19 +260,28 @@ inline bool valid_origin_dns_host(std::string_view host) {
   if (host.empty() || host.size() > 253) {
     return false;
   }
-  // A final DNS root dot is valid, but internal empty labels are not.
-  if (host.ends_with('.')) {
-    host.remove_suffix(1);
-  }
-  if (host.empty()) {
-    return false;
-  }
-  // Browsers canonicalize numeric hosts as IP addresses. Never accept
-  // non-canonical numeric shortcuts as named origins.
+  // A DNS root dot is valid, but a numeric IPv4 origin cannot
+  // have an alternative root-dot spelling.
+  const bool root_dot = host.ends_with('.');
+  if (root_dot) host.remove_suffix(1);
+  if (host.empty()) return false;
   if (host.find_first_not_of("0123456789.") ==
       std::string_view::npos) {
-    return valid_origin_ipv4(host);
+    return !root_dot && valid_origin_ipv4(host);
   }
+  // Special-scheme URL parsing treats numeric-looking final labels
+  // as IPv4 candidates, including hexadecimal and octal aliases.
+  const auto last_dot = host.rfind('.');
+  const auto last_label = host.substr(
+      last_dot == std::string_view::npos ? 0 : last_dot + 1);
+  const bool numeric_suffix = std::all_of(
+      last_label.begin(), last_label.end(), [](unsigned char ch) {
+        return ch >= '0' && ch <= '9';
+      });
+  const bool hex_suffix = last_label.size() >= 2 &&
+      last_label.front() == '0' &&
+      (last_label[1] == 'x' || last_label[1] == 'X');
+  if (numeric_suffix || hex_suffix) return false;
 
   std::size_t offset = 0;
   while (offset < host.size()) {
