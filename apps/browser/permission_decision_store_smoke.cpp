@@ -100,6 +100,17 @@ std::vector<std::uint8_t> snapshot_with_version(
 
 int main() {
   PermissionDecisionStore store;
+  for (const char* alias : {"https://EXAMPLE.test",
+                            "https://example.test:443",
+                            "https://example.test/",
+                            "https://0x7f.0.0.1",
+                            "https://[0:0:0:0:0:0:0:1]"}) {
+    auto invalid = decision();
+    invalid.origin = alias;
+    require(!store.upsert(invalid, PrivacyContext::normal));
+    require(!store.lookup("profile-personal", alias,
+                          PermissionResource::camera, 1500).has_value());
+  }
   require(store.upsert(decision(), PrivacyContext::normal));
   const auto active = store.lookup("profile-personal", "https://example.test",
                                    PermissionResource::camera, 1500);
