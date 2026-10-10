@@ -239,6 +239,12 @@ add_executable(goreecloud_browser_runtime_smoke apps/browser/runtime_smoke.cpp)
 target_link_libraries(goreecloud_browser_runtime_smoke PRIVATE goreecloud_browser_core)
 goreecloud_apply_warnings(goreecloud_browser_runtime_smoke)
 
+add_executable(goreecloud_browser_assert_contract_smoke
+  apps/browser/assert_contract_smoke.cpp)
+target_link_libraries(goreecloud_browser_assert_contract_smoke
+  PRIVATE goreecloud_browser_core)
+goreecloud_apply_warnings(goreecloud_browser_assert_contract_smoke)
+
 add_executable(goreecloud_browser_media_hover_smoke apps/browser/media_hover_smoke.cpp)
 target_link_libraries(goreecloud_browser_media_hover_smoke PRIVATE goreecloud_browser_core)
 goreecloud_apply_warnings(goreecloud_browser_media_hover_smoke)
@@ -288,8 +294,7 @@ goreecloud_apply_warnings(goreecloud_browser_permission_broker_smoke)
 
 add_executable(goreecloud_browser_permission_decision_store_smoke
   apps/browser/permission_decision_store_smoke.cpp)
-target_link_libraries(goreecloud_browser_permission_decision_store_smoke
-  PRIVATE goreecloud_browser_core)
+target_link_libraries(goreecloud_browser_permission_decision_store_smoke PRIVATE goreecloud_browser_core)
 goreecloud_apply_warnings(goreecloud_browser_permission_decision_store_smoke)
 
 add_executable(goreecloud_browser_health_contract_smoke
@@ -331,8 +336,26 @@ if(GOREECLOUD_ENABLE_CHROMIUM)
   goreecloud_apply_warnings(goreecloud_browser_chromium_smoke)
 endif()
 
+# Smoke executables are tests even in Release builds. CMake's Release defaults
+# define NDEBUG, which would otherwise compile standard assert(...) checks out.
+# Apply the contract by target naming convention so current and future Browser
+# smoke targets retain their assertions without changing production targets.
+get_property(_goreecloud_browser_directory_targets
+             DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+foreach(_goreecloud_browser_target IN LISTS _goreecloud_browser_directory_targets)
+  if(_goreecloud_browser_target MATCHES "^goreecloud_browser_.*_smoke$")
+    if(MSVC)
+      target_compile_options(${_goreecloud_browser_target} PRIVATE /UNDEBUG)
+    else()
+      target_compile_options(${_goreecloud_browser_target} PRIVATE -UNDEBUG)
+    endif()
+  endif()
+endforeach()
+
 if(BUILD_TESTING)
   add_test(NAME goreecloud_browser_runtime_smoke COMMAND goreecloud_browser_runtime_smoke)
+  add_test(NAME goreecloud_browser_assert_contract_smoke
+           COMMAND goreecloud_browser_assert_contract_smoke)
   add_test(NAME goreecloud_browser_media_hover_smoke COMMAND goreecloud_browser_media_hover_smoke)
   add_test(NAME goreecloud_browser_download_manager_smoke COMMAND goreecloud_browser_download_manager_smoke)
   add_test(NAME goreecloud_browser_download_storage_smoke COMMAND goreecloud_browser_download_storage_smoke)
@@ -349,8 +372,7 @@ if(BUILD_TESTING)
            COMMAND goreecloud_browser_normal_session_runtime_smoke)
   add_test(NAME goreecloud_browser_permission_broker_smoke
            COMMAND goreecloud_browser_permission_broker_smoke)
-  add_test(NAME goreecloud_browser_permission_decision_store_smoke
-           COMMAND goreecloud_browser_permission_decision_store_smoke)
+  add_test(NAME goreecloud_browser_permission_decision_store_smoke COMMAND goreecloud_browser_permission_decision_store_smoke)
   add_test(NAME goreecloud_browser_health_contract_smoke
            COMMAND goreecloud_browser_health_contract_smoke)
   add_test(NAME goreecloud_browser_extensions_manifest_smoke

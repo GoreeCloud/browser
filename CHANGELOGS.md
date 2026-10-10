@@ -15,6 +15,20 @@
 
 This is a Development Normal-context persistence foundation only. It does not implement Android permission prompt/OS adapters, live GoreeCloud Policy/Privacy Shield/Wardveil authority adapters, Private/Isolated Private ephemeral permission runtime or Close & Forget decision cleanup, privacy-safe diagnostic UX, authenticated-at-rest protection, representative-device acceptance, production approval, Release Candidate, Stable, Seal, or Anchor. CRC32 detects ordinary corruption only and is not an authentication boundary.
 
+## 2026-10-07 — Release-active C++ smoke assertion contract
+
+### Changed
+
+- Audited Browser C++ smoke sources and found widespread use of standard `assert`, which Release builds would otherwise compile out under `NDEBUG`.
+- Added a CMake-level Browser smoke-target contract that explicitly undefines `NDEBUG` for every `goreecloud_browser_*_smoke` executable while leaving production/library targets unchanged.
+- The contract uses `/UNDEBUG` for MSVC and `-UNDEBUG` for non-MSVC toolchains.
+- Added a dedicated assertion-contract smoke that fails compilation if `NDEBUG` is present and verifies an `assert` expression is actually evaluated at runtime.
+- Applied the rule by target naming convention so future Browser smoke executables receive the same Release-test semantics without individually duplicating flags.
+
+### Acceptance boundary
+
+This is test-integrity hardening only. It does not alter production Browser runtime behavior or establish production, Release Candidate, Stable, Seal, or Anchor acceptance.
+
 ## 2026-10-07 — Bounded Core CI dependency bootstrap
 
 ### Changed
