@@ -17,6 +17,7 @@ import android.view.Window
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.CookieManager
+import android.webkit.GeolocationPermissions
 import android.webkit.PermissionRequest
 import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
@@ -664,6 +665,13 @@ class BrowserActivityV2 : Activity() {
 
             override fun onPermissionRequest(request: PermissionRequest) {
                 request.deny()
+            }
+
+            override fun onGeolocationPermissionsShowPrompt(
+                origin: String,
+                callback: GeolocationPermissions.Callback,
+            ) {
+                callback.invoke(origin, false, false)
             }
         }
 
