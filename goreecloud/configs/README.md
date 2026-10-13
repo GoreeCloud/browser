@@ -1,11 +1,12 @@
-# Gecko development configuration
+# Gecko development configuration — non-distributable
 
-Use the isolated GTK/Linux candidate only:
+Two deliberately opt-in Linux/GTK development configurations are retained:
 
-`MOZCONFIG=goreecloud/configs/mozconfig-linux-dev ./mach configure`
+- `mozconfig-linux-dev`: intended full-source compilation with GoreeCloud branding; `./mach configure` reached ALSA development checks after a private LLVM 19 bootstrap but failed because `alsa.pc` was unavailable.
+- `mozconfig-linux-artifact-dev`: Mozilla prebuilt Gecko artifact path for frontend, strings and branding experiments. `./mach configure` passed after fixing localization preprocessing; `./mach build` returned no matching artifact for the signed source snapshot's available pushheads.
 
-This source-level opt-in selects the GoreeCloud branding directory rather than modifying Mozilla's official branding. It also disables the Firefox updater **for local development only**, because no GoreeCloud binary-update service has been verified.
+From the source directory, use `MOZCONFIG=goreecloud/configs/mozconfig-linux-artifact-dev ./mach configure` or the analogous full-source config, with a compatible isolated toolchain and `MOZBUILD_STATE_PATH` set to an authorized development directory.
 
-**Do not distribute binaries built with this configuration.** Distribution requires accepted security updates, signing, branding review, privacy and security tests, runtime validation, and real-device regression evidence. Other platforms remain unconfigured.
+Neither config is approved for distribution. Both disable the upstream updater because GoreeCloud's own signed update and rollback implementation has not been accepted. These development files must not be silently promoted to production. See `goreecloud/BUILD-VALIDATION-LINUX.md` and `goreecloud/RELEASE-GATES.md`.
 
-The branding generator is deterministic: run `python3 goreecloud/tools/generate_linux_branding.py --check` to validate committed artwork and resources.
+Run `python3 goreecloud/tools/generate_linux_branding.py --check` for deterministic asset integrity and `python3 -m unittest discover -s goreecloud/tests -v` for source-level checks.

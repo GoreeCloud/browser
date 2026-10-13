@@ -1,0 +1,6 @@
+# Linux Gecko artifact-mode experiment; no distribution.
+ac_add_options --enable-application=browser
+ac_add_options --with-branding=browser/branding/goreecloud
+ac_add_options --enable-artifact-builds
+ac_add_options --disable-updater
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-goreecloud-gecko-artifact

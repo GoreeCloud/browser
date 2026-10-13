@@ -69,6 +69,21 @@ class BrandingTests(unittest.TestCase):
                          "security.enterprise_roots.enabled"):
             self.assertNotIn(critical, content)
 
+    def test_localization_manifest_substitution(self):
+        jar = (BRAND / "locales/jar.mn").read_text(encoding="utf-8")
+        self.assertIn("#filter substitution", jar)
+        self.assertIn("[localization] @AB_CD@.jar:", jar)
+        self.assertLess(jar.index("#filter substitution"), jar.index("[localization]"))
+        self.assertIn("locale/branding/brand.properties", jar)
+
+    def test_artifact_mode_remains_development_only(self):
+        path = ROOT / "goreecloud/configs/mozconfig-linux-artifact-dev"
+        config = path.read_text(encoding="utf-8")
+        self.assertIn("--enable-artifact-builds", config)
+        self.assertIn("--with-branding=browser/branding/goreecloud", config)
+        self.assertIn("--disable-updater", config)
+        self.assertNotIn("--enable-official-branding", config)
+
     def test_gtk_resources_declared(self):
         jar = (BRAND / "content/jar.mn").read_text(encoding="utf-8")
         self.assertIn("content/branding/icon128.png", jar)
