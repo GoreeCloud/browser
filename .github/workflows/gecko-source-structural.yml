@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "goreecloud/**"
+      - "browser/branding/goreecloud/**"
       - ".github/workflows/gecko-source-structural.yml"
   workflow_dispatch:
 permissions:
@@ -16,9 +17,13 @@ jobs:
           persist-credentials: false
           sparse-checkout: |
             goreecloud
+            browser/branding/goreecloud
+            browser/confvars.sh
             browser/config
             LICENSE
-      - name: Offline watcher unit tests
+      - name: Unit tests and generated-asset integrity
         run: python3 -m unittest discover -s goreecloud/tests -v
-      - name: Static provenance and fail-closed registry checks
+      - name: Verify reproducible GTK branding assets
+        run: python3 goreecloud/tools/generate_linux_branding.py --check
+      - name: Static provenance and fail-closed integration registry
         run: python3 goreecloud/tools/validate_baseline.py
