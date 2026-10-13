@@ -1,0 +1,38 @@
+name: Gecko Linux artifact configure (nonrelease)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/gecko-artifact-configure.yml"
+      - "goreecloud/configs/**"
+      - "goreecloud/tools/generate_linux_branding.py"
+      - "browser/branding/goreecloud/**"
+      - "goreecloud/tests/test_linux_branding.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  artifact-configure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Inspect ephemeral build host
+        run: |
+          df -h .
+          python3 --version
+          node --version
+      - name: Verify checked-in branding and localization manifests
+        run: |
+          python3 -m unittest discover -s goreecloud/tests -v
+          python3 goreecloud/tools/generate_linux_branding.py --check
+      - name: Configure Mozilla prebuilt-Gecko artifact frontend (no binary release)
+        env:
+          MOZCONFIG: goreecloud/configs/mozconfig-linux-artifact-dev
+          MOZBUILD_STATE_PATH: ${{ runner.temp }}/goreecloud-gecko-mozbuild
+        run: ./mach configure
