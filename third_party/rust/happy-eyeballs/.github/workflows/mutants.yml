@@ -1,0 +1,13 @@
+name: Mutants
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Every Sunday at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutants:
+    uses: mozilla/actions/.github/workflows/mutants.yml@2152d1412122b04d838d6341aa3b4d6160b3de32 # v2.0.5

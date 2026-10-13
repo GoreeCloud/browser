@@ -1,0 +1,36 @@
+task-defaults:
+    worker-type: b-win2022
+    worker:
+        taskcluster-proxy: true
+        artifacts:
+            - type: directory
+              path: public/build
+    scopes: ["project:releng:services/tooltool/api/download/internal"]
+
+win-x64/debug-make:
+    description: "Windows x64 (debug, make)"
+    attributes:
+        make: true
+
+win-x86/debug-make:
+    description: "Windows x86 (debug, make)"
+    attributes:
+        make: true
+
+win-x64/opt:
+    description: "Windows x64 (opt)"
+
+win-x64/debug:
+    description: "Windows x64 (debug)"
+
+win-x64/opt-static:
+    description: "Windows x64 Static (opt)"
+    attributes:
+        static: true
+
+win-x86/opt:
+    description: "Windows x86 (opt)"
+
+win-x86/debug:
+    description: "Windows x86 (debug)"
+

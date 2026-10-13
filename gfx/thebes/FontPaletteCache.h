@@ -1,0 +1,73 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef FONT_PALETTE_CACHE_H
+#define FONT_PALETTE_CACHE_H
+
+#include <utility>
+
+#include "gfxFontEntry.h"
+#include "harfbuzz/hb.h"
+#include "mozilla/HashFunctions.h"
+#include "mozilla/MruCache.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/gfx/Types.h"
+#include "nsAtom.h"
+#include "nsTArray.h"
+
+namespace mozilla::gfx {
+
+class FontPaletteValueSet;
+
+// A resolved font palette as an array of colors.
+class FontPalette {
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(FontPalette);
+
+ public:
+  FontPalette() = default;
+  explicit FontPalette(nsTArray<hb_color_t>&& aColors)
+      : mColors(std::move(aColors)) {}
+
+  const nsTArray<hb_color_t>* Colors() const { return &mColors; }
+
+ private:
+  ~FontPalette() = default;
+
+  nsTArray<hb_color_t> mColors;
+};
+
+// MRU cache used for resolved color-font palettes, to avoid reconstructing
+// the palette for each glyph rendered with a given font.
+using CacheKey = std::pair<RefPtr<gfxFontEntry>, RefPtr<nsAtom>>;
+struct CacheData {
+  CacheKey mKey;
+  RefPtr<FontPalette> mPalette;
+};
+
+class PaletteCache
+    : public mozilla::MruCache<CacheKey, CacheData, PaletteCache> {
+ public:
+  explicit PaletteCache(const FontPaletteValueSet* aPaletteValueSet = nullptr)
+      : mPaletteValueSet(aPaletteValueSet) {}
+
+  void SetPaletteValueSet(const FontPaletteValueSet* aSet);
+
+  already_AddRefed<FontPalette> GetPaletteFor(gfxFontEntry* aFontEntry,
+                                              nsAtom* aPaletteName);
+
+  static bool IsEmpty(const CacheData& aVal) { return !aVal.mKey.first; }
+  static mozilla::HashNumber Hash(const CacheKey& aKey) {
+    return mozilla::HashGeneric(aKey.first.get(), aKey.second.get());
+  }
+  static bool Match(const CacheKey& aKey, const CacheData& aVal) {
+    return aVal.mKey == aKey;
+  }
+
+ protected:
+  const FontPaletteValueSet* mPaletteValueSet = nullptr;
+};
+
+}  // namespace mozilla::gfx
+
+#endif

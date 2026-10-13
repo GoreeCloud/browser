@@ -1,0 +1,16 @@
+---
+android-lint:
+    description: Android lint
+    include: ['mobile/android']
+    exclude: []
+    extensions: ['java', 'kt']
+    support-files:
+        - 'mobile/android/**/Makefile.in'
+        - 'mobile/android/config/**'
+        - 'mobile/android/gradle.configure'
+        - 'mobile/android/**/moz.build'
+        - '**/*.gradle'
+        - '**/*.gradle.kts'
+    type: global
+    payload: android.lints:lint
+    setup: android.lints:setup
