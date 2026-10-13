@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 64" role="img" aria-label="GoreeCloud Browser">
+  <rect width="64" height="64" rx="15" fill="#182638"/>
+  <path d="M46 21a20 20 0 1 0 4 19H34v-9h25a28 28 0 1 1-8-16Z" fill="#47D4BF"/>
+  <text x="78" y="42" font-family="sans-serif" font-size="31" font-weight="650" fill="currentColor">GoreeCloud</text>
+</svg>

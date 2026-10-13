@@ -6,7 +6,9 @@ This repository includes Mozilla Firefox **158.0**, acquired from Mozilla's sign
 
 * `goreecloud/upstream/BASELINE.json` pins the exact source archive, SHA-256, release tag/commit and verified Mozilla release-signing subkey.
 * `LICENSE`, Mozilla and third-party notices, and all applicable attribution remain in the upstream tree. Rebranding must **not** delete license notices or Mozilla credit.
-* All GoreeCloud integration adapters, design contracts, tests, and release documentation belong in `goreecloud/`. A source-level change outside this directory must have a narrowly scoped patch plus regression evidence.
+* GoreeCloud integration adapters, design contracts, tests, and release documentation belong in `goreecloud/`. The generated `browser/branding/goreecloud/` directory is a tightly scoped build-system exception with deterministic tests. Any further upstream-tree changes require narrowly scoped patches and regression evidence.
+* Linux-only development branding is opt-in through `goreecloud/configs/mozconfig-linux-dev`; the new product strings and generated symbols are provisional and not accepted for release. See `goreecloud/BUILD-VALIDATION-LINUX.md` for the actual configure result and blocker.
+* The developer-only branding prefs initially default off Mozilla studies, personalized extension discovery, sponsored activity-stream placements, and a new-tab telemetry ping. These are source-level defaults; compiled runtime enforcement, network audits, and Privacy Shield acceptance are **pending**.
 * The canonical target for Glaze is Stable-compatible **1.7.0**. Glaze in this repository is **not integrated or accepted** yet.
 * The existing CEF runtime and its user data must not be overwritten. Gecko requires explicit profile, bookmarks, extensions, login, DNS, TLS, privacy and rollback migration evidence.
 

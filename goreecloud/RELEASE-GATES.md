@@ -7,7 +7,7 @@ The signed Firefox 158.0 source was verified; a completed build, test run and di
 | Gate | Required proof | Current state |
 | --- | --- | --- |
 | Legal | Source inventory, licenses, notices and trademark review | Pending |
-| Branding | Original approved name, icons, About, installers and translations | Pending |
+| Branding | Original approved name, icons, About, installers and translations | Provisional 32-file GTK candidate and artifact-mode configure succeeded after jar-manifest fix; approval, compiled UI, installers and localization pending |
 | Glaze | Version 1.7.0 tokens, interactions and human acceptance | Pending |
 | Compatibility | Gecko web platform, extension, download and media regression tests | Pending |
 | Privacy | Real endpoint audits, choices and Gecko Privacy Shield enforcement | Pending |

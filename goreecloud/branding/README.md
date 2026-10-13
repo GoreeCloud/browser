@@ -1,7 +1,11 @@
-# Branding candidate — not build-selected
+# Gecko branding — development candidate, not accepted final identity
 
-Original **GoreeCloud Browser** product strings are prepared here as a modular overlay. These files do **not** yet replace Mozilla's bundled branding at runtime.
+The build-selectable candidate is generated from `goreecloud/tools/generate_linux_branding.py` into `browser/branding/goreecloud/`. The `goreecloud/configs/` Linux mozconfigs opt into it without modifying Mozilla's original brand resources.
 
-The Firefox branding package requires approved binary and vector artwork, installer icons, About assets, locale review and an explicit `--with-branding` build configuration. Do not point a distributable build at this incomplete directory.
+The earlier standalone `goreecloud/branding/locales/` resources are references only; they are not automatically consumed by Firefox's runtime.
 
-Required source licenses, copyright notices and technical attributions remain intact even after product-facing Mozilla branding is removed. This directory is a candidate identity boundary, not evidence of a completed rebrand.
+Artifact-mode `./mach configure` has been **observed to pass** using the generated GTK brand resources. The localization manifest required an explicit preprocessing fix; a dedicated regression test now prevents removing the directive without a failing check.
+
+The candidate uses original geometric placeholder artwork. It is not the approved final GoreeCloud identity; no Windows/macOS packaging, Glaze consumer acceptance, compiled application, privacy/security runtime acceptance or distribution evidence exists yet. Keep all mandatory Mozilla/third-party attribution.
+
+See `goreecloud/BUILD-VALIDATION-LINUX.md` for the actual configuration/build results and the missing binary artifact blocker.

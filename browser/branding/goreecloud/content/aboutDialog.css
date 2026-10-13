@@ -1,0 +1,7 @@
+/* Development GTK brand surface; not Glaze acceptance evidence. */
+@media (prefers-color-scheme: dark) {
+  #aboutDialogContainer { background-color: #182638; color: #f4f7fa; }
+}
+@media (forced-colors: active) {
+  #aboutDialogContainer { background-color: Canvas; color: CanvasText; }
+}
