@@ -1,0 +1,17 @@
+{
+  "product": "Mozilla Firefox",
+  "channel": "stable-release",
+  "version": "158.0",
+  "release_date": "2026-10-13",
+  "source_archive": "https://archive.mozilla.org/pub/firefox/releases/158.0/source/firefox-158.0.source.tar.xz",
+  "signature_archive": "https://archive.mozilla.org/pub/firefox/releases/158.0/source/firefox-158.0.source.tar.xz.asc",
+  "source_sha256": "fc77f7801d7580a600af683cc367e261eb1ec74647e84a91b4a1e3c1dd5aa2bb",
+  "release_tag": "FIREFOX_158_0_RELEASE",
+  "upstream_git": "https://github.com/mozilla-firefox/firefox.git",
+  "tag_commit": "3c71aeacdb296402e41fb2084b13e797d1770642",
+  "gpg_primary_fingerprint": "14F26682D0916CDD81E37B6D61B7B526D98F0353",
+  "gpg_signing_subkey": "827E658608679618CD349F93678E455D76767AA3",
+  "signature_status": "verified-2026-10-13",
+  "import_method": "verified-Mozilla-source-snapshot",
+  "distribution_status": "not-accepted"
+}

@@ -1,0 +1,50 @@
+name: Firefox stable upstream watch
+on:
+  schedule:
+    - cron: "17 8,20 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: firefox-upstream-watch
+  cancel-in-progress: false
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            goreecloud
+      - name: Check Mozilla stable version
+        id: upstream
+        run: python3 goreecloud/tools/upstream_watch.py --output "$GITHUB_OUTPUT"
+      - name: Open idempotent tracking issue
+        if: steps.upstream.outputs.needs_update == 'true'
+        uses: actions/github-script@v7
+        env:
+          LATEST: ${{ steps.upstream.outputs.latest }}
+          CURRENT: ${{ steps.upstream.outputs.current }}
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const latest = process.env.LATEST;
+            const current = process.env.CURRENT;
+            if (!/^\d{1,3}\.\d{1,3}(\.\d{1,3})?$/.test(latest)) {
+              core.setFailed('Mozilla version did not meet strict stable validation');
+              return;
+            }
+            const title = `Firefox upstream update: ${latest}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'all', per_page: 100,
+            });
+            if (issues.some(item => item.title === title)) {
+              core.info('Existing upstream issue for ' + latest);
+              return;
+            }
+            await github.rest.issues.create({
+              owner, repo, title,
+              body: `Pinned Firefox source is ${current}; Mozilla currently reports ${latest}.\n\nReview Mozilla's stable release notes, emergency patches and security advisories; download and verify the exact release source with Mozilla's release key; assess code and policy changes; validate license notices, build and regression gates. Do not automatically merge or publish.\n\nSource: https://product-details.mozilla.org/1.0/firefox_versions.json`,
+            });

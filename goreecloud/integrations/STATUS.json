@@ -1,0 +1,50 @@
+{
+  "product": "GoreeCloud Browser",
+  "runtime": "Gecko candidate",
+  "release_state": "development",
+  "design": {
+    "system": "Glaze",
+    "version": "1.7.0",
+    "state": "target-only",
+    "acceptance": "pending"
+  },
+  "integrations": [
+    {
+      "service": "GoreeCloud Search",
+      "state": "pending",
+      "enabled": false,
+      "reason": "Endpoint, search contract, privacy flow, and regression evidence need verification"
+    },
+    {
+      "service": "GoreeCloud DNS",
+      "state": "pending",
+      "enabled": false,
+      "reason": "No DNS resolver authority, endpoint, or failover contract accepted"
+    },
+    {
+      "service": "GoreeCloud VPN",
+      "state": "pending",
+      "enabled": false,
+      "reason": "No OS-networking or connection-state contract accepted"
+    },
+    {
+      "service": "GoreeCloud Privacy Shield",
+      "state": "pending",
+      "enabled": false,
+      "reason": "Gecko adapter and release-evidence boundary unverified; CEF evidence does not transfer"
+    },
+    {
+      "service": "Wardveil Security",
+      "state": "pending",
+      "enabled": false,
+      "reason": "Gecko adapter, IPC, and integrity boundary unverified"
+    },
+    {
+      "service": "GoreeCloud Bookmarks",
+      "state": "pending",
+      "enabled": false,
+      "reason": "Data schema, migration, and account sync not verified"
+    }
+  ],
+  "notes": "Declarations are inventory, not runtime integration or compliance evidence. Unavailable integrations must fail closed."
+}
