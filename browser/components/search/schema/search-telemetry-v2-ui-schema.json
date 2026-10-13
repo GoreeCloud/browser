@@ -1,0 +1,33 @@
+{
+  "ui:order": [
+    "telemetryId",
+    "searchPageMatches",
+    "searchPageRegexp",
+    "queryParamNames",
+    "queryParamName",
+    "codeParamName",
+    "taggedCodes",
+    "expectedOrganicCodes",
+    "organicCodes",
+    "followOnParamNames",
+    "followOnCookies",
+    "searchMode",
+    "extraAdServersRegexps",
+    "adServerAttributes",
+    "components",
+    "ignoreLinkRegexps",
+    "nonAdsLinkQueryParamNames",
+    "nonAdsLinkRegexps",
+    "shoppingTab",
+    "domainExtraction",
+    "accountCookies",
+    "signedInCookies",
+    "isSPA",
+    "defaultPageQueryParam",
+    "pageTypeParam",
+    "requireTopLevelImpressionOrigin",
+    "subframes",
+    "impressionAttributes",
+    "alwaysMatchSERP"
+  ]
+}

@@ -1,0 +1,24 @@
+name: Gecko fork structural checks
+on:
+  pull_request:
+    paths:
+      - "goreecloud/**"
+      - ".github/workflows/gecko-source-structural.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  structural:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            goreecloud
+            browser/config
+            LICENSE
+      - name: Offline watcher unit tests
+        run: python3 -m unittest discover -s goreecloud/tests -v
+      - name: Static provenance and fail-closed registry checks
+        run: python3 goreecloud/tools/validate_baseline.py

@@ -1,0 +1,16 @@
+[package]
+name = "rust_minidump_writer_linux"
+version = "0.1.0"
+authors = ["Martin Sirringhaus"]
+edition = "2018"
+license = "MPL-2.0"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crash-context = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "6744feee58804a78730d176cdcc31bb4f3021107" }
+minidump-writer = { git = "https://github.com/rust-minidump/minidump-writer.git", rev = "6744feee58804a78730d176cdcc31bb4f3021107" }
+crash_helper_common = { path = "../crash_helper_common/" }
+mozannotation_server = { path = "../mozannotation_server/" }
+libc = "0.2.74"
+anyhow = "1.0"

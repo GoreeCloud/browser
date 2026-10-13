@@ -1,0 +1,46 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "Graphics: ANGLE"
+
+origin:
+  name: angle
+
+  description: ANGLE - Almost Native Graphics Layer Engine
+
+  url: https://chromium.googlesource.com/angle/angle
+
+  release: 464fd3e879d6bb72fe8210b3e58b59836f711951 (Wed Aug 05 16:04:50 2026).
+  revision: 464fd3e879d6bb72fe8210b3e58b59836f711951
+
+  license: BSD-3-Clause
+  license-file: LICENSE
+
+updatebot:
+  maintainer-phab: ahale
+  maintainer-bz: ahale@mozilla.com
+  tasks:
+    - type: commit-alert
+      enabled: True
+      branch: chromium/7778
+      needinfo: ["ahale@mozilla.com"]
+
+vendoring:
+  url: https://chromium.googlesource.com/angle/angle
+  source-hosting: angle
+  vendor-directory: third_party/angle
+  skip-vendoring-steps:
+    - move-contents
+    - update-moz-build
+
+  update-actions:
+    - action: run-command
+      command: ./mach
+      args:
+        - python
+        - --
+        - '{yaml_dir}/update-angle.py'
+        - '{tmpextractdir}'
+        - '{vendor_dir}'
+      cwd: '{topsrcdir}'
