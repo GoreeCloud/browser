@@ -1,0 +1,28 @@
+name: Gecko omnibox candidate contracts
+on:
+  pull_request:
+    branches:
+      - feat/gecko-native-services-foundations
+    paths:
+      - "goreecloud/native/capabilities/**"
+      - "goreecloud/native/tests/omnibox*.test.mjs"
+      - "browser/base/content/browser-goreecloud-omnibox.js"
+      - "browser/base/jar.mn"
+      - "browser/base/content/browser-main.js"
+      - ".github/workflows/gecko-omnibox-contracts.yml"
+  push:
+    branches:
+      - feat/gecko-native-omnibox-capabilities
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - run: node --check browser/base/content/browser-goreecloud-omnibox.js && node --test goreecloud/native/tests/omnibox*.test.mjs
