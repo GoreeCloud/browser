@@ -5,7 +5,7 @@ on:
       - feat/gecko-native-services-foundations
     paths:
       - "goreecloud/native/capabilities/**"
-      - "goreecloud/native/tests/omnibox.test.mjs"
+      - "goreecloud/native/tests/omnibox*.test.mjs"\n      - "browser/base/content/browser-goreecloud-omnibox.js"\n      - "browser/base/jar.mn"\n      - "browser/base/content/browser-main.js"
       - ".github/workflows/gecko-omnibox-contracts.yml"
   push:
     branches:
@@ -22,4 +22,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - run: node --test goreecloud/native/tests/omnibox.test.mjs
+      - run: node --check browser/base/content/browser-goreecloud-omnibox.js && node --test goreecloud/native/tests/omnibox*.test.mjs
