@@ -1,0 +1,32 @@
+name: Gecko native bookmarks contracts
+
+on:
+  push:
+    branches:
+      - feat/gecko-native-services-foundations
+    paths:
+      - "goreecloud/native/**"
+      - ".github/workflows/gecko-native-bookmarks.yml"
+  pull_request:
+    branches:
+      - feat/gecko-linux-branding-first-pass
+    paths:
+      - "goreecloud/native/**"
+      - ".github/workflows/gecko-native-bookmarks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bookmarks-domain:
+    name: Offline domain contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Test native bookmark contracts
+        run: node --test goreecloud/native/tests/*.test.mjs
