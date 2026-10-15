@@ -38,3 +38,7 @@ test('gated profile driver rejects disabled and invalid environments',()=>{
   assert.throws(()=>createGeckoProfileBookmarkDriver({ioUtils:e.ioUtils,pathUtils:e.pathUtils}),{code:'FEATURE_DISABLED'});
   assert.throws(()=>createGeckoProfileBookmarkDriver({ioUtils:{},pathUtils:e.pathUtils,developmentEnabled:true}),{code:'INVALID_PRIVILEGED_ADAPTER'});
 });
+
+test('missing profile file is a new local collection',async()=>{
+  const e=fakeGecko();assert.equal(await driverFor(e).read(),null);assert.equal(e.files.size,0);
+});
