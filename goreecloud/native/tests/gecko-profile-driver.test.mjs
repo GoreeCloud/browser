@@ -113,3 +113,49 @@ test('permission error after durable commit forces cache reload',async()=>{
   await s.add({item:bookmark('next')});
   assert.deepEqual((await s.snapshot()).nodes.map(x=>x.id),['persisted','next']);
 });
+
+test('direct driver read refuses corrupted JSON before any write permission',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,'{not-json');
+  const driver=driverFor(e);
+  await assert.rejects(driver.read());
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('new')])),{code:'READ_REQUIRED'});
+  assert.equal(e.files.get(file),'{not-json');
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+
+test('external bookmark edits after a read cannot be silently overwritten',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('original')]));
+  await driver.read();
+  e.files.set(file,exportPortableBookmarks([bookmark('external')]));
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('mine')])),{code:'PROFILE_STORE_CHANGED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['external']);
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+
+test('primary file appearing after a new-profile read requires reloading',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  assert.equal(await driver.read(),null);
+  e.files.set(file,exportPortableBookmarks([bookmark('external')]));
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('mine')])),{code:'PROFILE_STORE_CHANGED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['external']);
+});
+
+test('primary file disappearing after a read refuses blind recreation',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('original')]));
+  await driver.read();
+  e.files.delete(file);
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('mine')])),{code:'PROFILE_STORE_CHANGED'});
+  assert.equal(e.files.has(file),false);
+});
+
+test('successful direct writes refresh the observed profile version',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  assert.equal(await driver.read(),null);
+  await driver.write(exportPortableBookmarks([bookmark('first')]));
+  await driver.write(exportPortableBookmarks([bookmark('second')]));
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['second']);
+  assert.equal(e.events.filter(x=>x[0]==='write').length,2);
+});
