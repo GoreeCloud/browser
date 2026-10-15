@@ -160,6 +160,18 @@ export function createGeckoProfileBookmarkDriver({
           throw new GeckoProfileBookmarkDriverError(
             'Invalid secure temporary path','PROFILE_SECURITY_UNVERIFIED');
         }
+        // Verify the *existing* inode's permissions before putting data into
+        // it. On Windows Gecko reports generic UNIX-like 0666 bits, which do
+        // not establish that its ACL is private: fail closed until a reviewed
+        // Windows-specific implementation exists.
+        const tempInfo=await ioUtils.stat(tmpPath);
+        if(tempInfo?.type!=='regular' || tempInfo.size!==0 ||
+           !Number.isSafeInteger(tempInfo.permissions) ||
+           (tempInfo.permissions & 0o777)!==0o600) {
+          throw new GeckoProfileBookmarkDriverError(
+            'Private temporary file permissions unverified',
+            'PRIVATE_TEMP_UNVERIFIED');
+        }
         await requireProfileSecurity();
         const options={tmpPath,flush:true,mode:'overwrite'};
         if(exists) options.backupFile=backup;
