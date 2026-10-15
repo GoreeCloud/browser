@@ -131,6 +131,9 @@ export function createGeckoProfileBookmarkDriver({
         throw new GeckoProfileBookmarkDriverError(
           'Existing bookmark file privacy unverified','PRIVATE_PROFILE_UNVERIFIED');
       }
+      // IOUtils.stat may complete after the privileged host loses its
+      // profile lock. Confirm ownership again before reading private bytes.
+      await requireProfileSecurity();
       let text;
       try { text=await ioUtils.readUTF8(base); }
       catch(error) {
@@ -174,6 +177,9 @@ export function createGeckoProfileBookmarkDriver({
             throw new GeckoProfileBookmarkDriverError(
               'Existing bookmark file privacy unverified','PRIVATE_PROFILE_UNVERIFIED');
           }
+          // A mode-safe stat alone cannot authorize a later private read:
+          // profile ownership may have been revoked while stat was pending.
+          await requireProfileSecurity();
           const current=await ioUtils.readUTF8(base);
           if(current!==observedContent) {
             throw new GeckoProfileBookmarkDriverError(
