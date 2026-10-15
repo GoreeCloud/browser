@@ -52,6 +52,8 @@ function position(items, index) {
  * recovers a corrupt file by overwriting it with an empty collection.
  * The driver must enforce exclusive profile ownership; external writers are
  * not supported until versioned cross-process coordination is implemented.
+ * Revisions are in-memory tokens scoped to this store instance, not durable
+ * cross-process version IDs.
  */
 export class BookmarkStore {
   #driver;
@@ -101,8 +103,20 @@ export class BookmarkStore {
       const nextNodes = normalized(this.#nodes);
       change(nextNodes);
       const serialized = exportPortableBookmarks(nextNodes);
-      // Failed writes never update the in-memory snapshot or revision.
-      await this.#driver.write(serialized);
+      // An atomic driver can commit successfully and still reject (for example,
+      // if its acknowledgement is lost). Never assume a rejected write means
+      // the on-disk data is unchanged: discard the cached snapshot and reload
+      // before allowing any further read or mutation. Bump the instance-local
+      // revision to invalidate optimistic concurrency tokens from before the
+      // uncertain write. A corrupt/failed reload stays fail-closed.
+      try {
+        await this.#driver.write(serialized);
+      } catch (error) {
+        this.#loaded = false;
+        this.#nodes = [];
+        this.#revision++;
+        throw error;
+      }
       this.#nodes = nextNodes;
       this.#revision++;
       return this.#snapshot();
