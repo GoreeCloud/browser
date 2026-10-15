@@ -17,7 +17,7 @@ function fixture() {
     async stat(p){
       if(!files.has(p))throw Object.assign(Error('not found'),{name:'NotFoundError'});
       const text=files.get(p);
-      return {type:'regular',size:Buffer.byteLength(text)};
+      return {type:'regular',size:Buffer.byteLength(text),permissions:0o600};
     },
     async readUTF8(p){reads++;return files.get(p);}
   };
@@ -90,5 +90,55 @@ test('oversized contents are never passed to validator',async()=>{
   const f=fixture();f.files.set(base,'x'.repeat(2_000_001));
   const r=await f.create().inspect();
   assert.equal(r.primary,'oversized');
+  assert.equal(f.reads(),0);
+});
+
+for(const [label,mode] of [
+  ['group-readable',0o640],['world-readable',0o644],
+  ['Windows-style generic permission report',0o666],
+  ['missing permission metadata',undefined],['invalid numeric mode',-1],
+]) {
+  test('refuses '+label+' before reading recovery bookmark data',async()=>{
+    const f=fixture();f.files.set(base,valid);
+    const originalStat=f.ioUtils.stat;
+    f.ioUtils.stat=async p=>{
+      const st=await originalStat(p);
+      return p===base?{...st,permissions:mode}:st;
+    };
+    const result=await f.create().inspect();
+    assert.equal(result.status,'recovery-review-required');
+    assert.equal(result.primary,'private-mode-unverified');
+    assert.equal(result.requiresManualReview,true);
+    assert.equal(f.reads(),0);
+    assert.ok(!JSON.stringify(result).includes(profile));
+  });
+}
+
+test('unsafe backup and temporary permissions reject reads and preserve existing data',async()=>{
+  const f=fixture();
+  const backup=base+'.bak',temp=base+'.tmp-';
+  f.files.set(base,valid);
+  f.files.set(backup,valid);
+  f.files.set(temp,valid);
+  const st=f.ioUtils.stat;
+  f.ioUtils.stat=async p=>({...await st(p),permissions:p===base?0o600:0o644});
+  const result=await f.create().inspect();
+  assert.equal(result.primary,'valid');
+  assert.equal(result.backup,'private-mode-unverified');
+  assert.deepEqual(result.privateTemporaries,['private-mode-unverified']);
+  assert.equal(f.reads(),1);
+  assert.equal(result.requiresManualReview,true);
+  assert.equal(f.files.get(backup),valid);
+  assert.equal(f.files.get(temp),valid);
+});
+
+test('unsafe legacy recovery permissions never authorize a read',async()=>{
+  const f=fixture(),legacy=base+'.tmp';
+  f.files.set(legacy,valid);
+  const st=f.ioUtils.stat;
+  f.ioUtils.stat=async p=>({...await st(p),permissions:0o666});
+  const result=await f.create().inspect();
+  assert.equal(result.legacyTemporary,'private-mode-unverified');
+  assert.equal(result.requiresManualReview,true);
   assert.equal(f.reads(),0);
 });
