@@ -10,6 +10,8 @@ on:
   pull_request:
     branches:
       - feat/gecko-linux-branding-first-pass
+      - feat/gecko-native-services-foundations
+      - feat/gecko-native-omnibox-capabilities
     paths:
       - "goreecloud/native/**"
       - ".github/workflows/gecko-native-bookmarks.yml"
