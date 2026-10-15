@@ -32,6 +32,16 @@ export function createGeckoBookmarkRecoveryInspector({
     throw new GeckoBookmarkRecoveryInspectionError('INVALID_PRIVILEGED_ADAPTER');
   }
   const base=pathUtils.join(pathUtils.profileDir,GECKO_PROFILE_BOOKMARK_FILE);
+  // Refuse inconsistent profile inventories instead of silently ignoring
+  // entries outside the verified directory or in nested directories.
+  // A privileged host must still enforce real path/symlink safety.
+  const directoryPrefix=base.slice(0,-GECKO_PROFILE_BOOKMARK_FILE.length);
+  function isDirectProfileChild(path) {
+    if(typeof path!=='string' || !pathUtils.isAbsolute(path) ||
+       !path.startsWith(directoryPrefix)) return false;
+    const leaf=path.slice(directoryPrefix.length);
+    return leaf.length>0 && leaf!=='.' && leaf!=='..' && !/[\\/]/.test(leaf);
+  }
   const backup=base+'.bak',legacy=base+'.tmp',tempBase=base+'.tmp-';
   const collisionBase=base+'-';
 
@@ -82,7 +92,7 @@ export function createGeckoBookmarkRecoveryInspector({
       try {entries=await ioUtils.getChildren(pathUtils.profileDir);}
       catch {throw new GeckoBookmarkRecoveryInspectionError('UNVERIFIABLE_DIRECTORY');}
       if(!Array.isArray(entries)||entries.length>MAX_ENTRIES||
-         entries.some(p=>typeof p!=='string'||!pathUtils.isAbsolute(p)))
+         entries.some(p=>!isDirectProfileChild(p)))
         throw new GeckoBookmarkRecoveryInspectionError('UNVERIFIABLE_DIRECTORY');
       const seen=new Set(),temps=[];
       for(const path of entries) {
