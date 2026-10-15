@@ -21,7 +21,7 @@ function fakeGecko() {
       return temp;
     },
     async exists(p) {return files.has(p);},
-    async stat(p) {if(!files.has(p))throw missing();return {type:'regular',size:new TextEncoder().encode(files.get(p)).byteLength};},
+    async stat(p) {if(!files.has(p))throw missing();return {type:'regular',size:new TextEncoder().encode(files.get(p)).byteLength,permissions:0o600};},
     async readUTF8(p) {if(vanishOnRead||!files.has(p))throw missing();return files.get(p);},
     async writeUTF8(p,text,opts) {
       events.push(['write',p,{...opts}]);
