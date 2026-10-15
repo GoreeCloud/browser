@@ -1,0 +1,76 @@
+<!--
+  GoreeCloud development-only Firefox 158 chrome-mochitest.
+  Synthetic temporary files only; does not touch Firefox Places or user profiles.
+  This test must run inside a compiled privileged Gecko build.
+-->
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>GoreeCloud private bookmark temp: native Gecko IOUtils contract</title>
+  <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" href="chrome://mochikit/content/tests/SimpleTest/test.css" />
+  <script>
+    "use strict";
+
+    add_task(async function test_bookmark_temporary_file_permissions_and_backup() {
+      const folder=await IOUtils.createUniqueDirectory(
+        PathUtils.tempDir,"goreecloud-private-bookmark-",0o700);
+      SimpleTest.registerCleanupFunction(async()=>{
+        await IOUtils.remove(folder,{recursive:true,ignoreAbsent:true});
+      });
+      const prefix="goreecloud-browser-local-bookmarks.v1.json.tmp-";
+      const primary=PathUtils.join(folder,"synthetic-local-bookmarks.json");
+      const backup=primary+".bak";
+      const first=await IOUtils.createUniqueFile(folder,prefix,0o600);
+      const before=await IOUtils.stat(first);
+      is(before.type,"regular","A real file was precreated");
+      is(before.size,0,"The precreated temporary file starts empty");
+      ok(PathUtils.filename(first).startsWith(prefix),
+         "The private temporary path remains within its expected namespace");
+
+      // Gecko reports generic UNIX-like permissions on Windows, not a
+      // verified user-only ACL. Do not put bookmarks into this file.
+      if(Services.appinfo.OS==="WINNT") {
+        ok((before.permissions & 0o077)!==0,
+           "Windows mode reporting cannot establish owner-only access");
+        info("Windows bookmark storage remains disabled until a reviewed ACL check exists");
+        return;
+      }
+
+      is(before.permissions & 0o777,0o600,
+         "Temporary file is private before bookmark data is written");
+      const oldData='{"test":"synthetic-original"}';
+      await IOUtils.writeUTF8(primary,oldData,
+                             {tmpPath:first,mode:"overwrite",flush:true});
+      is(await IOUtils.readUTF8(primary),oldData,
+         "Gecko moves the private temporary file into place");
+      is((await IOUtils.stat(primary)).permissions & 0o777,0o600,
+         "First replacement keeps private permissions");
+
+      const second=await IOUtils.createUniqueFile(folder,prefix,0o600);
+      is((await IOUtils.stat(second)).permissions & 0o777,0o600,
+         "A second temporary file is private before writing");
+      const newData='{"test":"synthetic-replacement"}';
+      await IOUtils.writeUTF8(primary,newData,
+                             {tmpPath:second,backupFile:backup,
+                              mode:"overwrite",flush:true});
+      is(await IOUtils.readUTF8(primary),newData,
+         "Gecko commits the replacement");
+      is(await IOUtils.readUTF8(backup),oldData,
+         "Gecko preserves the previous version as a backup");
+      is((await IOUtils.stat(backup)).permissions & 0o777,0o600,
+         "Moved backup preserves private permissions");
+      is((await IOUtils.stat(primary)).permissions & 0o777,0o600,
+         "Replacement remains private");
+      ok(!(await IOUtils.exists(second)),
+         "The moved temporary file no longer exists at its original path");
+    });
+  </script>
+</head>
+<body>
+  <p id="display"></p>
+  <div id="content" style="display:none"></div>
+  <pre id="test"></pre>
+</body>
+</html>
