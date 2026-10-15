@@ -124,6 +124,13 @@ export function createGeckoProfileBookmarkDriver({
         throw new GeckoProfileBookmarkDriverError('Invalid or oversized bookmark file',
           'INVALID_PROFILE_FILE');
       }
+      // Existing bookmark files must also be private before their contents
+      // are read. A validated directory and host callback alone cannot
+      // establish individual inode permissions; Windows ACLs remain unverified.
+      if(stat.permissions!==0o600) {
+        throw new GeckoProfileBookmarkDriverError(
+          'Existing bookmark file privacy unverified','PRIVATE_PROFILE_UNVERIFIED');
+      }
       let text;
       try { text=await ioUtils.readUTF8(base); }
       catch(error) {
@@ -160,6 +167,13 @@ export function createGeckoProfileBookmarkDriver({
         }
         await checkRecoveryFiles();
         if(exists) {
+          const existing=await ioUtils.stat(base);
+          if(existing?.type!=='regular' || existing.permissions!==0o600 ||
+             !Number.isSafeInteger(existing.size) || existing.size<0 ||
+             existing.size>2_000_000) {
+            throw new GeckoProfileBookmarkDriverError(
+              'Existing bookmark file privacy unverified','PRIVATE_PROFILE_UNVERIFIED');
+          }
           const current=await ioUtils.readUTF8(base);
           if(current!==observedContent) {
             throw new GeckoProfileBookmarkDriverError(
