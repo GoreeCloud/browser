@@ -32,3 +32,9 @@ function fakeGecko() {
 const driverFor=env=>createGeckoProfileBookmarkDriver({
   ioUtils:env.ioUtils,pathUtils:env.pathUtils,developmentEnabled:true,
 });
+
+test('gated profile driver rejects disabled and invalid environments',()=>{
+  const e=fakeGecko();
+  assert.throws(()=>createGeckoProfileBookmarkDriver({ioUtils:e.ioUtils,pathUtils:e.pathUtils}),{code:'FEATURE_DISABLED'});
+  assert.throws(()=>createGeckoProfileBookmarkDriver({ioUtils:{},pathUtils:e.pathUtils,developmentEnabled:true}),{code:'INVALID_PRIVILEGED_ADAPTER'});
+});
