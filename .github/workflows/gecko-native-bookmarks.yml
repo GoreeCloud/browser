@@ -19,6 +19,7 @@ on:
       - fix/gecko-private-bookmark-temp-20261015
       - fix/gecko-recovery-collision-20261015
       - fix/gecko-existing-profile-private-mode-20261015
+      - fix/bookmark-profile-authorization-recheck-20261015
     paths:
       - "goreecloud/native/**"
       - ".github/workflows/gecko-native-bookmarks.yml"
