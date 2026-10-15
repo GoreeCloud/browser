@@ -3,7 +3,7 @@
 // emulator. They are NOT Gecko xpcshell or proof of Gecko's file permissions.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, lstat, readFile, writeFile, copyFile, rename, chmod, access, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, lstat, readFile, writeFile, rename, chmod, access, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, isAbsolute } from 'node:path';
 import { BookmarkStore } from '../bookmarks/store.mjs';
@@ -37,12 +37,13 @@ async function fixture(t) {
       catch(error) {if(absent(error)) throw missing();throw error;}
     },
     async writeUTF8(path,text,options) {
-      // The emulator writes to an exclusively created PRIVATE temporary file.
-      // Gecko's actual creation mode must be checked in Gecko runtime tests.
+      // Firefox 158 IOUtils.cpp passes 0666 to nsFileOutputStream::Init:
+      // the process umask controls privacy until any later chmod. Mimic it.
       assert.equal(options.mode,'overwrite');
       assert.equal(options.flush,true);
-      await writeFile(options.tmpPath,text,{encoding:'utf8',flag:'wx',mode:0o600,flush:true});
-      if(options.backupFile) await copyFile(path,options.backupFile);
+      await writeFile(options.tmpPath,text,{encoding:'utf8',flag:'wx',mode:0o666,flush:true});
+      // Gecko's IOUtils::WriteSync MOVES the original file to backup first.
+      if(options.backupFile) await rename(path,options.backupFile);
       await rename(options.tmpPath,path);
     },
     async setPermissions(path,mode) { await chmod(path,mode); },
@@ -129,4 +130,40 @@ test('a symlinked temporary artifact is rejected without touching its target',as
   await symlink(sentinel,e.file+'.tmp');
   await assert.rejects(driver.read(),{code:'PROFILE_SECURITY_UNVERIFIED'});
   assert.equal(await readFile(sentinel,'utf8'),'preserve');
+});
+
+test('backup-move interruption preserves the old data without blind recreation',async t=>{
+  const e=await fixture(t),driver=e.driver();
+  const old=portable('safe-old');
+  await writeFile(e.file,old,{mode:0o600});
+  await driver.read();
+  e.ioUtils.writeUTF8=async(path,text,options)=>{
+    assert.ok(options.backupFile);
+    await rename(path,options.backupFile);
+    throw Error('Synthetic failure after backup move');
+  };
+  await assert.rejects(driver.write(portable('not-committed')),
+    /Synthetic failure after backup move/);
+  assert.equal(await e.ioUtils.exists(e.file),false);
+  assert.equal(await readFile(e.file+'.bak','utf8'),old);
+  await assert.rejects(driver.read(),{code:'RECOVERY_REQUIRED'});
+  await assert.rejects(driver.write(portable('blind-recreate')),{code:'READ_REQUIRED'});
+  assert.equal(await readFile(e.file+'.bak','utf8'),old);
+});
+
+test('emulated 0666 temporary file mode exposes the umask requirement',async t=>{
+  if(process.platform==='win32') {t.skip('POSIX creation mode required');return;}
+  const e=await fixture(t),driver=e.driver();
+  await driver.read();
+  let observed;
+  e.ioUtils.writeUTF8=async(path,text,options)=>{
+    await writeFile(options.tmpPath,text,{flag:'wx',mode:0o666});
+    observed=(await lstat(options.tmpPath)).mode & 0o777;
+    throw Error('Synthetic crash before replacement');
+  };
+  await assert.rejects(driver.write(portable('pending')),
+    /Synthetic crash before replacement/);
+  assert.equal(observed,0o666 & ~process.umask());
+  assert.equal((await lstat(e.file+'.tmp')).mode & 0o777,observed);
+  assert.equal(await e.ioUtils.exists(e.file),false);
 });
