@@ -34,7 +34,7 @@ jobs:
         with:
           sparse-checkout: |
             goreecloud/native
-            browser/base/content
+            browser/base
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
