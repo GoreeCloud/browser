@@ -13,9 +13,11 @@ export class GeckoProfileBookmarkDriverError extends Error {
 
 /** The host must enforce exclusive profile ownership. Read/write preflight below
  * detects changes already visible to this instance; it is NOT an atomic
- * cross-process compare-and-swap and does not replace locking. */
+ * cross-process compare-and-swap and does not replace locking.
+ * The privileged host must verify an exclusive profile lock, safe profile
+ * path and private directory through assertProfileSecurity before any I/O. */
 export function createGeckoProfileBookmarkDriver({
-  ioUtils, pathUtils, developmentEnabled=false,
+  ioUtils, pathUtils, developmentEnabled=false, assertProfileSecurity,
 }={}) {
   if(developmentEnabled !== true) {
     throw new GeckoProfileBookmarkDriverError('Profile bookmarks are disabled', 'FEATURE_DISABLED');
@@ -28,6 +30,21 @@ export function createGeckoProfileBookmarkDriver({
     !pathUtils.isAbsolute(pathUtils.profileDir)) {
     throw new GeckoProfileBookmarkDriverError('Privileged Gecko profile file APIs required',
       'INVALID_PRIVILEGED_ADAPTER');
+  }
+  if(typeof assertProfileSecurity !== 'function') {
+    throw new GeckoProfileBookmarkDriverError(
+      'A privileged profile security guard is required','PROFILE_SECURITY_GUARD_REQUIRED');
+  }
+  // The guard must only return true when the host still holds exclusive
+  // profile ownership and has verified directory privacy/path safety.
+  // Calling a guard does not create a lock or validate symlinks itself.
+  async function requireProfileSecurity() {
+    let authorized=false;
+    try { authorized=(await assertProfileSecurity())===true; } catch {}
+    if(!authorized) {
+      throw new GeckoProfileBookmarkDriverError(
+        'Privileged profile access is not verified','PROFILE_SECURITY_UNVERIFIED');
+    }
   }
   const base=pathUtils.join(pathUtils.profileDir,GECKO_PROFILE_BOOKMARK_FILE);
   const backup=base+'.bak', temporary=base+'.tmp';
@@ -46,6 +63,7 @@ export function createGeckoProfileBookmarkDriver({
   return Object.freeze({
     async read() {
       observedContent=undefined;
+      await requireProfileSecurity();
       let stat;
       try { stat=await ioUtils.stat(base); }
       catch(error) {
@@ -78,14 +96,15 @@ export function createGeckoProfileBookmarkDriver({
       return text;
     },
     async write(text) {
-      if(observedContent===undefined) {
-        throw new GeckoProfileBookmarkDriverError('Read before writing','READ_REQUIRED');
-      }
-      importPortableBookmarks(text);
-      // The host MUST still own the active profile exclusively. This check
-      // prevents a known stale snapshot from overwriting already-changed data
-      // but is not atomic with the subsequent write.
+      // Any security denial or write uncertainty invalidates prior approval.
       try {
+        await requireProfileSecurity();
+        if(observedContent===undefined) {
+          throw new GeckoProfileBookmarkDriverError('Read before writing','READ_REQUIRED');
+        }
+        importPortableBookmarks(text);
+        // The privileged host must maintain exclusive ownership for the
+        // entire transaction. Preflight alone cannot prevent later races.
         const exists=await ioUtils.exists(base);
         if(exists !== (observedContent!==null)) {
           throw new GeckoProfileBookmarkDriverError(
