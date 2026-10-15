@@ -208,3 +208,82 @@ test('security provider exceptions fail closed without leaking host details',asy
     !error.message.includes('Host secret'));
   assert.equal(e.events.filter(event=>event[0]==='write').length,0);
 });
+
+test('security revoked during profile read cannot authorize later writes',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,exportPortableBookmarks([bookmark('original')]));
+  const read=e.ioUtils.readUTF8;
+  e.ioUtils.readUTF8=async p=>{
+    const text=await read(p);
+    e.revokeSecurity();
+    return text;
+  };
+  const d=driverFor(e);
+  await assert.rejects(d.read(),{code:'PROFILE_SECURITY_UNVERIFIED'});
+  e.restoreSecurity();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('overwrite')])),
+    {code:'READ_REQUIRED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['original']);
+});
+
+test('new-profile read fails if its security guard expires during checks',async()=>{
+  const e=fakeGecko(),exists=e.ioUtils.exists;
+  e.ioUtils.exists=async p=>{
+    const result=await exists(p);
+    if(p===file+'.tmp') e.revokeSecurity();
+    return result;
+  };
+  const d=driverFor(e);
+  await assert.rejects(d.read(),{code:'PROFILE_SECURITY_UNVERIFIED'});
+  e.restoreSecurity();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('unsafe')])),
+    {code:'READ_REQUIRED'});
+  assert.equal(e.files.size,0);
+});
+
+test('security revoked during preflight blocks the pending disk write',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  await d.read();
+  const exists=e.ioUtils.exists;
+  e.ioUtils.exists=async p=>{
+    const result=await exists(p);
+    if(p===file) e.revokeSecurity();
+    return result;
+  };
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('unsafe')])),
+    {code:'PROFILE_SECURITY_UNVERIFIED'});
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+  e.restoreSecurity();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('unsafe')])),
+    {code:'READ_REQUIRED'});
+});
+
+test('concurrent direct profile writes serialize before entering IO',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  await d.read();
+  const originalWrite=e.ioUtils.writeUTF8;
+  const started=Promise.withResolvers(),release=Promise.withResolvers();
+  let writeCalls=0;
+  e.ioUtils.writeUTF8=async (...args)=>{
+    writeCalls++;
+    if(writeCalls===1){
+      started.resolve();
+      await release.promise;
+    }
+    return originalWrite(...args);
+  };
+  const first=d.write(exportPortableBookmarks([bookmark('first')]));
+  await started.promise;
+  const second=d.write(exportPortableBookmarks([bookmark('second')]));
+  try {
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(writeCalls,1,'second write must wait for first to finish');
+  } finally {
+    release.resolve();
+  }
+  await Promise.all([first,second]);
+  assert.equal(writeCalls,2);
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['second']);
+  assert.deepEqual(JSON.parse(e.files.get(file+'.bak')).nodes.map(x=>x.id),['first']);
+});
