@@ -10,7 +10,7 @@ const bookmark=id=>({id,title:id,type:'bookmark',url:'https://example.org/'+id})
 const missing=()=>Object.assign(new Error('Missing file'),{name:'NotFoundError'});
 function fakeGecko() {
   const files=new Map(), events=[];
-  let failChmod=false,vanishOnRead=false;
+  let failChmod=false,vanishOnRead=false,securityAllowed=true,securityError=false;
   const pathUtils={profileDir:profile,isAbsolute:p=>p.startsWith('/'),join:(...parts)=>parts.join('/')};
   const ioUtils={
     async exists(p) {return files.has(p);},
@@ -27,10 +27,19 @@ function fakeGecko() {
     },
   };
   return {files,events,pathUtils,ioUtils,
+    async assertProfileSecurity() {
+      events.push(['security-check']);
+      if(securityError) throw Error('Host secret must stay hidden');
+      return securityAllowed;
+    },
+    revokeSecurity(){securityAllowed=false;},
+    restoreSecurity(){securityAllowed=true;securityError=false;},
+    failSecurity(){securityError=true;},
     failNextChmod(){failChmod=true;},failNextRead(){vanishOnRead=true;}};
 }
 const driverFor=env=>createGeckoProfileBookmarkDriver({
   ioUtils:env.ioUtils,pathUtils:env.pathUtils,developmentEnabled:true,
+  assertProfileSecurity:()=>env.assertProfileSecurity(),
 });
 
 test('gated profile driver rejects disabled and invalid environments',()=>{
@@ -158,4 +167,44 @@ test('successful direct writes refresh the observed profile version',async()=>{
   await driver.write(exportPortableBookmarks([bookmark('second')]));
   assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['second']);
   assert.equal(e.events.filter(x=>x[0]==='write').length,2);
+});
+
+test('profile driver refuses I/O without a host-owned security guard',()=>{
+  const e=fakeGecko();
+  assert.throws(()=>createGeckoProfileBookmarkDriver({
+    ioUtils:e.ioUtils,pathUtils:e.pathUtils,developmentEnabled:true,
+  }),{code:'PROFILE_SECURITY_GUARD_REQUIRED'});
+  assert.equal(e.events.length,0);
+});
+
+test('revoked profile security blocks reads without inspecting files',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,exportPortableBookmarks([bookmark('a')]));
+  const driver=driverFor(e);
+  e.revokeSecurity();
+  await assert.rejects(driver.read(),{code:'PROFILE_SECURITY_UNVERIFIED'});
+  assert.deepEqual(e.events,['security-check'].map(event=>[event]));
+});
+
+test('losing profile security after read invalidates authorization to write',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('before')]));
+  await driver.read();
+  e.revokeSecurity();
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('after')])),
+    {code:'PROFILE_SECURITY_UNVERIFIED'});
+  e.restoreSecurity();
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('after')])),
+    {code:'READ_REQUIRED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['before']);
+  assert.equal(e.events.filter(event=>event[0]==='write').length,0);
+});
+
+test('security provider exceptions fail closed without leaking host details',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.failSecurity();
+  await assert.rejects(driver.read(),error=>
+    error.code==='PROFILE_SECURITY_UNVERIFIED' &&
+    !error.message.includes('Host secret'));
+  assert.equal(e.events.filter(event=>event[0]==='write').length,0);
 });
