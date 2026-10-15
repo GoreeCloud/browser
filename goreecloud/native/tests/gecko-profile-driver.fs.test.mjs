@@ -20,8 +20,16 @@ async function fixture(t) {
   t.after(async()=>fs.rm(dir,{recursive:true,force:true}));
   const primary=path.join(dir,GECKO_PROFILE_BOOKMARK_FILE);
   const backup=primary+'.bak', temporary=primary+'.tmp';
-  let interrupt=false,owner=true;
+  let interrupt=false,owner=true,tempCounter=0;
   const ioUtils={
+    async getChildren(p) {return (await fs.readdir(p)).map(name=>path.join(p,name));},
+    async createUniqueFile(parent,prefix,mode) {
+      assert.equal(mode,0o600);
+      const name=path.join(parent,prefix+(++tempCounter));
+      const handle=await fs.open(name,'wx',mode);
+      await handle.close();
+      return name;
+    },
     async exists(p) {
       try { await fs.lstat(p); return true; }
       catch(error) { if(error.code==='ENOENT')return false; throw error; }
@@ -36,10 +44,10 @@ async function fixture(t) {
     async writeUTF8(p,text,options) {
       assert.equal(options.mode,'overwrite');
       assert.equal(options.flush,true);
-      assert.equal(options.tmpPath,temporary);
-      if(options.backupFile)await fs.copyFile(p,options.backupFile);
-      const handle=await fs.open(options.tmpPath,'wx',0o600);
-      try { await handle.writeFile(text,'utf8'); await handle.sync(); }
+      assert.ok(options.tmpPath.startsWith(primary+'.tmp-'));
+      if(options.backupFile)await fs.rename(p,options.backupFile);
+      const handle=await fs.open(options.tmpPath,'r+');
+      try { await handle.truncate(0); await handle.writeFile(text,'utf8'); await handle.sync(); }
       finally { await handle.close(); }
       if(interrupt) {
         interrupt=false;
@@ -55,7 +63,8 @@ async function fixture(t) {
     try {
       const stat=await fs.lstat(dir);
       if(!stat.isDirectory()||stat.isSymbolicLink()||(stat.mode&0o077)!==0)return false;
-      for(const p of [primary,backup,temporary]) {
+      const pending=(await fs.readdir(dir)).filter(name=>name.startsWith(GECKO_PROFILE_BOOKMARK_FILE+'.tmp-')).map(name=>path.join(dir,name));
+      for(const p of [primary,backup,temporary,...pending]) {
         let item;
         try { item=await fs.lstat(p); }
         catch(error) { if(error.code==='ENOENT')continue; throw error; }
@@ -69,7 +78,9 @@ async function fixture(t) {
     pathUtils:{profileDir:dir,join:path.join,isAbsolute:path.isAbsolute},
     assertProfileSecurity,developmentEnabled:true,
   });
-  return {dir,primary,backup,temporary,driver,stopOwner:()=>{owner=false;},
+  return {dir,primary,backup,temporary,driver,
+    async pendingTemps() {return (await fs.readdir(dir)).filter(n=>n.startsWith(GECKO_PROFILE_BOOKMARK_FILE+'.tmp-')).map(n=>path.join(dir,n));},
+    stopOwner:()=>{owner=false;},
     interruptNextWrite:()=>{interrupt=true;}};
 }
 
@@ -84,18 +95,21 @@ test('real filesystem: offline reopen, backup and private file permissions',asyn
   assert.deepEqual((await reopened.snapshot()).nodes.map(x=>x.id),['first','second']);
 });
 
-test('real filesystem: interrupted replacement preserves primary and temp evidence',async t=>{
+test('real filesystem: interrupted backup move preserves backup and temp evidence',async t=>{
   const e=await fixture(t),driver=e.driver();
   assert.equal(await driver.read(),null);
   await driver.write(data('safe'));
   e.interruptNextWrite();
   await assert.rejects(driver.write(data('interrupted')),/Simulated crash/);
-  assert.deepEqual(JSON.parse(await fs.readFile(e.primary,'utf8')).nodes.map(x=>x.id),['safe']);
-  assert.deepEqual(JSON.parse(await fs.readFile(e.temporary,'utf8')).nodes.map(x=>x.id),['interrupted']);
+  assert.equal(await e.driver().read().then(()=>true,()=>false),false);
+  assert.deepEqual(JSON.parse(await fs.readFile(e.backup,'utf8')).nodes.map(x=>x.id),['safe']);
+  const pending=await e.pendingTemps();
+  assert.equal(pending.length,1);
+  assert.deepEqual(JSON.parse(await fs.readFile(pending[0],'utf8')).nodes.map(x=>x.id),['interrupted']);
   const recovery=e.driver();
-  await recovery.read();
-  await assert.rejects(recovery.write(data('new')),{code:'RECOVERY_REQUIRED'});
-  assert.deepEqual(JSON.parse(await fs.readFile(e.temporary,'utf8')).nodes.map(x=>x.id),['interrupted']);
+  await assert.rejects(recovery.read(),{code:'RECOVERY_REQUIRED'});
+  await assert.rejects(recovery.write(data('new')),{code:'READ_REQUIRED'});
+  assert.deepEqual(JSON.parse(await fs.readFile(pending[0],'utf8')).nodes.map(x=>x.id),['interrupted']);
 });
 
 test('real filesystem: symlink profile file fails closed without touching target',async t=>{
