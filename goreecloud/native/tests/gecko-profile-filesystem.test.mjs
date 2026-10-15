@@ -3,7 +3,7 @@
 // emulator. They are NOT Gecko xpcshell or proof of Gecko's file permissions.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, lstat, readFile, writeFile, rename, chmod, access, rm, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, lstat, readFile, writeFile, rename, chmod, access, rm, symlink, readdir, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, isAbsolute } from 'node:path';
 import { BookmarkStore } from '../bookmarks/store.mjs';
@@ -22,7 +22,16 @@ async function fixture(t) {
   await mkdir(profile,{mode:0o700});
   const file=join(profile,GECKO_PROFILE_BOOKMARK_FILE);
   const pathUtils={profileDir:profile,join,isAbsolute};
+  let tempCounter=0;
   const ioUtils={
+    async getChildren(parent) {return (await readdir(parent)).map(name=>join(parent,name));},
+    async createUniqueFile(parent,prefix,mode) {
+      assert.equal(mode,0o600);
+      const path=join(parent,prefix+(++tempCounter));
+      const handle=await open(path,'wx',mode);
+      await handle.close();
+      return path;
+    },
     async exists(path) {
       try { await access(path); return true; }
       catch(error) { if(absent(error)) return false; throw error; }
@@ -41,7 +50,7 @@ async function fixture(t) {
       // the process umask controls privacy until any later chmod. Mimic it.
       assert.equal(options.mode,'overwrite');
       assert.equal(options.flush,true);
-      await writeFile(options.tmpPath,text,{encoding:'utf8',flag:'wx',mode:0o666,flush:true});
+      await writeFile(options.tmpPath,text,{encoding:'utf8',flag:'w',mode:0o666,flush:true});
       // Gecko's IOUtils::WriteSync MOVES the original file to backup first.
       if(options.backupFile) await rename(path,options.backupFile);
       await rename(options.tmpPath,path);
@@ -53,8 +62,9 @@ async function fixture(t) {
   async function assertProfileSecurity() {
     const dir=await lstat(profile);
     if(!dir.isDirectory() || (dir.mode & 0o077)!==0) return false;
-    for(const path of [file,file+'.tmp',file+'.bak']) {
-      try { if((await lstat(path)).isSymbolicLink()) return false; }
+    const privateFiles=(await readdir(profile)).filter(name=>name.startsWith(GECKO_PROFILE_BOOKMARK_FILE+'.tmp-')).map(name=>join(profile,name));
+    for(const path of [file,file+'.tmp',file+'.bak',...privateFiles]) {
+      try { const st=await lstat(path); if(st.isSymbolicLink() || (st.mode & 0o077)!==0) return false; }
       catch(error) {if(!absent(error)) throw error;}
     }
     return true;
@@ -151,19 +161,21 @@ test('backup-move interruption preserves the old data without blind recreation',
   assert.equal(await readFile(e.file+'.bak','utf8'),old);
 });
 
-test('emulated 0666 temporary file mode exposes the umask requirement',async t=>{
+test('precreated temporary file remains private despite 0666 write mode',async t=>{
   if(process.platform==='win32') {t.skip('POSIX creation mode required');return;}
   const e=await fixture(t),driver=e.driver();
   await driver.read();
   let observed;
   e.ioUtils.writeUTF8=async(path,text,options)=>{
-    await writeFile(options.tmpPath,text,{flag:'wx',mode:0o666});
+    await writeFile(options.tmpPath,text,{flag:'w',mode:0o666});
     observed=(await lstat(options.tmpPath)).mode & 0o777;
     throw Error('Synthetic crash before replacement');
   };
   await assert.rejects(driver.write(portable('pending')),
     /Synthetic crash before replacement/);
-  assert.equal(observed,0o666 & ~process.umask());
-  assert.equal((await lstat(e.file+'.tmp')).mode & 0o777,observed);
+  assert.equal(observed,0o600);
+  const privateTemps=(await readdir(e.profile)).filter(name=>name.startsWith(GECKO_PROFILE_BOOKMARK_FILE+'.tmp-'));
+  assert.equal(privateTemps.length,1);
+  assert.equal((await lstat(join(e.profile,privateTemps[0]))).mode & 0o777,0o600);
   assert.equal(await e.ioUtils.exists(e.file),false);
 });
