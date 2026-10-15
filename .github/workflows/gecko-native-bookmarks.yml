@@ -13,6 +13,7 @@ on:
       - feat/gecko-native-services-foundations
       - feat/gecko-native-omnibox-capabilities
       - feat/gecko-native-bookmarks-capabilities-hardening-20261015
+      - fix/gecko-bookmark-store-recovery-20261015
     paths:
       - "goreecloud/native/**"
       - ".github/workflows/gecko-native-bookmarks.yml"
