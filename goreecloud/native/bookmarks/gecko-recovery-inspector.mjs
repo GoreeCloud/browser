@@ -60,8 +60,7 @@ export function createGeckoBookmarkRecoveryInspector({
     // A readable document is not healthy until this inode is demonstrably
     // private. Windows generic POSIX-style modes are not an ACL proof; a
     // permissive or missing mode cannot authorize a recovery read.
-    if(!Number.isSafeInteger(st.permissions)||
-       (st.permissions & 0o777)!==0o600)return 'private-mode-unverified';
+    if(st.permissions!==0o600)return 'private-mode-unverified';
     try {
       await secure();
       const value=await ioUtils.readUTF8(path);
