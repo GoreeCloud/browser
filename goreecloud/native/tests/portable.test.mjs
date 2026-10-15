@@ -48,3 +48,21 @@ test('rejects malformed JSON and null input', () => {
   assert.throws(() => importPortableBookmarks('{oops'), BookmarkImportError);
   assert.throws(() => importPortableBookmarks(null), BookmarkImportError);
 });
+
+test('rejects credential-bearing or ambiguous URLs before export or import',()=>{
+  for(const url of [
+    'https://user:password@example.org/private',
+    'http://user@example.org/',
+    'https://example.org/\npath',
+    'https://example.org/\tpath',
+    ' https://example.org/path ',
+  ]) {
+    invalid([{id:'unsafe',type:'bookmark',title:'Unsafe',url}]);
+    assert.throws(()=>importPortableBookmarks(JSON.stringify({
+      format:BOOKMARKS_FORMAT,version:1,nodes:[{id:'unsafe',type:'bookmark',title:'Unsafe',url}],
+    })),BookmarkImportError);
+  }
+  assert.equal(importPortableBookmarks(exportPortableBookmarks([{
+    id:'percent',type:'bookmark',title:'Encoded',url:'https://example.org/path%20with%20spaces',
+  }])).nodes.length,1);
+});

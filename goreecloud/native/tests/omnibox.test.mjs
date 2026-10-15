@@ -63,3 +63,34 @@ test('readiness is checked again for each action',async()=>{
   assert.equal((await getOmniboxGlyphs(r))[2].enabled,true);
   active=false;await assert.rejects(requestOmniboxIntent(r,'webspaces'),{code:'GLYPH_UNAVAILABLE'});
 });
+
+test('status fails closed if its adapter is replaced during async readiness',async()=>{
+  const registry=new NativeCapabilityRegistry();
+  let resolveStatus;
+  registry.register(FEATURE_IDS.WARDVEIL,{
+    status:()=>new Promise(resolve=>{resolveStatus=resolve}),
+    open:async()=>{},
+  });
+  const pending=registry.status(FEATURE_IDS.WARDVEIL);
+  registry.unregister(FEATURE_IDS.WARDVEIL);
+  registry.register(FEATURE_IDS.WARDVEIL,ready);
+  resolveStatus({state:'ready'});
+  assert.equal((await pending).state,'unavailable');
+});
+test('activation cannot switch to a new unverified adapter mid-request',async()=>{
+  const registry=new NativeCapabilityRegistry();
+  let resolveStatus,oldOpened=0,newOpened=0;
+  registry.register(FEATURE_IDS.PRIVACY_SHIELD,{
+    status:()=>new Promise(resolve=>{resolveStatus=resolve}),
+    open:async()=>{oldOpened++},
+  });
+  const opening=registry.open(FEATURE_IDS.PRIVACY_SHIELD);
+  registry.unregister(FEATURE_IDS.PRIVACY_SHIELD);
+  registry.register(FEATURE_IDS.PRIVACY_SHIELD,{
+    status:async()=>({state:'unavailable'}),open:async()=>{newOpened++},
+  });
+  resolveStatus({state:'ready'});
+  await assert.rejects(opening,{code:'CAPABILITY_UNAVAILABLE'});
+  assert.equal(oldOpened,0);
+  assert.equal(newOpened,0);
+});

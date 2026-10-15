@@ -29,6 +29,14 @@ function requireLocation(location) {
   }
 }
 
+function withLocation(location, result) {
+  if (result === null || typeof result !== 'object' || Array.isArray(result)) {
+    throw new UnifiedBookmarkError('Bookmark adapter returned an invalid result', 'INVALID_ADAPTER_RESULT');
+  }
+  // The requested location is authoritative; adapters cannot forge it.
+  return { ...result, location };
+}
+
 function isStore(store) {
   return store && ['snapshot', 'add', 'rename', 'move', 'remove', 'exportJSON', 'importJSON']
     .every(method => typeof store[method] === 'function');
@@ -66,10 +74,20 @@ export class UnifiedBookmarks {
     this.#hasCloudSession = hasCloudSession;
   }
 
+  #cloudAvailable() {
+    if (this.#cloud === null) return false;
+    try {
+      // A failed account/session check must not expose cloud actions.
+      return this.#hasCloudSession() === true;
+    } catch {
+      return false;
+    }
+  }
+
   locations() {
     // A disabled cloud connection still appears as a *choice*, never as a
     // hidden third category or as a fallback to local storage.
-    const cloudReady = this.#cloud !== null && this.#hasCloudSession() === true;
+    const cloudReady = this.#cloudAvailable();
     return OPTIONS.map(option => ({
       ...option,
       available: option.id === BOOKMARK_LOCATIONS.LOCAL || cloudReady,
@@ -79,7 +97,7 @@ export class UnifiedBookmarks {
   #store(location) {
     requireLocation(location);
     if (location === BOOKMARK_LOCATIONS.LOCAL) return this.#local;
-    if (this.#cloud === null || this.#hasCloudSession() !== true) {
+    if (!this.#cloudAvailable()) {
       throw new UnifiedBookmarkError('Sign in and connect GoreeCloud Bookmarks before using this location',
         'CLOUD_UNAVAILABLE');
     }
@@ -88,30 +106,30 @@ export class UnifiedBookmarks {
 
   async snapshot(location) {
     const snapshot = await this.#store(location).snapshot();
-    return { location, ...snapshot };
+    return withLocation(location, snapshot);
   }
   async save({ location, ...options } = {}) {
     const result = await this.#store(location).add(options);
-    return { location, ...result };
+    return withLocation(location, result);
   }
   async rename({ location, ...options } = {}) {
     const result = await this.#store(location).rename(options);
-    return { location, ...result };
+    return withLocation(location, result);
   }
   async move({ location, ...options } = {}) {
     const result = await this.#store(location).move(options);
-    return { location, ...result };
+    return withLocation(location, result);
   }
   async remove({ location, ...options } = {}) {
     const result = await this.#store(location).remove(options);
-    return { location, ...result };
+    return withLocation(location, result);
   }
   async exportJSON(location) {
     return this.#store(location).exportJSON();
   }
   async importJSON({ location, ...options } = {}) {
     const result = await this.#store(location).importJSON(options);
-    return { location, ...result };
+    return withLocation(location, result);
   }
 }
 

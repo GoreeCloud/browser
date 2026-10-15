@@ -12,6 +12,7 @@ const MAX_TITLE = 512;
 const MAX_URL = 4096;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const ACCEPTED_SCHEMES = new Set(['http:', 'https:', 'file:', 'about:']);
+const URL_CONTROLS = /[\u0000-\u001f\u007f]/;
 
 export class BookmarkImportError extends Error {
   constructor(message) {
@@ -65,9 +66,13 @@ function validatedTree(document) {
     if (item.type === 'bookmark') {
       exactKeys(item, ['id', 'type', 'title', 'url'], item.id);
       if (typeof item.url !== 'string' || !item.url || item.url.length > MAX_URL) fail('Invalid bookmark URL');
+      // URL() silently strips or normalizes embedded control characters.
+      if (URL_CONTROLS.test(item.url) || item.url !== item.url.trim()) fail('Ambiguous bookmark URL');
       let url;
       try { url = new URL(item.url); } catch { fail('Invalid bookmark URL'); }
       if (!ACCEPTED_SCHEMES.has(url.protocol)) fail('Unsafe or unsupported bookmark URL scheme');
+      // Credentials in a URL must never enter portable bookmark JSON or sync.
+      if (url.username || url.password) fail('Credential-bearing bookmark URL is not supported');
       if ((url.protocol === 'http:' || url.protocol === 'https:') && !url.hostname) fail('Bookmark URL needs a hostname');
       return { id: item.id, type: 'bookmark', title: item.title, url: item.url };
     }
