@@ -77,6 +77,9 @@ export class NativeCapabilityRegistry {
     if (!provider) return Object.freeze({id:feature.id,label:feature.label,state:'unavailable',reason:'Not integrated in this build'});
     try {
       const status = await provider.status(this.#context(context));
+      if (this.#providers.get(featureId) !== provider) {
+        return Object.freeze({id:feature.id,label:feature.label,state:'unavailable',reason:'Native service changed'});
+      }
       if (!status || !CAPABILITY_STATES.includes(status.state)) {
         return Object.freeze({id:feature.id,label:feature.label,state:'unavailable',reason:'Invalid native service state'});
       }
@@ -96,11 +99,11 @@ export class NativeCapabilityRegistry {
   }
 
   async open(featureId, context={}) {
+    const provider = this.#providers.get(featureId);
     const state = await this.status(featureId,context);
-    if(state.state !== 'ready') {
+    if (state.state !== 'ready' || !provider || this.#providers.get(featureId) !== provider) {
       throw new NativeCapabilityError('Native feature is unavailable', 'CAPABILITY_UNAVAILABLE');
     }
-    const provider=this.#providers.get(featureId);
     // The adapter rechecks security when activated (TOCTOU protection).
     const result=await provider.open(this.#context(context));
     return result === undefined ? null : result;
