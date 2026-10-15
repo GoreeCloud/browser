@@ -17,6 +17,7 @@ on:
       - feat/gecko-offline-profile-bookmark-driver-20261015
       - fix/bookmark-profile-write-preflight-20261015
       - fix/gecko-private-bookmark-temp-20261015
+      - fix/gecko-recovery-collision-20261015
     paths:
       - "goreecloud/native/**"
       - ".github/workflows/gecko-native-bookmarks.yml"
