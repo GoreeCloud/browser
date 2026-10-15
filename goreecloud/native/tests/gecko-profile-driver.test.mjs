@@ -42,3 +42,74 @@ test('gated profile driver rejects disabled and invalid environments',()=>{
 test('missing profile file is a new local collection',async()=>{
   const e=fakeGecko();assert.equal(await driverFor(e).read(),null);assert.equal(e.files.size,0);
 });
+
+test('read-before-write and malformed input are rejected',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('a')])),{code:'READ_REQUIRED'});
+  await d.read();
+  await assert.rejects(d.write('{not-json'));
+  assert.equal(e.files.size,0);
+});
+test('save and reopen preserve local data with atomic write options',async()=>{
+  const e=fakeGecko(),s=new BookmarkStore(driverFor(e));
+  await s.add({item:bookmark('one')});
+  assert.deepEqual(e.events.find(x=>x[0]==='write')[2],
+    {tmpPath:file+'.tmp',flush:true,mode:'overwrite'});
+  assert.ok(e.events.some(x=>x[0]==='chmod'&&x[1]===file&&x[2]===0o600));
+  const reopened=new BookmarkStore(driverFor(e));
+  assert.deepEqual((await reopened.snapshot()).nodes.map(x=>x.id),['one']);
+});
+
+test('replacements retain prior version in a private backup',async()=>{
+  const e=fakeGecko(),s=new BookmarkStore(driverFor(e));
+  await s.add({item:bookmark('first')});
+  const original=e.files.get(file);
+  await s.add({item:bookmark('second')});
+  assert.equal(e.files.get(file+'.bak'),original);
+  assert.equal(e.events.filter(x=>x[0]==='write')[1][2].backupFile,file+'.bak');
+  assert.ok(e.events.some(x=>x[0]==='chmod'&&x[1]===file+'.bak'&&x[2]===0o600));
+});
+test('orphaned backup or temporary data blocks creating a new store',async()=>{
+  for(const name of [file+'.bak',file+'.tmp']){
+    const e=fakeGecko();
+    e.files.set(name,exportPortableBookmarks([bookmark('old')]));
+    const store=new BookmarkStore(driverFor(e));
+    await assert.rejects(store.snapshot(),{code:'RECOVERY_REQUIRED'});
+    await assert.rejects(store.add({item:bookmark('new')}),{code:'RECOVERY_REQUIRED'});
+    assert.equal(e.files.has(file),false);
+  }
+});
+test('corrupt data is never treated as an empty new profile',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,'{corrupt');
+  const s=new BookmarkStore(driverFor(e));
+  await assert.rejects(s.snapshot());
+  await assert.rejects(s.add({item:bookmark('new')}));
+  assert.equal(e.files.get(file),'{corrupt');
+});
+
+test('oversized and non-regular profile data fail before mutation',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,'x'.repeat(2_000_001));
+  await assert.rejects(driverFor(e).read(),{code:'INVALID_PROFILE_FILE'});
+  e.ioUtils.stat=async()=>({type:'directory',size:0});
+  await assert.rejects(driverFor(e).read(),{code:'INVALID_PROFILE_FILE'});
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+test('disappearing profile file is a race, not a new profile',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,exportPortableBookmarks([bookmark('a')]));
+  e.failNextRead();
+  await assert.rejects(driverFor(e).read(),{code:'PROFILE_STORE_CHANGED'});
+});
+test('permission error after durable commit forces cache reload',async()=>{
+  const e=fakeGecko(),s=new BookmarkStore(driverFor(e));
+  const initial=await s.snapshot();
+  e.failNextChmod();
+  await assert.rejects(s.add({item:bookmark('persisted')}),/chmod failed/);
+  const after=await s.snapshot();
+  assert.ok(after.revision>initial.revision);
+  assert.deepEqual(after.nodes.map(x=>x.id),['persisted']);
+  await s.add({item:bookmark('next')});
+  assert.deepEqual((await s.snapshot()).nodes.map(x=>x.id),['persisted','next']);
+});
