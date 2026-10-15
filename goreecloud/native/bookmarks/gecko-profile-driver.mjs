@@ -51,6 +51,15 @@ export function createGeckoProfileBookmarkDriver({
   // undefined: no successfully validated read; null: new profile; string:
   // last validated on-disk bookmark file. Never permit writes after a bad read.
   let observedContent;
+  // Serialize all operations on this driver instance. BookmarkStore already
+  // serializes its own actions, but direct privileged callers must not
+  // interleave a read or commit with an in-flight write.
+  let queue=Promise.resolve();
+  function serial(action) {
+    const next=queue.then(action);
+    queue=next.then(()=>undefined,()=>undefined);
+    return next;
+  }
 
   async function checkRecoveryFiles() {
     if(await ioUtils.exists(backup) || await ioUtils.exists(temporary)) {
@@ -61,7 +70,7 @@ export function createGeckoProfileBookmarkDriver({
   }
 
   return Object.freeze({
-    async read() {
+    read() { return serial(async()=>{
       observedContent=undefined;
       await requireProfileSecurity();
       let stat;
@@ -69,6 +78,7 @@ export function createGeckoProfileBookmarkDriver({
       catch(error) {
         if(error?.name !== 'NotFoundError') throw error;
         await checkRecoveryFiles();
+        await requireProfileSecurity();
         observedContent=null;
         return null;
       }
@@ -92,10 +102,11 @@ export function createGeckoProfileBookmarkDriver({
       // Validation belongs at the storage boundary even if a caller bypasses
       // BookmarkStore. A corrupt read must never authorize a replacement.
       importPortableBookmarks(text);
+      await requireProfileSecurity();
       observedContent=text;
       return text;
-    },
-    async write(text) {
+    }); },
+    write(text) { return serial(async()=>{
       // Any security denial or write uncertainty invalidates prior approval.
       try {
         await requireProfileSecurity();
@@ -119,6 +130,9 @@ export function createGeckoProfileBookmarkDriver({
         } else {
           await checkRecoveryFiles();
         }
+        // The security guard might have been revoked while asynchronous
+        // profile reads/preflight were pending. Recheck just before the write.
+        await requireProfileSecurity();
         const options={tmpPath:temporary,flush:true,mode:'overwrite'};
         if(exists) options.backupFile=backup;
         await ioUtils.writeUTF8(base,text,options);
@@ -132,6 +146,6 @@ export function createGeckoProfileBookmarkDriver({
         observedContent=undefined;
         throw error;
       }
-    },
+    }); },
   });
 }
