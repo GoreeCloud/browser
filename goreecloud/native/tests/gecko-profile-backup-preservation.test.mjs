@@ -132,3 +132,39 @@ test('fresh profile cannot initialize over backup-only recovery evidence',async 
   assert.equal(f.commits(),0);
   assert.equal(await fs.readFile(f.backup,'utf8'),data('old'));
 });
+
+test('backup directory is preserved without attempting replacement',async t=>{
+  const f=await fixture(t);
+  await fs.writeFile(f.primary,data('primary'),{mode:0o600});
+  await fs.mkdir(f.backup,{mode:0o700});
+  assert.equal(await f.driver.read(),data('primary'));
+  await assert.rejects(f.driver.write(data('changed')),{code:'RECOVERY_REQUIRED'});
+  assert.equal(f.backupReads(),0);
+  assert.equal(f.commits(),0);
+  assert.equal((await fs.lstat(f.backup)).isDirectory(),true);
+  assert.equal(await fs.readFile(f.primary,'utf8'),data('primary'));
+});
+
+test('missing backup permission metadata fails closed before reading backup',async t=>{
+  const f=await fixture(t);await seed(f,data('old'));
+  const originalStat=f.ioUtils.stat;
+  f.ioUtils.stat=async p=>p===f.backup
+    ? {...await originalStat(p),permissions:undefined}
+    : originalStat(p);
+  await assert.rejects(f.driver.write(data('changed')),{code:'RECOVERY_REQUIRED'});
+  assert.equal(f.backupReads(),0);
+  assert.equal(f.commits(),0);
+  assert.equal(await fs.readFile(f.backup,'utf8'),data('old'));
+});
+
+test('backup presence errors fail closed without leaking sensitive paths',async t=>{
+  const f=await fixture(t);await seed(f,data('old'));
+  const originalExists=f.ioUtils.exists;
+  f.ioUtils.exists=async p=>{if(p===f.backup)throw Error('/secret/profile/recovery');
+    return originalExists(p);};
+  await assert.rejects(f.driver.write(data('changed')),e=>
+    e.code==='RECOVERY_REQUIRED'&&!e.message.includes('/secret/'));
+  assert.equal(f.backupReads(),0);
+  assert.equal(f.commits(),0);
+  assert.equal(await fs.readFile(f.backup,'utf8'),data('old'));
+});
