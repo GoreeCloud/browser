@@ -94,3 +94,38 @@ test('real isolated files: symlinked recovery artifact is never read as a bookma
   assert.equal(f.writes(),0);
   assert.deepEqual(await fs.readFile(target),before);
 });
+
+test('real isolated files: world-readable bookmark is not scanned as healthy',async t=>{
+  if(process.platform==='win32'){t.skip('POSIX chmod behavior');return;}
+  const f=await fixture(t),contents=data('private');
+  await fs.writeFile(f.primary,contents,{mode:0o600});
+  await fs.chmod(f.primary,0o644);
+  let reads=0;
+  const read=f.ioUtils.readUTF8;
+  f.ioUtils.readUTF8=async p=>{reads++;return read(p);};
+  const original=await fs.readFile(f.primary);
+  const inspected=await f.inspector().inspect();
+  assert.equal(inspected.status,'recovery-review-required');
+  assert.equal(inspected.primary,'private-mode-unverified');
+  assert.equal(reads,0);
+  assert.deepEqual(await fs.readFile(f.primary),original);
+  assert.equal((await fs.lstat(f.primary)).mode&0o777,0o644);
+});
+
+test('real isolated files: insecure backup and temp remain untouched',async t=>{
+  if(process.platform==='win32'){t.skip('POSIX chmod behavior');return;}
+  const f=await fixture(t),backup=f.primary+'.bak',temp=f.primary+'.tmp-';
+  await fs.writeFile(f.primary,data('one'),{mode:0o600});
+  await fs.writeFile(backup,data('backup'),{mode:0o600});
+  await fs.writeFile(temp,'{unfinished',{mode:0o600});
+  await fs.chmod(backup,0o666);
+  await fs.chmod(temp,0o644);
+  const originalBackup=await fs.readFile(backup),originalTemp=await fs.readFile(temp);
+  const r=await f.inspector().inspect();
+  assert.equal(r.primary,'valid');
+  assert.equal(r.backup,'private-mode-unverified');
+  assert.deepEqual(r.privateTemporaries,['private-mode-unverified']);
+  assert.equal(r.requiresManualReview,true);
+  assert.deepEqual(await fs.readFile(backup),originalBackup);
+  assert.deepEqual(await fs.readFile(temp),originalTemp);
+});
