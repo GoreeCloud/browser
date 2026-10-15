@@ -121,6 +121,13 @@ export function createGeckoProfileBookmarkDriver({
           throw new GeckoProfileBookmarkDriverError(
             'Bookmark file appeared or disappeared after read','PROFILE_STORE_CHANGED');
         }
+        // A leftover temporary file may contain the only copy of an
+        // interrupted commit. Never reuse the fixed tmpPath until recovery
+        // has been explicitly reviewed, even if the primary file exists.
+        if(await ioUtils.exists(temporary)) {
+          throw new GeckoProfileBookmarkDriverError(
+            'Unresolved temporary bookmark file','RECOVERY_REQUIRED');
+        }
         if(exists) {
           const current=await ioUtils.readUTF8(base);
           if(current!==observedContent) {
