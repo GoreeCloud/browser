@@ -115,3 +115,28 @@ test('rejects structurally invalid stores and cloud session hooks',()=>{
   assert.throws(()=>new UnifiedBookmarks({local:fakeStore(),cloud:{}}),UnifiedBookmarkError);
   assert.throws(()=>new UnifiedBookmarks({local:fakeStore(),hasCloudSession:true}),UnifiedBookmarkError);
 });
+
+test('cloud session exceptions fail closed without breaking local bookmarks',async()=>{
+  const local=fakeStore(),cloud=fakeStore();
+  const b=new UnifiedBookmarks({local,cloud,hasCloudSession:()=>{throw Error('session expired')}});
+  assert.equal(b.locations()[0].available,true);
+  assert.equal(b.locations()[1].available,false);
+  await assert.rejects(b.save({location:'goreecloud',item:bookmark('bad')}),{code:'CLOUD_UNAVAILABLE'});
+  await b.save({location:'local',item:bookmark('ok')});
+  assert.equal(local.writes,1);
+  assert.equal(cloud.writes,0);
+});
+test('adapter responses cannot spoof the selected bookmark location',async()=>{
+  const local=fakeStore(),cloud=fakeStore();
+  local.snapshot=async()=>({location:'goreecloud',revision:0,nodes:[]});
+  cloud.add=async()=>({location:'local',revision:1,nodes:[bookmark('cloud')]});
+  const b=new UnifiedBookmarks({local,cloud,hasCloudSession:()=>true});
+  assert.equal((await b.snapshot('local')).location,'local');
+  assert.equal((await b.save({location:'goreecloud',item:bookmark('cloud')})).location,'goreecloud');
+});
+test('malformed adapter responses fail instead of producing false success',async()=>{
+  const local=fakeStore();
+  local.snapshot=async()=>null;
+  const b=new UnifiedBookmarks({local});
+  await assert.rejects(b.snapshot('local'),{code:'INVALID_ADAPTER_RESULT'});
+});
