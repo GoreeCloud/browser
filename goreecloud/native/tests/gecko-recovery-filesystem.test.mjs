@@ -78,3 +78,19 @@ test('real isolated files: revocation prevents inspection and write',async t=>{
   await assert.rejects(f.inspector().inspect(),{code:'PROFILE_SECURITY_UNVERIFIED'});
   assert.equal(await fs.readFile(f.primary,'utf8'),data('one'));
 });
+
+test('real isolated files: symlinked recovery artifact is never read as a bookmark file',async t=>{
+  if(process.platform==='win32'){t.skip('POSIX symlink behavior');return;}
+  const f=await fixture(t);
+  const target=f.primary+'.sentinel';
+  const link=f.primary+'.tmp-';
+  await fs.writeFile(target,'private-sentinel',{mode:0o600});
+  await fs.symlink(target,link);
+  const before=await fs.readFile(target);
+  const preview=await f.inspector().inspect();
+  assert.equal(preview.requiresManualReview,true);
+  assert.deepEqual(preview.privateTemporaries,['not-regular']);
+  await assert.rejects(f.driver().read(),{code:'RECOVERY_REQUIRED'});
+  assert.equal(f.writes(),0);
+  assert.deepEqual(await fs.readFile(target),before);
+});
