@@ -97,6 +97,7 @@ for(const [label,mode] of [
   ['group-readable',0o640],['world-readable',0o644],
   ['Windows-style generic permission report',0o666],
   ['missing permission metadata',undefined],['invalid numeric mode',-1],
+  ['unexpected high permission bits',0o1600],
 ]) {
   test('refuses '+label+' before reading recovery bookmark data',async()=>{
     const f=fixture();f.files.set(base,valid);
