@@ -10,7 +10,7 @@ const bookmark=id=>({id,title:id,type:'bookmark',url:'https://example.org/'+id})
 const missing=()=>Object.assign(new Error('Missing file'),{name:'NotFoundError'});
 function fakeGecko() {
   const files=new Map(), events=[];
-  let failChmod=false,vanishOnRead=false;
+  let failChmod=false,vanishOnRead=false,securityAllowed=true,securityError=false;
   const pathUtils={profileDir:profile,isAbsolute:p=>p.startsWith('/'),join:(...parts)=>parts.join('/')};
   const ioUtils={
     async exists(p) {return files.has(p);},
@@ -27,10 +27,19 @@ function fakeGecko() {
     },
   };
   return {files,events,pathUtils,ioUtils,
+    async assertProfileSecurity() {
+      events.push(['security-check']);
+      if(securityError) throw Error('Host secret must stay hidden');
+      return securityAllowed;
+    },
+    revokeSecurity(){securityAllowed=false;},
+    restoreSecurity(){securityAllowed=true;securityError=false;},
+    failSecurity(){securityError=true;},
     failNextChmod(){failChmod=true;},failNextRead(){vanishOnRead=true;}};
 }
 const driverFor=env=>createGeckoProfileBookmarkDriver({
   ioUtils:env.ioUtils,pathUtils:env.pathUtils,developmentEnabled:true,
+  assertProfileSecurity:()=>env.assertProfileSecurity(),
 });
 
 test('gated profile driver rejects disabled and invalid environments',()=>{
@@ -112,4 +121,198 @@ test('permission error after durable commit forces cache reload',async()=>{
   assert.deepEqual(after.nodes.map(x=>x.id),['persisted']);
   await s.add({item:bookmark('next')});
   assert.deepEqual((await s.snapshot()).nodes.map(x=>x.id),['persisted','next']);
+});
+
+test('direct driver read refuses corrupted JSON before any write permission',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,'{not-json');
+  const driver=driverFor(e);
+  await assert.rejects(driver.read());
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('new')])),{code:'READ_REQUIRED'});
+  assert.equal(e.files.get(file),'{not-json');
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+
+test('external bookmark edits after a read cannot be silently overwritten',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('original')]));
+  await driver.read();
+  e.files.set(file,exportPortableBookmarks([bookmark('external')]));
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('mine')])),{code:'PROFILE_STORE_CHANGED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['external']);
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+
+test('primary file appearing after a new-profile read requires reloading',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  assert.equal(await driver.read(),null);
+  e.files.set(file,exportPortableBookmarks([bookmark('external')]));
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('mine')])),{code:'PROFILE_STORE_CHANGED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['external']);
+});
+
+test('primary file disappearing after a read refuses blind recreation',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('original')]));
+  await driver.read();
+  e.files.delete(file);
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('mine')])),{code:'PROFILE_STORE_CHANGED'});
+  assert.equal(e.files.has(file),false);
+});
+
+test('successful direct writes refresh the observed profile version',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  assert.equal(await driver.read(),null);
+  await driver.write(exportPortableBookmarks([bookmark('first')]));
+  await driver.write(exportPortableBookmarks([bookmark('second')]));
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['second']);
+  assert.equal(e.events.filter(x=>x[0]==='write').length,2);
+});
+
+test('profile driver refuses I/O without a host-owned security guard',()=>{
+  const e=fakeGecko();
+  assert.throws(()=>createGeckoProfileBookmarkDriver({
+    ioUtils:e.ioUtils,pathUtils:e.pathUtils,developmentEnabled:true,
+  }),{code:'PROFILE_SECURITY_GUARD_REQUIRED'});
+  assert.equal(e.events.length,0);
+});
+
+test('revoked profile security blocks reads without inspecting files',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,exportPortableBookmarks([bookmark('a')]));
+  const driver=driverFor(e);
+  e.revokeSecurity();
+  await assert.rejects(driver.read(),{code:'PROFILE_SECURITY_UNVERIFIED'});
+  assert.deepEqual(e.events,['security-check'].map(event=>[event]));
+});
+
+test('losing profile security after read invalidates authorization to write',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('before')]));
+  await driver.read();
+  e.revokeSecurity();
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('after')])),
+    {code:'PROFILE_SECURITY_UNVERIFIED'});
+  e.restoreSecurity();
+  await assert.rejects(driver.write(exportPortableBookmarks([bookmark('after')])),
+    {code:'READ_REQUIRED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['before']);
+  assert.equal(e.events.filter(event=>event[0]==='write').length,0);
+});
+
+test('security provider exceptions fail closed without leaking host details',async()=>{
+  const e=fakeGecko(),driver=driverFor(e);
+  e.failSecurity();
+  await assert.rejects(driver.read(),error=>
+    error.code==='PROFILE_SECURITY_UNVERIFIED' &&
+    !error.message.includes('Host secret'));
+  assert.equal(e.events.filter(event=>event[0]==='write').length,0);
+});
+
+test('security revoked during profile read cannot authorize later writes',async()=>{
+  const e=fakeGecko();
+  e.files.set(file,exportPortableBookmarks([bookmark('original')]));
+  const read=e.ioUtils.readUTF8;
+  e.ioUtils.readUTF8=async p=>{
+    const text=await read(p);
+    e.revokeSecurity();
+    return text;
+  };
+  const d=driverFor(e);
+  await assert.rejects(d.read(),{code:'PROFILE_SECURITY_UNVERIFIED'});
+  e.restoreSecurity();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('overwrite')])),
+    {code:'READ_REQUIRED'});
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['original']);
+});
+
+test('new-profile read fails if its security guard expires during checks',async()=>{
+  const e=fakeGecko(),exists=e.ioUtils.exists;
+  e.ioUtils.exists=async p=>{
+    const result=await exists(p);
+    if(p===file+'.tmp') e.revokeSecurity();
+    return result;
+  };
+  const d=driverFor(e);
+  await assert.rejects(d.read(),{code:'PROFILE_SECURITY_UNVERIFIED'});
+  e.restoreSecurity();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('unsafe')])),
+    {code:'READ_REQUIRED'});
+  assert.equal(e.files.size,0);
+});
+
+test('security revoked during preflight blocks the pending disk write',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  await d.read();
+  const exists=e.ioUtils.exists;
+  e.ioUtils.exists=async p=>{
+    const result=await exists(p);
+    if(p===file) e.revokeSecurity();
+    return result;
+  };
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('unsafe')])),
+    {code:'PROFILE_SECURITY_UNVERIFIED'});
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+  e.restoreSecurity();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('unsafe')])),
+    {code:'READ_REQUIRED'});
+});
+
+test('concurrent direct profile writes serialize before entering IO',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  await d.read();
+  const originalWrite=e.ioUtils.writeUTF8;
+  const started=Promise.withResolvers(),release=Promise.withResolvers();
+  let writeCalls=0;
+  e.ioUtils.writeUTF8=async (...args)=>{
+    writeCalls++;
+    if(writeCalls===1){
+      started.resolve();
+      await release.promise;
+    }
+    return originalWrite(...args);
+  };
+  const first=d.write(exportPortableBookmarks([bookmark('first')]));
+  await started.promise;
+  const second=d.write(exportPortableBookmarks([bookmark('second')]));
+  try {
+    await Promise.resolve();
+    await Promise.resolve();
+    assert.equal(writeCalls,1,'second write must wait for first to finish');
+  } finally {
+    release.resolve();
+  }
+  await Promise.all([first,second]);
+  assert.equal(writeCalls,2);
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['second']);
+  assert.deepEqual(JSON.parse(e.files.get(file+'.bak')).nodes.map(x=>x.id),['first']);
+});
+
+test('interrupted replacement temp is preserved even with a valid primary',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  const original=exportPortableBookmarks([bookmark('original')]);
+  const pending=exportPortableBookmarks([bookmark('interrupted')]);
+  e.files.set(file,original);
+  e.files.set(file+'.tmp',pending);
+  await d.read();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),
+    {code:'RECOVERY_REQUIRED'});
+  assert.equal(e.files.get(file),original);
+  assert.equal(e.files.get(file+'.tmp'),pending);
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+
+test('interrupted temp removal requires a fresh validated read before writing',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('old')]));
+  e.files.set(file+'.tmp',exportPortableBookmarks([bookmark('interrupted')]));
+  await d.read();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),
+    {code:'RECOVERY_REQUIRED'});
+  e.files.delete(file+'.tmp');
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),
+    {code:'READ_REQUIRED'});
+  await d.read();
+  await d.write(exportPortableBookmarks([bookmark('new')]));
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['new']);
 });
