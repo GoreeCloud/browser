@@ -15,6 +15,7 @@ on:
       - feat/gecko-native-bookmarks-capabilities-hardening-20261015
       - fix/gecko-bookmark-store-recovery-20261015
       - feat/gecko-offline-profile-bookmark-driver-20261015
+      - fix/bookmark-profile-write-preflight-20261015
     paths:
       - "goreecloud/native/**"
       - ".github/workflows/gecko-native-bookmarks.yml"
@@ -30,8 +31,17 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
+        with:
+          sparse-checkout: |
+            goreecloud/native
+            browser/base
+            xpcom/ioutils
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
       - name: Test native bookmark contracts
         run: node --test goreecloud/native/tests/*.test.mjs
+      - name: Verify private profile files with permissive umask
+        run: |
+          umask 000
+          node --test goreecloud/native/tests/gecko-profile-driver.fs.test.mjs goreecloud/native/tests/gecko-profile-filesystem.test.mjs

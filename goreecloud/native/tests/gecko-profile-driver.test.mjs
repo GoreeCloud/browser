@@ -10,16 +10,24 @@ const bookmark=id=>({id,title:id,type:'bookmark',url:'https://example.org/'+id})
 const missing=()=>Object.assign(new Error('Missing file'),{name:'NotFoundError'});
 function fakeGecko() {
   const files=new Map(), events=[];
-  let failChmod=false,vanishOnRead=false,securityAllowed=true,securityError=false;
+  let failChmod=false,vanishOnRead=false,securityAllowed=true,securityError=false,nonce=0;
   const pathUtils={profileDir:profile,isAbsolute:p=>p.startsWith('/'),join:(...parts)=>parts.join('/')};
   const ioUtils={
+    async getChildren(p) {return [...files.keys()].filter(path=>path.startsWith(p+'/'));},
+    async createUniqueFile(p,prefix,mode) {
+      events.push(['create-private-temp',p,prefix,mode]);
+      const temp=p+'/'+prefix+(++nonce);
+      files.set(temp,'');
+      return temp;
+    },
     async exists(p) {return files.has(p);},
-    async stat(p) {if(!files.has(p))throw missing();return {type:'regular',size:new TextEncoder().encode(files.get(p)).byteLength};},
+    async stat(p) {if(!files.has(p))throw missing();return {type:'regular',size:new TextEncoder().encode(files.get(p)).byteLength,permissions:0o600};},
     async readUTF8(p) {if(vanishOnRead||!files.has(p))throw missing();return files.get(p);},
     async writeUTF8(p,text,opts) {
       events.push(['write',p,{...opts}]);
       if(files.has(p)&&opts.backupFile)files.set(opts.backupFile,files.get(p));
       files.set(p,text);
+      if(opts.tmpPath) files.delete(opts.tmpPath);
     },
     async setPermissions(p,mode,honorUmask) {
       events.push(['chmod',p,mode,honorUmask]);
@@ -63,7 +71,7 @@ test('save and reopen preserve local data with atomic write options',async()=>{
   const e=fakeGecko(),s=new BookmarkStore(driverFor(e));
   await s.add({item:bookmark('one')});
   assert.deepEqual(e.events.find(x=>x[0]==='write')[2],
-    {tmpPath:file+'.tmp',flush:true,mode:'overwrite'});
+    {tmpPath:file+'.tmp-1',flush:true,mode:'overwrite'});
   assert.ok(e.events.some(x=>x[0]==='chmod'&&x[1]===file&&x[2]===0o600));
   const reopened=new BookmarkStore(driverFor(e));
   assert.deepEqual((await reopened.snapshot()).nodes.map(x=>x.id),['one']);
@@ -315,4 +323,41 @@ test('interrupted temp removal requires a fresh validated read before writing',a
   await d.read();
   await d.write(exportPortableBookmarks([bookmark('new')]));
   assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['new']);
+});
+
+test('private temp files are created with explicit mode 0600',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  await d.read();
+  await d.write(exportPortableBookmarks([bookmark('private')]));
+  const events=e.events.filter(x=>x[0]==='create-private-temp');
+  assert.equal(events.length,1);
+  assert.equal(events[0][3],0o600);
+  assert.equal(e.events.find(x=>x[0]==='write')[2].tmpPath,file+'.tmp-1');
+  assert.equal([...e.files.keys()].filter(p=>p.startsWith(file+'.tmp-')).length,0);
+});
+
+test('orphaned uniquely named private temporary files block all later writes',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('original')]));
+  e.files.set(file+'.tmp-99',exportPortableBookmarks([bookmark('interrupted')]));
+  await d.read();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),{code:'RECOVERY_REQUIRED'});
+  assert.equal(e.files.get(file+'.tmp-99'),exportPortableBookmarks([bookmark('interrupted')]));
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+
+test('orphaned private temp blocks fresh profile creation without data loss',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  e.files.set(file+'.tmp-1',exportPortableBookmarks([bookmark('pending')]));
+  await assert.rejects(d.read(),{code:'RECOVERY_REQUIRED'});
+  assert.equal(e.files.get(file+'.tmp-1'),exportPortableBookmarks([bookmark('pending')]));
+});
+
+test('invalid private temporary pathname fails closed before writing',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  await d.read();
+  e.ioUtils.createUniqueFile=async()=>'/elsewhere/private.tmp';
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),
+    {code:'PROFILE_SECURITY_UNVERIFIED'});
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
 });

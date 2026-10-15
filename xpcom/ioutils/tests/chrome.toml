@@ -12,6 +12,8 @@ support-files = [
 
 ["test_ioutils_create_unique.html"]
 
+["test_goreecloud_bookmark_private_temp.html"]
+
 ["test_ioutils_dir_iteration.html"]
 
 ["test_ioutils_getfile.html"]
