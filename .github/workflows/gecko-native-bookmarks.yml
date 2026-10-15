@@ -36,3 +36,7 @@ jobs:
           node-version: "24"
       - name: Test native bookmark contracts
         run: node --test goreecloud/native/tests/*.test.mjs
+      - name: Verify private profile files with permissive umask
+        run: |
+          umask 000
+          node --test goreecloud/native/tests/gecko-profile-driver.fs.test.mjs goreecloud/native/tests/gecko-profile-filesystem.test.mjs
