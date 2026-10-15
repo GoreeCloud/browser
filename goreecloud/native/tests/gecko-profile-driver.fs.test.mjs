@@ -38,7 +38,7 @@ async function fixture(t) {
       let st;
       try { st=await fs.lstat(p); }
       catch(error) { if(error.code==='ENOENT')throw notFound(); throw error; }
-      return {type:st.isFile()?'regular':st.isDirectory()?'directory':'other',size:st.size};
+      return {type:st.isFile()?'regular':st.isDirectory()?'directory':'other',size:st.size,permissions:st.mode & 0o777};
     },
     readUTF8:p=>fs.readFile(p,'utf8'),
     async writeUTF8(p,text,options) {
