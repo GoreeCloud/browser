@@ -47,6 +47,16 @@ export function createGeckoProfileBookmarkDriver({
     }
   }
   const base=pathUtils.join(pathUtils.profileDir,GECKO_PROFILE_BOOKMARK_FILE);
+  // Directory inventories must describe direct children of this profile only.
+  // This is lexical input validation, NOT a replacement for host-level
+  // symlink-safe directory handles and exclusive profile ownership.
+  const directoryPrefix=base.slice(0,-GECKO_PROFILE_BOOKMARK_FILE.length);
+  function isDirectProfileChild(path) {
+    if(typeof path!=='string' || !pathUtils.isAbsolute(path) ||
+       !path.startsWith(directoryPrefix)) return false;
+    const leaf=path.slice(directoryPrefix.length);
+    return leaf.length>0 && leaf!=='.' && leaf!=='..' && !/[\\/]/.test(leaf);
+  }
   const backup=base+'.bak', legacyTemporary=base+'.tmp';
   const privateTempPrefix=GECKO_PROFILE_BOOKMARK_FILE+'.tmp-';
   const privateTempBase=pathUtils.join(pathUtils.profileDir,privateTempPrefix);
@@ -86,7 +96,7 @@ export function createGeckoProfileBookmarkDriver({
         'Unverifiable profile directory inventory','PROFILE_STORE_UNAVAILABLE');
     }
     if(!Array.isArray(children) || children.length>25_000 ||
-       children.some(p=>typeof p!=='string' || !pathUtils.isAbsolute(p))) {
+       children.some(p=>!isDirectProfileChild(p))) {
       throw new GeckoProfileBookmarkDriverError(
         'Unverifiable profile directory inventory','PROFILE_STORE_UNAVAILABLE');
     }
