@@ -287,3 +287,32 @@ test('concurrent direct profile writes serialize before entering IO',async()=>{
   assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['second']);
   assert.deepEqual(JSON.parse(e.files.get(file+'.bak')).nodes.map(x=>x.id),['first']);
 });
+
+test('interrupted replacement temp is preserved even with a valid primary',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  const original=exportPortableBookmarks([bookmark('original')]);
+  const pending=exportPortableBookmarks([bookmark('interrupted')]);
+  e.files.set(file,original);
+  e.files.set(file+'.tmp',pending);
+  await d.read();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),
+    {code:'RECOVERY_REQUIRED'});
+  assert.equal(e.files.get(file),original);
+  assert.equal(e.files.get(file+'.tmp'),pending);
+  assert.equal(e.events.filter(x=>x[0]==='write').length,0);
+});
+
+test('interrupted temp removal requires a fresh validated read before writing',async()=>{
+  const e=fakeGecko(),d=driverFor(e);
+  e.files.set(file,exportPortableBookmarks([bookmark('old')]));
+  e.files.set(file+'.tmp',exportPortableBookmarks([bookmark('interrupted')]));
+  await d.read();
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),
+    {code:'RECOVERY_REQUIRED'});
+  e.files.delete(file+'.tmp');
+  await assert.rejects(d.write(exportPortableBookmarks([bookmark('new')])),
+    {code:'READ_REQUIRED'});
+  await d.read();
+  await d.write(exportPortableBookmarks([bookmark('new')]));
+  assert.deepEqual(JSON.parse(e.files.get(file)).nodes.map(x=>x.id),['new']);
+});
