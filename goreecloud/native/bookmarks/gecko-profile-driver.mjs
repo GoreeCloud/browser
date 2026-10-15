@@ -11,7 +11,9 @@ export class GeckoProfileBookmarkDriverError extends Error {
   }
 }
 
-/** Host must enforce a single profile owner; this is not a multi-process DB. */
+/** The host must enforce exclusive profile ownership. Read/write preflight below
+ * detects changes already visible to this instance; it is NOT an atomic
+ * cross-process compare-and-swap and does not replace locking. */
 export function createGeckoProfileBookmarkDriver({
   ioUtils, pathUtils, developmentEnabled=false,
 }={}) {
@@ -29,7 +31,9 @@ export function createGeckoProfileBookmarkDriver({
   }
   const base=pathUtils.join(pathUtils.profileDir,GECKO_PROFILE_BOOKMARK_FILE);
   const backup=base+'.bak', temporary=base+'.tmp';
-  let readSucceeded=false;
+  // undefined: no successfully validated read; null: new profile; string:
+  // last validated on-disk bookmark file. Never permit writes after a bad read.
+  let observedContent;
 
   async function checkRecoveryFiles() {
     if(await ioUtils.exists(backup) || await ioUtils.exists(temporary)) {
@@ -41,12 +45,13 @@ export function createGeckoProfileBookmarkDriver({
 
   return Object.freeze({
     async read() {
+      observedContent=undefined;
       let stat;
       try { stat=await ioUtils.stat(base); }
       catch(error) {
         if(error?.name !== 'NotFoundError') throw error;
         await checkRecoveryFiles();
-        readSucceeded=true;
+        observedContent=null;
         return null;
       }
       if(stat?.type !== 'regular' || !Number.isSafeInteger(stat.size) ||
@@ -66,24 +71,48 @@ export function createGeckoProfileBookmarkDriver({
       if(typeof text !== 'string') {
         throw new GeckoProfileBookmarkDriverError('Invalid bookmark read','INVALID_PROFILE_FILE');
       }
-      readSucceeded=true;
-      // BookmarkStore validates the loaded JSON and refuses to overwrite corruption.
+      // Validation belongs at the storage boundary even if a caller bypasses
+      // BookmarkStore. A corrupt read must never authorize a replacement.
+      importPortableBookmarks(text);
+      observedContent=text;
       return text;
     },
     async write(text) {
-      if(!readSucceeded) {
+      if(observedContent===undefined) {
         throw new GeckoProfileBookmarkDriverError('Read before writing','READ_REQUIRED');
       }
       importPortableBookmarks(text);
-      const exists=await ioUtils.exists(base);
-      if(!exists) await checkRecoveryFiles();
-      const options={tmpPath:temporary,flush:true,mode:'overwrite'};
-      if(exists) options.backupFile=backup;
-      await ioUtils.writeUTF8(base,text,options);
-      // Any post-write permission failure is ambiguous to BookmarkStore,
-      // which will discard its cache and reload the committed file.
-      await ioUtils.setPermissions(base,0o600,false);
-      if(exists) await ioUtils.setPermissions(backup,0o600,false);
+      // The host MUST still own the active profile exclusively. This check
+      // prevents a known stale snapshot from overwriting already-changed data
+      // but is not atomic with the subsequent write.
+      try {
+        const exists=await ioUtils.exists(base);
+        if(exists !== (observedContent!==null)) {
+          throw new GeckoProfileBookmarkDriverError(
+            'Bookmark file appeared or disappeared after read','PROFILE_STORE_CHANGED');
+        }
+        if(exists) {
+          const current=await ioUtils.readUTF8(base);
+          if(current!==observedContent) {
+            throw new GeckoProfileBookmarkDriverError(
+              'Bookmark file changed after read','PROFILE_STORE_CHANGED');
+          }
+        } else {
+          await checkRecoveryFiles();
+        }
+        const options={tmpPath:temporary,flush:true,mode:'overwrite'};
+        if(exists) options.backupFile=backup;
+        await ioUtils.writeUTF8(base,text,options);
+        // Any post-write permission failure leaves uncertain commit status.
+        await ioUtils.setPermissions(base,0o600,false);
+        if(exists) await ioUtils.setPermissions(backup,0o600,false);
+        observedContent=text;
+      } catch(error) {
+        // A rejected write may have durably committed. Explicit revalidation
+        // is necessary before another direct driver write can proceed.
+        observedContent=undefined;
+        throw error;
+      }
     },
   });
 }
