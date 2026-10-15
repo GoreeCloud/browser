@@ -129,3 +129,29 @@ test('real isolated files: insecure backup and temp remain untouched',async t=>{
   assert.deepEqual(await fs.readFile(backup),originalBackup);
   assert.deepEqual(await fs.readFile(temp),originalTemp);
 });
+
+test('real isolated disk: unsafe primary is rejected before any bookmark read',async t=>{
+  if(process.platform==='win32'){t.skip('POSIX chmod behavior');return;}
+  const f=await fixture(t),payload=data('one');
+  await fs.writeFile(f.primary,payload,{mode:0o600});
+  await fs.chmod(f.primary,0o644);
+  let reads=0;
+  const originalRead=f.ioUtils.readUTF8;
+  f.ioUtils.readUTF8=async p=>{reads++;return originalRead(p);};
+  await assert.rejects(f.driver().read(),{code:'PRIVATE_PROFILE_UNVERIFIED'});
+  assert.equal(reads,0);
+  assert.equal(f.writes(),0);
+  assert.equal(await fs.readFile(f.primary,'utf8'),payload);
+});
+
+test('real isolated disk: file mode drift blocks replacement without mutation',async t=>{
+  if(process.platform==='win32'){t.skip('POSIX chmod behavior');return;}
+  const f=await fixture(t),payload=data('one');
+  await fs.writeFile(f.primary,payload,{mode:0o600});
+  const driver=f.driver();
+  assert.equal(await driver.read(),payload);
+  await fs.chmod(f.primary,0o666);
+  await assert.rejects(driver.write(data('two')),{code:'PRIVATE_PROFILE_UNVERIFIED'});
+  assert.equal(f.writes(),0);
+  assert.equal(await fs.readFile(f.primary,'utf8'),payload);
+});
