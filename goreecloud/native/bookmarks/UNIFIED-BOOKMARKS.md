@@ -32,10 +32,10 @@ Cross-platform **experience and interoperable data semantics** are required; thi
 
 ## Implementation currently in this branch
 
-- `unified.mjs`: portable controller dispatching between two explicitly selected stores. Enforces missing/invalid destination failures and cloud-connection gating at the UI/domain boundary; cloud adapters **must still enforce authentication and authorization per operation**. Neither network persistence nor account synchronization has been implemented here.
-- `portable.mjs` and `store.mjs`: pre-existing local-only interchange and transactional domain interfaces. The store driver must implement crash-safe atomic replacement before it is connected to a real profile.
+- `unified.mjs`: portable controller dispatching between two explicitly selected stores. Enforces missing/invalid destination failures and cloud-connection gating at the UI/domain boundary; cloud adapters **must still enforce authentication and authorization per operation**. Neither network persistence nor account synchronization has been implemented here. The controller treats exceptions from the session gate as cloud-unavailable and binds returned location labels to the user's explicit selection, not to untrusted adapter response fields.
+- `portable.mjs` and `store.mjs`: local-only interchange and transactional domain interfaces. Portable import and export reject credential-bearing URLs and ambiguous control-character or padded URLs; they do not silently rewrite invalid sources. The store driver must implement crash-safe atomic replacement before it is connected to a real profile.
 - `previewFirefoxLegacyBookmarks`: read-only conversion from validated source-root contents to one portable Local Bookmarks collection, with no new top-level root folders and no implicit cloud upload.
-- `unified.test.mjs`: pure Node test coverage for location choice, routing isolation, offline behavior, logged-out refusal, migration previews and malformed inputs; these are not native runtime or user-interface tests.
+- `unified.test.mjs` and `portable.test.mjs`: pure Node tests for location choice, routing isolation, offline behavior, session-gate failure, response spoofing, logged-out refusal, migration previews, URL safety and malformed inputs. These are not native runtime or user-interface tests.
 
 ## Acceptance gates before disabling Firefox legacy bookmark UI
 
