@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - feat/gecko-native-services-foundations
+      - feat/gecko-native-omnibox-capabilities
     paths:
       - "goreecloud/native/capabilities/**"
       - "goreecloud/native/tests/omnibox*.test.mjs"
