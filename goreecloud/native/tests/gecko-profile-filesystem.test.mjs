@@ -39,7 +39,7 @@ async function fixture(t) {
     async stat(path) {
       let info;
       try {info=await lstat(path);} catch(error) {if(absent(error)) throw missing();throw error;}
-      return {type:info.isFile()?'regular':info.isDirectory()?'directory':'other',size:info.size};
+      return {type:info.isFile()?'regular':info.isDirectory()?'directory':'other',size:info.size,permissions:info.mode & 0o777};
     },
     async readUTF8(path) {
       try {return await readFile(path,'utf8');}
