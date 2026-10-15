@@ -47,9 +47,27 @@ export function createGeckoProfileBookmarkDriver({
     }
   }
   const base=pathUtils.join(pathUtils.profileDir,GECKO_PROFILE_BOOKMARK_FILE);
+  // Directory inventories must describe direct children of this profile only.
+  // This is lexical input validation, NOT a replacement for host-level
+  // symlink-safe directory handles and exclusive profile ownership.
+  const directoryPrefix=base.slice(0,-GECKO_PROFILE_BOOKMARK_FILE.length);
+  function isDirectProfileChild(path) {
+    if(typeof path!=='string' || !pathUtils.isAbsolute(path) ||
+       !path.startsWith(directoryPrefix)) return false;
+    const leaf=path.slice(directoryPrefix.length);
+    return leaf.length>0 && leaf!=='.' && leaf!=='..' && !/[\\/]/.test(leaf);
+  }
   const backup=base+'.bak', legacyTemporary=base+'.tmp';
   const privateTempPrefix=GECKO_PROFILE_BOOKMARK_FILE+'.tmp-';
   const privateTempBase=pathUtils.join(pathUtils.profileDir,privateTempPrefix);
+  // Gecko CreateUnique inserts -N before the final .tmp- extension on
+  // collisions. Such abandoned files must block subsequent writes.
+  const collisionTempBase=pathUtils.join(
+    pathUtils.profileDir, GECKO_PROFILE_BOOKMARK_FILE+'-');
+  function isRecoveryTemporary(path) {
+    return path.startsWith(privateTempBase) ||
+      (path.startsWith(collisionTempBase) && path.endsWith('.tmp-'));
+  }
   // undefined: no successfully validated read; null: new profile; string:
   // last validated on-disk bookmark file. Never permit writes after a bad read.
   let observedContent;
@@ -71,12 +89,18 @@ export function createGeckoProfileBookmarkDriver({
       throw new GeckoProfileBookmarkDriverError(
         'Review bookmark recovery files before writing','RECOVERY_REQUIRED');
     }
-    const children=await ioUtils.getChildren(pathUtils.profileDir);
-    if(!Array.isArray(children) || children.some(p=>typeof p!=='string')) {
+    let children;
+    try { children=await ioUtils.getChildren(pathUtils.profileDir); }
+    catch {
       throw new GeckoProfileBookmarkDriverError(
         'Unverifiable profile directory inventory','PROFILE_STORE_UNAVAILABLE');
     }
-    if(children.some(p=>p.startsWith(privateTempBase))) {
+    if(!Array.isArray(children) || children.length>25_000 ||
+       children.some(p=>!isDirectProfileChild(p))) {
+      throw new GeckoProfileBookmarkDriverError(
+        'Unverifiable profile directory inventory','PROFILE_STORE_UNAVAILABLE');
+    }
+    if(children.some(isRecoveryTemporary)) {
       throw new GeckoProfileBookmarkDriverError(
         'Unresolved private temporary bookmark file','RECOVERY_REQUIRED');
     }

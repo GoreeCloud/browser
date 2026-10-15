@@ -23,6 +23,12 @@
       const primary=PathUtils.join(folder,"synthetic-local-bookmarks.json");
       const backup=primary+".bak";
       const first=await IOUtils.createUniqueFile(folder,prefix,0o600);
+      // Gecko's CreateUnique tries the exact leaf first. If that exists it
+      // inserts -N BEFORE the final .tmp- extension, not after the prefix.
+      const colliding=await IOUtils.createUniqueFile(folder,prefix,0o600);
+      is(PathUtils.filename(colliding),
+         "goreecloud-browser-local-bookmarks.v1.json-1.tmp-",
+         "The native collision format remains discoverable by recovery scanning");
       const before=await IOUtils.stat(first);
       is(before.type,"regular","A real file was precreated");
       is(before.size,0,"The precreated temporary file starts empty");
