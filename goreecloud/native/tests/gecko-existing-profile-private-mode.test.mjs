@@ -9,7 +9,7 @@ import {exportPortableBookmarks} from '../bookmarks/portable.mjs';
 const dir='/isolated/driver-private-file';
 const base=dir+'/'+GECKO_PROFILE_BOOKMARK_FILE;
 const text=exportPortableBookmarks([{id:'safe',type:'bookmark',title:'Safe',url:'https://example.org/safe'}]);
-function fixture(mode=0o600) {
+function fixture(mode) {
   const files=new Map([[base,text]]);
   let reads=0,writes=0,fileMode=mode;
   const ioUtils={
@@ -45,7 +45,7 @@ for(const [name,mode] of [
 }
 
 test('previously private bookmark file cannot be replaced after chmod drift',async()=>{
-  const f=fixture();
+  const f=fixture(0o600);
   assert.equal(await f.driver.read(),text);
   f.setMode(0o644);
   await assert.rejects(f.driver.write(text),{code:'PRIVATE_PROFILE_UNVERIFIED'});
@@ -56,7 +56,7 @@ test('previously private bookmark file cannot be replaced after chmod drift',asy
 });
 
 test('properly private existing bookmarks can still be read',async()=>{
-  const f=fixture();
+  const f=fixture(0o600);
   assert.equal(await f.driver.read(),text);
   assert.equal(f.reads(),1);
   assert.equal(f.writes(),0);
