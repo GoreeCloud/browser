@@ -22,7 +22,7 @@ export function createGeckoProfileBookmarkDriver({
   if(developmentEnabled !== true) {
     throw new GeckoProfileBookmarkDriverError('Profile bookmarks are disabled', 'FEATURE_DISABLED');
   }
-  if(!ioUtils || ['readUTF8','writeUTF8','stat','exists','setPermissions']
+  if(!ioUtils || ['readUTF8','writeUTF8','stat','exists','setPermissions','createUniqueFile','getChildren']
     .some(key=>typeof ioUtils[key] !== 'function') ||
     !pathUtils || typeof pathUtils.join !== 'function' ||
     typeof pathUtils.isAbsolute !== 'function' ||
@@ -47,7 +47,9 @@ export function createGeckoProfileBookmarkDriver({
     }
   }
   const base=pathUtils.join(pathUtils.profileDir,GECKO_PROFILE_BOOKMARK_FILE);
-  const backup=base+'.bak', temporary=base+'.tmp';
+  const backup=base+'.bak', legacyTemporary=base+'.tmp';
+  const privateTempPrefix=GECKO_PROFILE_BOOKMARK_FILE+'.tmp-';
+  const privateTempBase=pathUtils.join(pathUtils.profileDir,privateTempPrefix);
   // undefined: no successfully validated read; null: new profile; string:
   // last validated on-disk bookmark file. Never permit writes after a bad read.
   let observedContent;
@@ -61,11 +63,22 @@ export function createGeckoProfileBookmarkDriver({
     return next;
   }
 
-  async function checkRecoveryFiles() {
-    if(await ioUtils.exists(backup) || await ioUtils.exists(temporary)) {
+  async function checkRecoveryFiles({includeBackup=false}={}) {
+    // Preserve both historical fixed temporary files and any uniquely named
+    // private temporary file left by a crash. Never silently overwrite them.
+    if((includeBackup && await ioUtils.exists(backup)) ||
+       await ioUtils.exists(legacyTemporary)) {
       throw new GeckoProfileBookmarkDriverError(
-        'Review orphaned bookmark recovery files before creating new data',
-        'RECOVERY_REQUIRED');
+        'Review bookmark recovery files before writing','RECOVERY_REQUIRED');
+    }
+    const children=await ioUtils.getChildren(pathUtils.profileDir);
+    if(!Array.isArray(children) || children.some(p=>typeof p!=='string')) {
+      throw new GeckoProfileBookmarkDriverError(
+        'Unverifiable profile directory inventory','PROFILE_STORE_UNAVAILABLE');
+    }
+    if(children.some(p=>p.startsWith(privateTempBase))) {
+      throw new GeckoProfileBookmarkDriverError(
+        'Unresolved private temporary bookmark file','RECOVERY_REQUIRED');
     }
   }
 
@@ -77,7 +90,7 @@ export function createGeckoProfileBookmarkDriver({
       try { stat=await ioUtils.stat(base); }
       catch(error) {
         if(error?.name !== 'NotFoundError') throw error;
-        await checkRecoveryFiles();
+        await checkRecoveryFiles({includeBackup:true});
         await requireProfileSecurity();
         observedContent=null;
         return null;
@@ -121,13 +134,7 @@ export function createGeckoProfileBookmarkDriver({
           throw new GeckoProfileBookmarkDriverError(
             'Bookmark file appeared or disappeared after read','PROFILE_STORE_CHANGED');
         }
-        // A leftover temporary file may contain the only copy of an
-        // interrupted commit. Never reuse the fixed tmpPath until recovery
-        // has been explicitly reviewed, even if the primary file exists.
-        if(await ioUtils.exists(temporary)) {
-          throw new GeckoProfileBookmarkDriverError(
-            'Unresolved temporary bookmark file','RECOVERY_REQUIRED');
-        }
+        await checkRecoveryFiles();
         if(exists) {
           const current=await ioUtils.readUTF8(base);
           if(current!==observedContent) {
@@ -135,12 +142,26 @@ export function createGeckoProfileBookmarkDriver({
               'Bookmark file changed after read','PROFILE_STORE_CHANGED');
           }
         } else {
-          await checkRecoveryFiles();
+          await checkRecoveryFiles({includeBackup:true});
         }
         // The security guard might have been revoked while asynchronous
         // profile reads/preflight were pending. Recheck just before the write.
         await requireProfileSecurity();
-        const options={tmpPath:temporary,flush:true,mode:'overwrite'};
+        // Gecko IOUtils::WriteSync uses creation mode 0666 for new files.
+        // Create a private temp with 0600 FIRST, then overwrite that existing
+        // private inode through IOUtils and atomically move it to the primary.
+        // Never clean a rejected write's temp automatically: it may contain
+        // recovery evidence or the last valid data.
+        const tmpPath=await ioUtils.createUniqueFile(
+          pathUtils.profileDir,privateTempPrefix,0o600);
+        if(typeof tmpPath!=='string' || !tmpPath.startsWith(privateTempBase) ||
+           !pathUtils.isAbsolute(tmpPath) ||
+           /[\\/]/.test(tmpPath.slice(privateTempBase.length))) {
+          throw new GeckoProfileBookmarkDriverError(
+            'Invalid secure temporary path','PROFILE_SECURITY_UNVERIFIED');
+        }
+        await requireProfileSecurity();
+        const options={tmpPath,flush:true,mode:'overwrite'};
         if(exists) options.backupFile=backup;
         await ioUtils.writeUTF8(base,text,options);
         // Any post-write permission failure leaves uncertain commit status.
