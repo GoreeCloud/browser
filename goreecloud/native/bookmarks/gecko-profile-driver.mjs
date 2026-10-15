@@ -106,6 +106,34 @@ export function createGeckoProfileBookmarkDriver({
     }
   }
 
+  // A previous backup is a recovery artifact, not a scratch target. A
+  // malformed, unreadable or nonprivate backup must never be overwritten by
+  // the next successful primary update. This permits normal rotation of
+  // previously validated private backups only; host locking remains required.
+  async function verifyBackupBeforeReplacement() {
+    await requireProfileSecurity();
+    let present;
+    try { present=await ioUtils.exists(backup); }
+    catch { throw new GeckoProfileBookmarkDriverError(
+      'Backup recovery review required','RECOVERY_REQUIRED'); }
+    if(!present) return;
+    let info;
+    try { info=await ioUtils.stat(backup); }
+    catch { throw new GeckoProfileBookmarkDriverError(
+      'Backup recovery review required','RECOVERY_REQUIRED'); }
+    if(info?.type!=='regular' || info.permissions!==0o600 ||
+       !Number.isSafeInteger(info.size) || info.size<0 ||
+       info.size>2_000_000) {
+      throw new GeckoProfileBookmarkDriverError(
+        'Backup recovery review required','RECOVERY_REQUIRED');
+    }
+    await requireProfileSecurity();
+    try { importPortableBookmarks(await ioUtils.readUTF8(backup)); }
+    catch { throw new GeckoProfileBookmarkDriverError(
+      'Backup recovery review required','RECOVERY_REQUIRED'); }
+    await requireProfileSecurity();
+  }
+
   return Object.freeze({
     read() { return serial(async()=>{
       observedContent=undefined;
@@ -185,6 +213,7 @@ export function createGeckoProfileBookmarkDriver({
             throw new GeckoProfileBookmarkDriverError(
               'Bookmark file changed after read','PROFILE_STORE_CHANGED');
           }
+          await verifyBackupBeforeReplacement();
         } else {
           await checkRecoveryFiles({includeBackup:true});
         }
