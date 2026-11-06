@@ -1,0 +1,8 @@
+GoreeCloud Browser
+Copyright 2026 GoreeCloud
+
+This repository's original application code is licensed under Apache-2.0.
+The executable depends on PySide6/Qt for Python and Qt WebEngine (Qt Project),
+which are separately licensed. Distributors must preserve all applicable
+third-party license notices and comply with library linking/replacement
+and source-code obligations. See docs/THIRD_PARTY.md.
