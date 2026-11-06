@@ -23,6 +23,7 @@ from PySide6.QtWebEngineCore import (
     QWebEngineSettings, QWebEngineUrlRequestInfo, QWebEngineUrlRequestInterceptor,
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
+from shiboken6 import delete as destroy_qobject
 
 from goreecloud_browser.core import (
     clean_tracking_parameters, destination_for, is_known_tracker, valid_web_url,
@@ -357,6 +358,9 @@ class BrowserWindow(QMainWindow):
             QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
             if self.persistent_cookies
             else QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
+        # Prevent granted website permissions from surviving an app restart.
+        self.profile.setPersistentPermissionsPolicy(
+            QWebEngineProfile.PersistentPermissionsPolicy.StoreInMemory)
         self.profile.settings().setUnknownUrlSchemePolicy(
             QWebEngineSettings.UnknownUrlSchemePolicy.DisallowUnknownUrlSchemes)
         self.profile.settings().setAttribute(
@@ -652,6 +656,24 @@ class BrowserWindow(QMainWindow):
             return
         current = tab.view.zoomFactor()
         tab.view.setZoomFactor(1.0 if delta == 0 else min(3.0, max(0.5, current + delta)))
+
+    def closeEvent(self, event):
+        # Qt requires every page to be destroyed before its persistent profile.
+        # deleteLater() alone runs too late when QApplication exits immediately.
+        if getattr(self, "_closing", False):
+            event.accept()
+            return
+        self._closing = True
+        while self.tabs.count():
+            tab = self.tabs.widget(0)
+            self.tabs.removeTab(0)
+            if tab is not None:
+                tab.view.stop()
+                destroy_qobject(tab)
+        self.profile.setUrlRequestInterceptor(None)
+        destroy_qobject(self.profile)
+        self.preferences.sync()
+        super().closeEvent(event)
 
 
 def main() -> int:
