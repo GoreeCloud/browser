@@ -38,7 +38,9 @@ python -m pip install -r requirements.txt
 python -m goreecloud_browser
 ~~~
 
-Do not disable WebEngine sandboxing for routine use.
+On Linux, ensure the desktop distribution provides Qt WebEngine runtime dependencies,
+including libEGL/libOpenGL and XKBCommon X11. Do not disable WebEngine sandboxing
+for routine use.
 
 ## Tests
 
