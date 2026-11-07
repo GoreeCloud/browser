@@ -114,7 +114,10 @@ python3 -m compileall -q goreecloud_browser tests
 
 Linux CI checks pure helpers, compilation, Qt imports, the Python package,
 native page lifecycle and isolated HTTP navigation/redirect/POST smoke tests
-through both offscreen and virtual X11 (Xvfb) backends.
+through both offscreen and virtual X11 (Xvfb) backends. It also verifies
+Privacy Shield exact-host exceptions against **real Qt WebEngine HTTP requests**
+using temporary RFC-reserved `.invalid` hosts mapped to 127.0.0.1 by
+process-local Chromium resolver flags, with no OS DNS/hosts-file changes.
 A short local Wayland session smoke was also verified on Zorin OS; CI does not
 emulate a true interactive Wayland desktop. This does not establish full Linux
 visual, accessibility, web-compatibility or browser security acceptance.

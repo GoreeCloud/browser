@@ -65,6 +65,10 @@ QT_QPA_PLATFORM=xcb QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
 QT_QPA_PLATFORM=offscreen QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
   GC_BROWSER_QT_SMOKE=1 python3 -m unittest discover \
     -s tests -p test_linux_download_smoke.py -v
+# Opt-in real-network site exception check; .invalid hosts resolve only in this process
+GC_BROWSER_QT_SMOKE=1 GC_BROWSER_FILTER_NETWORK=off QT_QPA_PLATFORM=offscreen \
+QTWEBENGINE_CHROMIUM_FLAGS='--disable-gpu --no-proxy-server --host-resolver-rules="MAP news.browser-test.invalid 127.0.0.1, MAP ads.browser-test.invalid 127.0.0.1"' \
+  python3 -m unittest discover -s tests -p test_linux_site_exception_network_smoke.py -v
 desktop-file-validate \
   "$HOME/.local/share/applications/com.goreecloud.browser.desktop"
 ~~~

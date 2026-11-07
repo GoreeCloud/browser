@@ -83,6 +83,12 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: python -m unittest discover -s tests -p 'test_linux_site_exceptions_smoke.py' -v
+      - name: Linux real WebEngine site-exception HTTP boundary (offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: '--disable-gpu --no-proxy-server --host-resolver-rules="MAP news.browser-test.invalid 127.0.0.1, MAP ads.browser-test.invalid 127.0.0.1"'
+        run: python -m unittest discover -s tests -p 'test_linux_site_exception_network_smoke.py' -v
       - name: Linux stored website permission review and revocation (offscreen)
         env:
           GC_BROWSER_QT_SMOKE: "1"
@@ -137,6 +143,12 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_site_exceptions_smoke.py' -v
+      - name: Linux real WebEngine site-exception HTTP boundary (Xvfb)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: '--disable-gpu --no-proxy-server --host-resolver-rules="MAP news.browser-test.invalid 127.0.0.1, MAP ads.browser-test.invalid 127.0.0.1"'
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_site_exception_network_smoke.py' -v
       - name: Linux X11 stored website permission review and revocation
         env:
           GC_BROWSER_QT_SMOKE: "1"
