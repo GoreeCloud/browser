@@ -28,6 +28,9 @@ from shiboken6 import delete as destroy_qobject
 from goreecloud_browser.core import (
     clean_tracking_parameters, destination_for, is_known_tracker, valid_web_url,
 )
+from goreecloud_browser.site_data import (
+    ProfileLock, apply_pending_site_reset, schedule_site_reset,
+)
 
 # Values copied from the canonical GC UI token implementation
 # GoreeCloud/gc-ui: styles/tokens.css (verified 2026-11-06).
@@ -329,6 +332,9 @@ class PrivacyDialog(QDialog):
         box.addWidget(note)
         box.addWidget(button("Clear cookies and HTTP cache", "Delete browser cookies and HTTP cache",
                              browser.clear_cookies))
+        box.addWidget(button("Erase all website data after restart…",
+                             "Request an explicit restart-time site data reset",
+                             browser.request_site_data_reset))
         done = button("Done", "Close privacy controls", self.accept, primary=True)
         box.addWidget(done)
 
@@ -349,7 +355,15 @@ class BrowserWindow(QMainWindow):
         self.persistent_cookies = self.preferences.value("persistent_cookies", False, type=bool)
 
         storage = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation))
-        storage.mkdir(parents=True, exist_ok=True)
+        self.site_storage = storage
+        try:
+            self.profile_lock = ProfileLock(storage)
+            apply_pending_site_reset(storage)
+        except (OSError, ValueError, BlockingIOError) as exc:
+            if hasattr(self, "profile_lock"):
+                self.profile_lock.close()
+            raise RuntimeError("Browser profile is already in use or its data reset failed. "
+                               "Close other GoreeCloud Browser processes and check site storage.") from exc
         self.profile = QWebEngineProfile("GoreeCloudBrowser", self)
         self.profile.setPersistentStoragePath(str(storage / "web-profile"))
         self.profile.setCachePath(str(storage / "cache"))
@@ -594,6 +608,29 @@ class BrowserWindow(QMainWindow):
         self.profile.clearHttpCache()
         self.statusBar().showMessage("Cookies and HTTP cache clearing requested.", 5000)
 
+    def request_site_data_reset(self):
+        answer = QMessageBox.question(
+            self, "Erase website data on restart",
+            "Remove all GoreeCloud Browser website storage, cookies, and cache "
+            "the next time you close and reopen the browser?\n\n"
+            "You may be signed out of websites. Bookmarks and browser "
+            "preferences will be kept. The current session is not erased yet.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            new_request = schedule_site_reset(self.site_storage)
+        except (OSError, ValueError) as exc:
+            QMessageBox.warning(self, "Reset could not be scheduled", str(exc))
+            return
+        self.statusBar().showMessage(
+            "Site data will be erased after you close and reopen the browser."
+            if new_request else "Website data erasure is already scheduled.",
+            10000,
+        )
+
     def show_privacy(self):
         dialog = PrivacyDialog(self)
         dialog.exec()
@@ -623,7 +660,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.1.0\n\n"
+            "GoreeCloud Browser • development preview 0.1.1\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"
@@ -672,6 +709,7 @@ class BrowserWindow(QMainWindow):
                 destroy_qobject(tab)
         self.profile.setUrlRequestInterceptor(None)
         destroy_qobject(self.profile)
+        self.profile_lock.close()
         self.preferences.sync()
         super().closeEvent(event)
 
@@ -681,6 +719,10 @@ def main() -> int:
     QApplication.setApplicationName("GoreeCloudBrowser")
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
-    window = BrowserWindow()
+    try:
+        window = BrowserWindow()
+    except RuntimeError as error:
+        QMessageBox.critical(None, "Browser profile unavailable", str(error))
+        return 1
     window.show()
     return app.exec()
