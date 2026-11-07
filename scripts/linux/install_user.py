@@ -34,8 +34,17 @@ def desktop_exec_arg(value: Path) -> str:
     return f'"{raw}"'
 
 
-def desktop_entry(python_exe: Path) -> str:
+def desktop_icon_value(icon: Path) -> str:
+    """Validate an absolute freedesktop Icon path without shell evaluation."""
+    value = str(icon)
+    if not icon.is_absolute() or any(c in value for c in '\n\r\x00"%\\' + chr(96) + '$'):
+        raise ValueError("Unsafe desktop launcher icon path.")
+    return value
+
+
+def desktop_entry(python_exe: Path, icon_path: Path | None = None) -> str:
     command = desktop_exec_arg(python_exe)
+    icon = desktop_icon_value(icon_path) if icon_path else APP_ID
     return (
         "[Desktop Entry]\n"
         f"{MARKER}\n"
@@ -45,7 +54,7 @@ def desktop_entry(python_exe: Path) -> str:
         "Comment=Native Linux browser development preview\n"
         f"Exec={command} -m goreecloud_browser\n"
         f"TryExec={command}\n"
-        "Icon=web-browser\n"
+        f"Icon={icon}\n"
         "Terminal=false\n"
         "StartupNotify=true\n"
         "Categories=Network;WebBrowser;\n"
@@ -73,6 +82,8 @@ def install(data_home: Path) -> tuple[Path, Path]:
     runtime_dir.mkdir(mode=0o700)
     launcher_written = False
     try:
+        icon_path = runtime_dir / "icon.png"
+        shutil.copyfile(ROOT / "goreecloud_browser" / "assets" / "app-icon-256.png", icon_path)
         venv_dir = runtime_dir / "venv"
         venv.EnvBuilder(with_pip=True).create(str(venv_dir))
         py = venv_dir / "bin" / "python"
@@ -88,7 +99,7 @@ def install(data_home: Path) -> tuple[Path, Path]:
         )
         application_file.parent.mkdir(parents=True, exist_ok=True)
         # Write only after all dependencies installed and imported successfully.
-        content = desktop_entry(py)
+        content = desktop_entry(py, icon_path)
         with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", prefix=".goreecloud-browser-",
             suffix=".desktop", dir=application_file.parent, delete=False

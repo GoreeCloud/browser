@@ -33,7 +33,7 @@ From a trusted, inspected checkout:
 python3 scripts/linux/install_user.py
 ~~~
 
-This creates a separate Python environment under the XDG data home in goreecloud-browser/runtime/venv, and a freedesktop launcher in applications/com.goreecloud.browser.desktop. Default XDG data home is ~/.local/share. The launcher displays "GoreeCloud Browser (Preview)" with a generic system web-browser icon, not a fictional GC UI brand asset.
+This creates a separate Python environment under the XDG data home in goreecloud-browser/runtime/venv, and a freedesktop launcher in applications/com.goreecloud.browser.desktop. Default XDG data home is ~/.local/share. The launcher displays "GoreeCloud Browser (Preview)" with an **absolute path to the bundled first-party Prism Tabs v5 icon** copied into the new private program runtime. It no longer uses the generic system browser icon. The icon path is validated before writing the freedesktop entry. This does not change the default browser or replace pre-existing installations.
 
 To remove only the application runtime and launcher (not bookmarks or browsing
 profile data), close the app and run:

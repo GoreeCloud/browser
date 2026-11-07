@@ -23,3 +23,6 @@ goreecloud-browser = "goreecloud_browser.app:main"
 
 [tool.setuptools.packages.find]
 include = ["goreecloud_browser*"]
+
+[tool.setuptools.package-data]
+goreecloud_browser = ["assets/*.png", "assets/*.svg"]

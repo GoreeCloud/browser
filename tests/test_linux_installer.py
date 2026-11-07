@@ -6,7 +6,9 @@ import sys
 import tempfile
 import unittest
 
-from scripts.linux.install_user import APP_ID, MARKER, desktop_entry, desktop_exec_arg
+from scripts.linux.install_user import (
+    APP_ID, MARKER, desktop_entry, desktop_exec_arg, desktop_icon_value,
+)
 from scripts.linux.uninstall_user import uninstall
 
 
@@ -14,8 +16,11 @@ class LinuxDesktopTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform.startswith("linux"), "Linux-only desktop integration")
     def test_desktop_entry_is_valid(self):
         path = Path("/tmp/test goreecloud browser/bin/python")
-        entry = desktop_entry(path)
+        icon_path = Path("/tmp/test goreecloud browser/runtime/icon.png")
+        entry = desktop_entry(path, icon_path)
         self.assertIn('Exec="/tmp/test goreecloud browser/bin/python" -m goreecloud_browser', entry)
+        self.assertIn(f"Icon={icon_path}\n", entry)
+        self.assertNotIn("Icon=web-browser", entry)
         self.assertIn(MARKER, entry)
         self.assertNotIn("x-scheme-handler/http", entry)
         self.assertIn("Terminal=false", entry)
@@ -59,6 +64,12 @@ class LinuxDesktopTests(unittest.TestCase):
     def test_reject_relative_paths(self):
         with self.assertRaises(ValueError):
             desktop_exec_arg(Path("relative/python"))
+        with self.assertRaises(ValueError):
+            desktop_icon_value(Path("relative/icon.png"))
+        with self.assertRaises(ValueError):
+            desktop_icon_value(Path("/tmp/test\\nbad/icon.png"))
+        self.assertEqual(desktop_icon_value(Path("/tmp/normal/browser/runtime/icon.png")),
+                         "/tmp/normal/browser/runtime/icon.png")
 
     def test_reject_injection_characters(self):
         for path in (Path("/tmp/foo%u"), Path("/tmp/foo\nType=Link"),

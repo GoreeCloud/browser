@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "product": "browser-mobile",
+  "source": "../app-icon.svg",
+  "source_git_blob_sha": "c82371aa6fadd45eb26610bf4907e64122d15b12",
+  "generator": "npm run icons:build (sharp 0.34.5)",
+  "files": {
+    "icon-16.png": {
+      "sha256": "0b60c8e75e6d0b6b4b1a4919be5ca2f918548f8d4b1998ccdd7a46ba12e22d2a",
+      "mime": "image/png",
+      "width": 16,
+      "height": 16,
+      "bytes": 842
+    },
+    "icon-32.png": {
+      "sha256": "4fee727db2295b52fb46b18978c1318a5b80f8a5e79d4228cf9bf1a79e6a2424",
+      "mime": "image/png",
+      "width": 32,
+      "height": 32,
+      "bytes": 1914
+    },
+    "icon-48.png": {
+      "sha256": "f30269eb4a0eaff8fa7b2035aa2da4bb53c085860eb4f48d01a7a169d828717c",
+      "mime": "image/png",
+      "width": 48,
+      "height": 48,
+      "bytes": 3390
+    },
+    "icon-64.png": {
+      "sha256": "b303c7144a9b1a8ff39c241215c283db9b0441e8e3b48a4b4ef219e9943cc9d9",
+      "mime": "image/png",
+      "width": 64,
+      "height": 64,
+      "bytes": 4523
+    },
+    "icon-128.png": {
+      "sha256": "924458f815a0d5de15a08c600e723158ac5bb071e9db634977e9d2904ec067f6",
+      "mime": "image/png",
+      "width": 128,
+      "height": 128,
+      "bytes": 10071
+    },
+    "icon-192.png": {
+      "sha256": "14985e331304e7c1157727fdfe8619d3b873442b553bb2029cf8cb092665db21",
+      "mime": "image/png",
+      "width": 192,
+      "height": 192,
+      "bytes": 15903
+    },
+    "icon-256.png": {
+      "sha256": "8c7370fba9b07ae0958816037c74e13f3634847f894ee0b37a5a425326fd2381",
+      "mime": "image/png",
+      "width": 256,
+      "height": 256,
+      "bytes": 20984
+    },
+    "icon-512.png": {
+      "sha256": "fd063d116ba95bdc56775475c9d642df466ff065112cdb030dac410a7a923862",
+      "mime": "image/png",
+      "width": 512,
+      "height": 512,
+      "bytes": 46084
+    },
+    "favicon.ico": {
+      "sha256": "f4a5612f102475386c7a33c2fdff2519a99ff2ea8fc377e4b12f8e47f25fef06",
+      "mime": "image/x-icon",
+      "sizes": [
+        "16x16",
+        "32x32",
+        "48x48",
+        "256x256"
+      ],
+      "bytes": 27200
+    },
+    "android-foreground-512.png": {
+      "sha256": "8efee9ed2af172443007fe36925c0c9047e73b444f3ba11f6822f3309d707b4b",
+      "mime": "image/png",
+      "width": 512,
+      "height": 512,
+      "bytes": 25517
+    },
+    "android-monochrome-512.png": {
+      "sha256": "bfa552d39fcae602594c0b48e0235de5c431c5aa468c2eb525d201aa29f32864",
+      "mime": "image/png",
+      "width": 512,
+      "height": 512,
+      "bytes": 4339
+    }
+  }
+}

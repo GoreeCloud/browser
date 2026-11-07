@@ -56,7 +56,7 @@ Native theme values mirror official GC UI semantic roles, Lagoon accent,
 light/dark values, radius and spacing inspected from the canonical
 [GoreeCloud/gc-ui](https://github.com/GoreeCloud/gc-ui) styles/tokens.css
 on November 6, 2026. The Qt adapter is **not** a second design authority.
-Switch to an approved native token adapter once available.
+Switch to an approved native token adapter once available.\n\n**Browser family identity:** The founder-approved Prism Tabs v5 color icon is shared with Android Browser Mobile, with a single canonical SVG in [brand-assets](https://github.com/GoreeCloud/brand-assets/blob/1b12ecbb043c89b4f461e68ce2cd83b5fd70eb3f/products/browser-mobile/app-icon.svg). Local PNG source fingerprints and wheel package data are validated. The Qt window and native Home/New Tab views use its QIcon; Linux per-user installation provides its own validated desktop launcher icon path. Details and remaining platform gates: [branding](BRANDING.md).
 
 ## Acceptance and roadmap
 

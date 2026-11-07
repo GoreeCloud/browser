@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">GoreeCloud Browser Mobile — Prism Tabs v5, return to layered glass</title>
+<desc id="desc">Three staggered, slanted translucent browser tabs in violet, blue and lagoon, echoing the original Prism Tabs concept with visible upper tab lips and an elegant unified active browser pane.</desc>
+<defs>
+<linearGradient id="tile" x1="11" y1="15" x2="500" y2="506" gradientUnits="userSpaceOnUse"><stop stop-color="#1E2E54"/><stop offset=".56" stop-color="#101B39"/><stop offset="1" stop-color="#071226"/></linearGradient>
+<linearGradient id="iris" x1="122" y1="94" x2="350" y2="368" gradientUnits="userSpaceOnUse"><stop stop-color="#C3B2FF"/><stop offset=".48" stop-color="#8C91F5"/><stop offset="1" stop-color="#5D77D9"/></linearGradient>
+<linearGradient id="sky" x1="192" y1="112" x2="412" y2="398" gradientUnits="userSpaceOnUse"><stop stop-color="#BBE9FF"/><stop offset=".48" stop-color="#80BDFF"/><stop offset="1" stop-color="#3F8BCF"/></linearGradient>
+<linearGradient id="lagoon" x1="110" y1="195" x2="355" y2="415" gradientUnits="userSpaceOnUse"><stop stop-color="#D0FFF5"/><stop offset=".42" stop-color="#78E8DE"/><stop offset="1" stop-color="#2BACC1"/></linearGradient>
+<linearGradient id="gloss" x1="121" y1="218" x2="356" y2="384" gradientUnits="userSpaceOnUse"><stop stop-color="#FFFFFF" stop-opacity=".37"/><stop offset=".4" stop-color="#FFFFFF" stop-opacity=".08"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+</defs>
+<rect x="8" y="8" width="496" height="496" rx="116" fill="url(#tile)"/>
+<rect x="11" y="11" width="490" height="490" rx="113" fill="none" stroke="#BFCFF6" stroke-width="3" stroke-opacity=".14"/>
+<!-- Left Iris glass tab: retain the original Prism Tabs tilted-page silhouette -->
+<path d="M145 124C145 105 159 96 177 99L311 127C329 131 340 145 340 166V342C340 362 325 376 306 372L166 342C152 339 145 329 145 313Z" fill="url(#iris)"/>
+<path d="M152 133L334 170" fill="none" stroke="#F7EEFF" stroke-opacity=".56" stroke-width="9" stroke-linecap="round"/>
+<path d="M161 109L224 120" fill="none" stroke="#FFF" stroke-opacity=".75" stroke-width="6" stroke-linecap="round"/>
+<!-- Cobalt pane offset to the right with a clean selected-tab rim -->
+<path d="M204 123C204 104 219 95 238 100L376 132C391 136 403 150 403 171V359C403 378 388 391 370 386L223 351C211 348 204 338 204 323Z" fill="url(#sky)"/>
+<path d="M211 136L396 179" fill="none" stroke="#EEF8FF" stroke-opacity=".69" stroke-width="10" stroke-linecap="round"/>
+<path d="M224 111L292 126" fill="none" stroke="#F6FCFF" stroke-opacity=".76" stroke-width="6" stroke-linecap="round"/>
+<!-- Lagoon tab rises at its upper-left edge and forms one distinct active browsing surface -->
+<path d="M138 196C138 185 147 175 159 178L221 191C231 193 234 200 237 208L305 224C323 228 336 246 336 264V388C336 408 320 422 301 417L139 381C123 377 114 365 114 348V221C114 202 123 192 138 196Z" fill="url(#lagoon)"/>
+<path d="M138 196C138 185 147 175 159 178L221 191C231 193 234 200 237 208L305 224C323 228 336 246 336 264V388C336 408 320 422 301 417L139 381C123 377 114 365 114 348V221C114 202 123 192 138 196Z" fill="url(#gloss)"/>
+<path d="M138 201L225 220" fill="none" stroke="#F6FFFF" stroke-opacity=".58" stroke-width="6" stroke-linecap="round"/>
+<!-- The active browser chrome is a single broad omnibox, no notebook ruled lines. -->
+<path d="M149 252C149 246 155 243 162 245L283 273C291 275 296 282 296 288C296 295 289 299 280 297L161 270C153 268 149 262 149 252Z" fill="#E8FFFF" fill-opacity=".91"/>
+<circle cx="168" cy="260" r="5" fill="#318A9F"/>
+<path d="M185 263L273 284" stroke="#83C8CE" stroke-width="5" stroke-linecap="round"/>
+<!-- The front panel stays a single uninterrupted pane of Lagoon glass. -->
+</svg>

@@ -52,6 +52,8 @@ class LinuxQtSmoke(unittest.TestCase):
         window = BrowserWindow()
         try:
             window.show()
+            self.assertFalse(window.windowIcon().isNull(), "GoreeCloud icon missing from Qt window")
+            self.assertFalse(window.windowIcon().pixmap(48, 48).isNull(), "Icon failed to render")
             self.assertEqual(window.tabs.count(), 1)
             self.assertEqual(window.current().current_address(), "goree://new-tab")
             window.show_home()
