@@ -6,12 +6,12 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 
 ## Founder-directed desktop interface
 
-| Requirement | v0.2.0 development-preview status |
+| Requirement | v0.2.1 development-preview status |
 | --- | --- |
 | Light theme default; user preference respected | Implemented: new users light, existing Light/Dark QSettings preserved |
 | Toolbar exact order | Implemented: Back, Forward, Refresh, Home, Omnibox, Bookmark, Extensions, Settings, Profile |
 | Premium glyph-only toolbar buttons | Implemented using native SVG-rendered monochrome icons with accessible names/tooltips |
-| Omnibox | Implemented: Verification and Permissions on left, input in center, Webspaces on right |
+| Omnibox | Implemented: Verification and Permissions on left, input in center, Webspaces on right. Permissions opens a real per-Webspace stored-decision manager, not a placeholder |
 | Native Home and distinct New Tab | Retained, separately rendered, accessible at 700x480 by scrolling |
 | Advanced Tab Manager | Initial native search/switch/close by tab and Webspace; advanced grouping/sleep/session restore planned |
 | Advanced Download Manager | Initial active/cancel/progress/session view atop private staged no-overwrite saves; malware scanning and persisted history planned |
@@ -20,6 +20,7 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 | Extensions button | Status entry only: installing extensions remains unsupported |
 | Settings: ChatGPT.com prompt integrations | Native five editable/copyable prompt templates and explicit open action; **no automatic page transfer, prompt submission or account access** |
 | Settings: Cookies Manager | Cookie names/domains/flags and delete controls for the active Webspace; cookie values hidden; site-data reset is separate |
+| Settings: Website Permissions | Stored Qt permission decisions scoped to active Webspace and optional current origin, with individual/confirmed bulk reset to Ask. Transient capture permissions may not appear and active streams may require tab closure |
 | Settings: DNS Manager | Honest read-only OS DNS status; custom DNS/DoH/DoT not implemented |
 | Advanced Proxy Manager | Initial **global** System/Direct/HTTP/SOCKS5 configuration, validated host/port, applied on next restart through Qt Network before WebEngine starts. HTTP loopback route verified; SOCKS5, authentication, PAC and per-Webspace routing not accepted |
 
@@ -67,8 +68,10 @@ review, incident response and browser-engine isolation.
 
 ## Mandatory future acceptance
 
-- Confirm Qt WebEngine process sandbox and permissions, TLS/origin display,
-  download threat detection, site-data completeness, cookie/data retention.
+- Confirm Qt WebEngine process sandbox and complete transient permission/device
+  capture handling, TLS/origin display, download threat detection, site-data
+  completeness and cookie/data retention. Stored permission reset is verified,
+  but real camera/microphone capture termination remains unqualified.
 - Prove actual per-Webspace storage isolation on representative Linux hosts;
   close/rollback handling for all persisted profiles.
 - Add rigorous high-contrast, keyboard/zoom, assistive technology and human

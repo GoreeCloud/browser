@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.2.0 development preview. Not a production or daily-driver release.**
+**Status: v0.2.1 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -21,6 +21,12 @@ code, not a browser-engine fork.
   Webspaces manager; tab/download managers; ChatGPT.com user-copyable prompt
   templates; cookie inspector; OS DNS status; global proxy configuration.
   Unsupported extension and DNS controls explicitly report their limitations.
+- **Native Website Permissions Center:** the omnibox Permissions glyph opens
+  per-Webspace, per-origin stored permission decisions, with explicit selected
+  and confirmed-all reset to Ask; capability prompts show the requesting origin
+  and top-level website, not only an ambiguous hostname. Qt may omit transient
+  camera/screen-capture decisions; resetting a decision does not stop ongoing
+  device capture. Close the active tab to stop an ongoing session.
 - **Webspace containers** use separate Qt WebEngine cookie, cache and HTML5
   storage profiles. Their isolation is tested against a local HTTP server;
   they do not provide separate OS processes, IP addresses or per-space proxies.
