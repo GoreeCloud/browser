@@ -10,7 +10,7 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSettings, QStandardPaths, QUrl, QTimer, Signal
+from PySide6.QtCore import Qt, QSettings, QStandardPaths, QUrl, QTimer, QSize, Signal
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QFileDialog, QFrame, QHBoxLayout,
@@ -35,6 +35,20 @@ from goreecloud_browser.site_data import (
 from goreecloud_browser.downloads import (
     new_staging, publish_complete_file, suggested_filename, validate_target,
 )
+from goreecloud_browser.chrome_icons import icon_for
+from goreecloud_browser.filters import (
+    SOURCES, is_blocked, needs_update, read_cached,
+)
+from goreecloud_browser.filter_updater import FilterUpdater
+from goreecloud_browser.native_panels import (
+    SettingsPage, TabManagerDialog, DownloadManagerDialog,
+    WebspacesDialog, CookieManagerDialog,
+)
+from goreecloud_browser.webspaces import (
+    DEFAULT_ID, decode_spaces, encode_spaces, create_space, storage_paths,
+)
+from goreecloud_browser.proxy import ProxyConfig, validate_proxy
+from goreecloud_browser.proxy_runtime import apply_global_proxy
 
 # Values copied from the canonical GC UI token implementation
 # GoreeCloud/gc-ui: styles/tokens.css (verified 2026-11-06).
@@ -93,6 +107,21 @@ def stylesheet(mode: str) -> str:
     QMenu::item {{ padding: 9px 20px; }}
     QMenu::item:selected {{ background: {c['container']}; color: {c['oncontainer']}; }}
     QDialog {{ background: {c['canvas']}; }}
+    QGroupBox#SettingsSection {{ background: {c['raised']}; border: 1px solid {c['outline']};
+                                 border-radius: 18px; margin-top: 14px; font-size: 16px;
+                                 font-weight: 700; padding-top: 8px; }}
+    QGroupBox#SettingsSection::title {{ subcontrol-origin: margin; left: 17px;
+                                       padding: 2px 8px; }}
+    QComboBox, QPlainTextEdit, QTableWidget, QListWidget {{ background: {c['raised']};
+                   color: {c['text']}; border: 1px solid {c['outline']}; border-radius: 10px;
+                   padding: 7px; }}
+    QFrame#Omnibox {{ background: {c['raised']}; border: 1px solid {c['outline']};
+                      border-radius: 14px; }}
+    QLineEdit#OmniboxEdit {{ border: none; background: transparent; padding: 6px;
+                             min-height: 28px; }}
+    QLineEdit#OmniboxEdit:focus {{ border: none; padding: 6px; }}
+    QToolButton#OmniboxGlyph {{ border: none; background: transparent; padding: 4px; }}
+    QToolButton#OmniboxGlyph:hover {{ background: {c['tonal']}; }}
     QProgressBar {{ border: none; background: {c['tonal']}; max-height: 3px; }}
     QProgressBar::chunk {{ background: {c['brand']}; }}
     QStatusBar {{ background: {c['surface']}; color: {c['soft']}; }}
@@ -123,6 +152,7 @@ class PrivacyInterceptor(QWebEngineUrlRequestInterceptor):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.block_trackers = True
+        self.domain_rules = ()  # immutable snapshot swapped from the GUI thread
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo) -> None:
         url = info.requestUrl()
@@ -130,16 +160,22 @@ class PrivacyInterceptor(QWebEngineUrlRequestInterceptor):
             return
         main_frame = (info.resourceType() ==
                       QWebEngineUrlRequestInfo.ResourceType.ResourceTypeMainFrame)
-        if (self.block_trackers and not main_frame and
-                is_known_tracker(url.host(), info.firstPartyUrl().host())):
-            info.block(True)
-            return
+        if not main_frame:
+            host = url.host().lower().rstrip(".")
+            first_party = info.firstPartyUrl().host().lower().rstrip(".")
+            if host != first_party and (
+                (self.block_trackers and is_known_tracker(host, first_party))
+                or is_blocked(host, self.domain_rules)
+            ):
+                info.block(True)
+                return
 
 
 class BrowserPage(QWebEnginePage):
-    def __init__(self, profile: QWebEngineProfile, owner, parent=None):
+    def __init__(self, profile: QWebEngineProfile, owner, parent=None, space_id=DEFAULT_ID):
         super().__init__(profile, parent)
         self.owner = owner
+        self.space_id = space_id
         # Site capabilities always require consent; no silent grants.
         self.permissionRequested.connect(self.ask_permission)
 
@@ -151,7 +187,7 @@ class BrowserPage(QWebEnginePage):
 
     def createWindow(self, _type):
         # Open target=_blank in a contained browser tab, not an external window.
-        return self.owner.new_tab().view.page()
+        return self.owner.new_tab(space_id=self.space_id).view.page()
 
     def ask_permission(self, permission) -> None:
         origin = permission.origin().host() or "This site"
@@ -259,7 +295,7 @@ class NativeStart(QWidget):
             tile.setMinimumHeight(68)
             quick.addWidget(tile)
         outer.addLayout(quick)
-        note = QLabel("Native pages  •  No remote content until you choose a website  •  Session-only cookies by default")
+        note = QLabel("Native pages load no external website  •  Enabled filter lists may refresh from their HTTPS sources  •  Session-only cookies by default")
         note.setObjectName("FinePrint")
         note.setWordWrap(True)
         outer.addWidget(note)
@@ -267,12 +303,15 @@ class NativeStart(QWidget):
 
 
 class BrowserTab(QWidget):
-    def __init__(self, browser, profile: QWebEngineProfile):
+    def __init__(self, browser, profile: QWebEngineProfile, space_id=DEFAULT_ID):
         super().__init__()
         self.browser = browser
+        self.profile = profile
+        self.space_id = space_id
+        self.settings_page = None
         self.stack = QStackedWidget()
         self.view = QWebEngineView()
-        self.view.setPage(BrowserPage(profile, browser, self.view))
+        self.view.setPage(BrowserPage(profile, browser, self.view, space_id=space_id))
         self.home = NativeStart(browser, self, "home")
         self.new = NativeStart(browser, self, "new-tab")
         self.new_scroll = self._native_scroll(self.new)
@@ -314,6 +353,13 @@ class BrowserTab(QWidget):
         self.stack.setCurrentWidget(self.home_scroll)
         self.browser.update_tab(self)
 
+    def show_settings(self):
+        if self.settings_page is None:
+            self.settings_page = SettingsPage(self.browser)
+            self.stack.addWidget(self.settings_page)
+        self.stack.setCurrentWidget(self.settings_page)
+        self.browser.update_tab(self)
+
     def browse(self, target: str):
         self.stack.setCurrentWidget(self.view)
         self.view.setUrl(QUrl(target))
@@ -324,6 +370,8 @@ class BrowserTab(QWidget):
             return "goree://new-tab"
         if current is self.home_scroll:
             return "goree://home"
+        if self.settings_page is not None and current is self.settings_page:
+            return "goree://settings"
         return self.view.url().toString(QUrl.ComponentFormattingOption.FullyEncoded)
 
 
@@ -381,16 +429,41 @@ class BrowserWindow(QMainWindow):
         self.resize(1250, 790)
         self.setMinimumSize(700, 480)
         self.preferences = QSettings("GoreeCloud", "GoreeCloudBrowser")
-        self.mode = self.preferences.value("appearance", "dark")
+        self.mode = self.preferences.value("appearance", "light")
         if self.mode not in THEMES:
-            self.mode = "dark"
+            self.mode = "light"
         self.interceptor = PrivacyInterceptor(self)
         self.interceptor.block_trackers = self.preferences.value("block_trackers", True, type=bool)
         self.clean_links = self.preferences.value("clean_links", True, type=bool)
         self.persistent_cookies = self.preferences.value("persistent_cookies", False, type=bool)
+        try:
+            self.proxy_config = validate_proxy(
+                self.preferences.value("proxy_mode", "system"),
+                self.preferences.value("proxy_host", ""),
+                self.preferences.value("proxy_port", 0),
+            )
+        except ValueError:
+            self.proxy_config = ProxyConfig()  # invalid data cannot route traffic
+        apply_global_proxy(self.proxy_config)
+        self._spaces = decode_spaces(self.preferences.value("webspaces", "[]"))
+        self.space_profiles = {}
+        self._list_enabled = {
+            name: self.preferences.value("filter_" + name, True, type=bool)
+            for name in SOURCES
+        }
+        self._filter_domains = {}
+        self._filter_errors = {}
+        self.filter_updater = FilterUpdater()
+        self.filter_updater.signals.completed.connect(self.filters_updated)
 
         storage = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation))
         self.site_storage = storage
+        self.filter_storage = storage / "filter-lists"
+        self._filter_domains = {
+            name: read_cached(self.filter_storage, name) if enabled else frozenset()
+            for name, enabled in self._list_enabled.items()
+        }
+        self.refresh_filter_rules()
         try:
             self.profile_lock = ProfileLock(storage)
             apply_pending_site_reset(storage)
@@ -415,7 +488,9 @@ class BrowserWindow(QMainWindow):
         self.profile.settings().setAttribute(
             QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, False)
         self.profile.setUrlRequestInterceptor(self.interceptor)
+        self.space_profiles[DEFAULT_ID] = self.profile
         self._pending_downloads = {}
+        self._download_history = []
         # Qt may complete a small download without emitting a callback after
         # accept(); a bounded event-loop check catches that completion.
         self._download_poll_timer = QTimer(self)
@@ -433,49 +508,57 @@ class BrowserWindow(QMainWindow):
         nav = QWidget()
         nav.setObjectName("Navigation")
         navrow = QHBoxLayout(nav)
-        navrow.setContentsMargins(16, 12, 16, 10)
-        navrow.setSpacing(8)
+        navrow.setContentsMargins(9, 10, 9, 9)
+        navrow.setSpacing(5)
+        self._chrome_buttons = {}
 
-        self.back = button("‹", "Back (Alt+Left)", self.go_back)
-        self.forward = button("›", "Forward (Alt+Right)", self.go_forward)
-        self.reload = button("↻", "Reload page (Ctrl+R)", self.reload_page)
-        self.home_button = button("⌂", "Home (Alt+Home)", self.show_home)
-        for b in (self.back, self.forward, self.reload, self.home_button):
-            b.setFixedWidth(45)
-            navrow.addWidget(b)
+        self.back = self.chrome_button("back", "Back (Alt+Left)", self.go_back)
+        self.forward = self.chrome_button("forward", "Forward (Alt+Right)", self.go_forward)
+        self.reload = self.chrome_button("refresh", "Refresh (Ctrl+R)", self.reload_page)
+        self.home_button = self.chrome_button("home", "Home (Alt+Home)", self.show_home)
+        for widget in (self.back, self.forward, self.reload, self.home_button):
+            navrow.addWidget(widget)
+
+        self.omnibox = QFrame()
+        self.omnibox.setObjectName("Omnibox")
+        omni = QHBoxLayout(self.omnibox)
+        omni.setContentsMargins(4, 0, 4, 0)
+        omni.setSpacing(1)
+        self.verify_button = self.chrome_button("verify", "Connection verification", self.show_verification,
+                                                size=30, in_omnibox=True)
+        self.permissions_button = self.chrome_button("permissions", "Website permissions", self.show_permissions,
+                                                     size=30, in_omnibox=True)
+        omni.addWidget(self.verify_button)
+        omni.addWidget(self.permissions_button)
         self.address = QLineEdit()
-        self.address.setPlaceholderText("Search with Startpage or enter a URL")
-        self.address.setAccessibleName("Address and search bar")
+        self.address.setObjectName("OmniboxEdit")
+        self.address.setPlaceholderText("Search with Startpage or enter a website")
+        self.address.setAccessibleName("Unified address and search bar")
         self.address.returnPressed.connect(lambda: self.navigate(self.address.text()))
-        navrow.addWidget(self.address, stretch=1)
+        omni.addWidget(self.address, stretch=1)
+        self.webspaces_button = self.chrome_button("webspaces", "Webspaces • website containers",
+                                                   self.show_webspaces, size=30, in_omnibox=True)
+        omni.addWidget(self.webspaces_button)
+        navrow.addWidget(self.omnibox, stretch=1)
+
         self.bookmark_menu = QMenu(self)
         self.bookmark_menu.aboutToShow.connect(self.populate_bookmarks)
-        self.bookmark_button = QToolButton()
-        self.bookmark_button.setText("★")
-        self.bookmark_button.setToolTip("Bookmarks")
-        self.bookmark_button.setAccessibleName("Bookmarks menu")
-        self.bookmark_button.setMinimumSize(45, 44)
+        self.bookmark_button = self.chrome_button("bookmark", "Bookmarks", None)
         self.bookmark_button.setMenu(self.bookmark_menu)
         self.bookmark_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         navrow.addWidget(self.bookmark_button)
-
-        options_menu = QMenu(self)
-        options_menu.addAction("New tab", self.new_tab)
-        options_menu.addAction("New home tab", self.open_home_tab)
-        options_menu.addSeparator()
-        options_menu.addAction("Privacy and cookies…", self.show_privacy)
-        options_menu.addAction("Clear cookies and HTTP cache", self.clear_cookies)
-        options_menu.addAction("Switch light / dark", self.toggle_theme)
-        options_menu.addSeparator()
-        options_menu.addAction("About GoreeCloud Browser", self.show_about)
-        options_button = QToolButton()
-        options_button.setText("⋯")
-        options_button.setAccessibleName("Browser menu")
-        options_button.setToolTip("Browser menu")
-        options_button.setMinimumSize(45, 44)
-        options_button.setMenu(options_menu)
-        options_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        navrow.addWidget(options_button)
+        self.extensions_button = self.chrome_button("extensions", "Extensions", self.show_extensions)
+        navrow.addWidget(self.extensions_button)
+        self.settings_button = self.chrome_button("settings", "Settings", self.show_settings)
+        navrow.addWidget(self.settings_button)
+        self.profile_button = self.chrome_button("profile", "Profile and Webspaces", None)
+        self.profile_menu = QMenu(self)
+        self.profile_menu.aboutToShow.connect(self.populate_profile_menu)
+        self.profile_button.setMenu(self.profile_menu)
+        self.profile_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        navrow.addWidget(self.profile_button)
+        self.toolbar_order = ("back", "forward", "refresh", "home", "omnibox",
+                              "bookmark", "extensions", "settings", "profile")
         layout.addWidget(nav)
 
         self.progress = QProgressBar()
@@ -489,20 +572,176 @@ class BrowserWindow(QMainWindow):
         self.tabs.setDocumentMode(True)
         self.tabs.tabCloseRequested.connect(self.close_tab)
         self.tabs.currentChanged.connect(self.update_navigation)
-        plus = button("+", "New tab (Ctrl+T)", self.new_tab)
-        plus.setFixedSize(45, 44)
+        plus = self.chrome_button("plus", "New tab (Ctrl+T)", self.new_tab)
+        plus.setFixedSize(42, 42)
         self.tabs.setCornerWidget(plus, Qt.Corner.TopRightCorner)
         layout.addWidget(self.tabs, stretch=1)
         self.statusBar().showMessage("Ready • Startpage search")
         self.install_shortcuts()
         self.apply_theme()
         self.new_tab()
+        # Public-source list checks use only fixed HTTPS provider URLs. No page
+        # addresses, cookies, history or profile secrets are part of requests.
+        QTimer.singleShot(2500, self.auto_refresh_blocklists)
+
+    def webspaces(self):
+        return [(DEFAULT_ID, "Default")] + [
+            (item["id"], item["name"]) for item in self._spaces
+        ]
+
+    def webspace_name(self, ident: str) -> str:
+        return dict(self.webspaces()).get(ident, "Unknown")
+
+    def add_webspace(self, name: str) -> str:
+        self._spaces = create_space(self._spaces, name)
+        self.preferences.setValue("webspaces", encode_spaces(self._spaces))
+        return self._spaces[-1]["id"]
+
+    def get_profile(self, space_id: str) -> QWebEngineProfile:
+        if space_id in self.space_profiles:
+            return self.space_profiles[space_id]
+        if space_id not in dict(self.webspaces()):
+            raise ValueError("Unknown Webspace")
+        web_path, cache_path = storage_paths(self.site_storage, space_id)
+        # Defensive check against storage path substitution outside the user
+        # browser data root before WebEngine accesses persistent state.
+        for target in (self.site_storage / "spaces", web_path.parent,
+                       web_path, cache_path):
+            if target.is_symlink():
+                raise ValueError("Symlinked Webspace storage path refused")
+        profile = QWebEngineProfile("GoreeCloudWebspace-" + space_id, self)
+        profile.setPersistentStoragePath(str(web_path))
+        profile.setCachePath(str(cache_path))
+        profile.setHttpCacheType(QWebEngineProfile.HttpCacheType.MemoryHttpCache)
+        profile.setPersistentCookiesPolicy(
+            QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
+            if self.persistent_cookies else QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
+        profile.setPersistentPermissionsPolicy(
+            QWebEngineProfile.PersistentPermissionsPolicy.StoreInMemory)
+        profile.settings().setUnknownUrlSchemePolicy(
+            QWebEngineSettings.UnknownUrlSchemePolicy.DisallowUnknownUrlSchemes)
+        profile.settings().setAttribute(
+            QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, False)
+        profile.setUrlRequestInterceptor(self.interceptor)
+        profile.downloadRequested.connect(self.handle_download)
+        self.space_profiles[space_id] = profile
+        return profile
+
+    def configure_proxy(self, mode: str, host: str, port: int):
+        try:
+            selected = validate_proxy(mode, host, port)
+        except ValueError as exc:
+            QMessageBox.warning(self, "Proxy not saved", str(exc))
+            return
+        self.preferences.setValue("proxy_mode", selected.mode)
+        self.preferences.setValue("proxy_host", selected.host)
+        self.preferences.setValue("proxy_port", selected.port)
+        self.preferences.sync()
+        QMessageBox.information(
+            self, "Restart required",
+            "Global proxy preference saved for the next browser launch. "
+            "It does not change the active session. All Webspaces share the proxy. "
+            "Authentication is not stored, and custom per-Webspace routing is not available. "
+            "Privacy-domain list updates are paused outside System proxy mode "
+            "to avoid bypassing the selected browser proxy."
+        )
+
+    def list_enabled(self, name: str) -> bool:
+        return bool(self._list_enabled.get(name, False))
+
+    def set_list_enabled(self, name: str, enabled: bool):
+        if name not in SOURCES:
+            raise ValueError("Unknown filter list")
+        self._list_enabled[name] = bool(enabled)
+        self.preferences.setValue("filter_" + name, bool(enabled))
+        if enabled and not self._filter_domains.get(name):
+            self.refresh_blocklists()
+        self.refresh_filter_rules()
+
+    def refresh_filter_rules(self):
+        self.interceptor.domain_rules = tuple(
+            self._filter_domains.get(name, frozenset())
+            for name in SOURCES if self._list_enabled.get(name, False)
+            and self._filter_domains.get(name)
+        )
+
+    def filter_status_text(self) -> str:
+        parts = []
+        for name in SOURCES:
+            if not self._list_enabled.get(name, False):
+                state = "disabled"
+            else:
+                count = len(self._filter_domains.get(name, ()))
+                state = f"{count:,} loaded domains" if count else "not yet loaded"
+            if self._filter_errors.get(name):
+                state += " • last update failed (cached rules retained)"
+            parts.append(f"{name}: {state}")
+        return "  |  ".join(parts)
+
+    def auto_refresh_blocklists(self):
+        # Offline integration tests must not make incidental network requests.
+        if os.environ.get("GC_BROWSER_FILTER_NETWORK") == "off":
+            return
+        self.refresh_blocklists(only_stale=True)
+
+    def refresh_blocklists(self, status_label=None, only_stale=False):
+        if getattr(self, "_closing", False):
+            return
+        if self.proxy_config.mode != "system":
+            if not only_stale:
+                self.statusBar().showMessage(
+                    "Filter updates paused outside System proxy mode to prevent proxy bypass.", 8000)
+            return
+        names = tuple(
+            name for name in SOURCES if self._list_enabled.get(name, False)
+            and (not only_stale or needs_update(self.filter_storage, name))
+        )
+        if not names:
+            return
+        if self.filter_updater.start(self.filter_storage, names):
+            self.statusBar().showMessage("Updating enabled privacy-domain lists from source…", 5000)
+            if status_label is not None:
+                status_label.setText(self.filter_status_text() + " • updating…")
+
+    def filters_updated(self, results):
+        self.filter_updater.running = False
+        if getattr(self, "_closing", False):
+            return
+        for name, result in results.items():
+            self._filter_domains[name] = result["domains"]
+            self._filter_errors[name] = result["error"]
+        self.refresh_filter_rules()
+        for i in range(self.tabs.count()):
+            tab = self.tabs.widget(i)
+            if tab.settings_page is not None:
+                tab.settings_page.list_status.setText(self.filter_status_text())
+        self.statusBar().showMessage(self.filter_status_text(), 9000)
+
+    def chrome_button(self, glyph: str, label: str, callback, size=42, in_omnibox=False):
+        widget = QToolButton(self)
+        widget.setObjectName("OmniboxGlyph" if in_omnibox else "ChromeGlyph")
+        widget.setProperty("glyphName", glyph)
+        widget.setText("")
+        widget.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+        widget.setIconSize(QSize(20 if size > 32 else 18, 20 if size > 32 else 18))
+        widget.setFixedSize(size, size)
+        widget.setToolTip(label)
+        widget.setAccessibleName(label)
+        if callback:
+            widget.clicked.connect(callback)
+        self._chrome_buttons.setdefault(glyph, []).append(widget)
+        return widget
 
     def current(self):
         return self.tabs.currentWidget()
 
-    def new_tab(self):
-        tab = BrowserTab(self, self.profile)
+    def new_tab(self, space_id=None):
+        # Qt clicked(bool) can pass False into a connected optional argument.
+        # It is not a Webspace identifier and must never select one.
+        if space_id is None or isinstance(space_id, bool):
+            current = self.current()
+            space_id = current.space_id if current else DEFAULT_ID
+        tab = BrowserTab(self, self.get_profile(space_id), space_id=space_id)
         index = self.tabs.addTab(tab, "New Tab")
         self.tabs.setCurrentIndex(index)
         tab.new.search.setFocus()
@@ -512,6 +751,64 @@ class BrowserWindow(QMainWindow):
         tab = self.new_tab()
         tab.show_home()
         return tab
+
+    def show_settings(self):
+        tab = self.new_tab()
+        tab.show_settings()
+        self.update_navigation()
+
+    def show_verification(self):
+        address = self.current().current_address()
+        parsed = QUrl(address)
+        if parsed.scheme() == "https":
+            summary = ("HTTPS address. Qt WebEngine manages TLS validation. "
+                       "This preview does not expose a verified certificate chain or detailed security audit.")
+        elif parsed.scheme() == "http":
+            summary = "Unencrypted HTTP address. Do not submit sensitive information."
+        else:
+            summary = "Native GoreeCloud Browser page; no remote website loaded."
+        QMessageBox.information(self, "Website verification",
+            f"Host: {parsed.host() or 'Native browser page'}\n\n{summary}")
+
+    def show_permissions(self):
+        address = self.current().current_address()
+        parsed = QUrl(address)
+        QMessageBox.information(self, "Website permissions",
+            f"Current site: {parsed.host() or 'Native browser page'}\n\n"
+            "Websites must request permissions explicitly. Responses remain "
+            "in memory for this browser session; the complete per-origin "
+            "permission audit and revocation UI is still in development.")
+
+    def show_webspaces(self):
+        WebspacesDialog(self).exec()
+
+    def show_tab_manager(self):
+        TabManagerDialog(self).exec()
+
+    def show_download_manager(self):
+        DownloadManagerDialog(self).exec()
+
+    def show_cookie_manager(self):
+        CookieManagerDialog(self).exec()
+
+    def show_extensions(self):
+        QMessageBox.information(self, "Extensions",
+            "Extension installation is not enabled in this Linux preview. "
+            "Do not use Chromium extension packages as native browser plugins. "
+            "Trusted extension support requires a separate security review.")
+
+    def populate_profile_menu(self):
+        self.profile_menu.clear()
+        head = self.profile_menu.addAction(
+            "Local browser profile • no account synchronization")
+        head.setEnabled(False)
+        self.profile_menu.addSeparator()
+        self.profile_menu.addAction("Manage Webspaces…", self.show_webspaces)
+        for ident, label in self.webspaces():
+            self.profile_menu.addAction(
+                f"New tab in {label}",
+                lambda checked=False, space=ident: self.new_tab(space_id=space),
+            )
 
     def close_tab(self, index: int):
         widget = self.tabs.widget(index)
@@ -558,6 +855,8 @@ class BrowserWindow(QMainWindow):
             title = "Home"
         elif address == "goree://new-tab":
             title = "New Tab"
+        elif address == "goree://settings":
+            title = "Settings"
         else:
             title = tab.view.title() or (tab.view.url().host() or "Loading…")
         self.tabs.setTabText(index, title[:27])
@@ -576,6 +875,10 @@ class BrowserWindow(QMainWindow):
         self.forward.setEnabled(is_web and tab.view.history().canGoForward())
         self.reload.setEnabled(is_web)
         self.setWindowTitle(f"{self.tabs.tabText(self.tabs.currentIndex())} • GoreeCloud Browser")
+        self.webspaces_button.setToolTip(
+            f"Webspaces • active: {self.webspace_name(tab.space_id)}")
+        self.webspaces_button.setAccessibleName(
+            f"Webspaces, active {self.webspace_name(tab.space_id)}")
 
     def go_back(self):
         if self.current().view.history().canGoBack():
@@ -646,15 +949,18 @@ class BrowserWindow(QMainWindow):
             self.clean_links = bool(value)
         if key == "persistent_cookies":
             self.persistent_cookies = bool(value)
-            self.profile.setPersistentCookiesPolicy(
-                QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
-                if value else QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
+            for profile in self.space_profiles.values():
+                profile.setPersistentCookiesPolicy(
+                    QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
+                    if value else QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
             self.statusBar().showMessage("Cookie persistence updated. Existing site data may remain.", 6000)
 
     def clear_cookies(self):
-        self.profile.cookieStore().deleteAllCookies()
-        self.profile.clearHttpCache()
-        self.statusBar().showMessage("Cookies and HTTP cache clearing requested.", 5000)
+        profile = self.current().profile
+        profile.cookieStore().deleteAllCookies()
+        profile.clearHttpCache()
+        self.statusBar().showMessage(
+            "Active Webspace cookies and HTTP cache clearing requested.", 5000)
 
     def request_site_data_reset(self):
         answer = QMessageBox.question(
@@ -684,12 +990,21 @@ class BrowserWindow(QMainWindow):
         dialog.exec()
 
     def toggle_theme(self):
-        self.mode = "light" if self.mode == "dark" else "dark"
-        self.preferences.setValue("appearance", self.mode)
+        self.set_theme("light" if self.mode == "dark" else "dark")
+
+    def set_theme(self, theme: str):
+        if theme not in THEMES:
+            raise ValueError("Unknown theme")
+        self.mode = theme
+        self.preferences.setValue("appearance", theme)
         self.apply_theme()
 
     def apply_theme(self):
         QApplication.instance().setStyleSheet(stylesheet(self.mode))
+        for name, widgets in self._chrome_buttons.items():
+            tint = THEMES[self.mode]["brand" if name in ("verify", "webspaces") else "text"]
+            for widget in widgets:
+                widget.setIcon(icon_for(name, tint))
 
     def handle_download(self, download: QWebEngineDownloadRequest):
         # Never permit WebEngine to write directly into a chosen final path.
@@ -742,9 +1057,13 @@ class BrowserWindow(QMainWindow):
         try:
             if download.state() == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
                 publish_complete_file(staged_file, target)
+                self._download_history.append({"filename": target.name, "status": "Saved",
+                                               "progress": f"{download.receivedBytes()} bytes"})
                 self.statusBar().showMessage(f"Saved {target.name} (not opened)", 7000)
             elif not getattr(self, "_closing", False):
+                self._download_history.append({"filename": target.name, "status": "Not saved"})
                 self.statusBar().showMessage("Download cancelled or interrupted; no file saved.", 7000)
+            self._download_history = self._download_history[-100:]
         except (OSError, ValueError) as exc:
             if not getattr(self, "_closing", False):
                 QMessageBox.warning(self, "Download not saved", str(exc))
@@ -754,7 +1073,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.1.5\n\n"
+            "GoreeCloud Browser • development preview 0.2.0\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"
@@ -807,8 +1126,10 @@ class BrowserWindow(QMainWindow):
             if tab is not None:
                 tab.view.stop()
                 destroy_qobject(tab)
-        self.profile.setUrlRequestInterceptor(None)
-        destroy_qobject(self.profile)
+        for profile in self.space_profiles.values():
+            profile.setUrlRequestInterceptor(None)
+            destroy_qobject(profile)
+        self.space_profiles.clear()
         self.profile_lock.close()
         self.preferences.sync()
         super().closeEvent(event)

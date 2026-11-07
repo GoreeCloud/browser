@@ -13,6 +13,19 @@ This license does not relicense Qt or Chromium content.
 - **Python**: standard library and any bundling require their applicable
   upstream copyright and license notices.
 
+Browser filter subscriptions are fetched as **external data at runtime**, not
+redistributed or bundled in this repository:
+
+- OISD Small: https://small.oisd.nl/ — authoritative setup at https://oisd.nl/
+- StevenBlack Unified: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+  — source and upstream component attribution at https://github.com/StevenBlack/hosts
+
+The application parses only supported domain rules; downloaded files remain in
+private application-local caches, not a modified OS hosts file. OISD and
+StevenBlack sources, lists and their component contributors may have distinct
+reuse terms. Recheck attribution and redistribution rights before any future
+bundled list snapshot or signed distribution.
+
 No third-party icon pack, font files, browser extensions, filter subscriptions
 or upstream browser source have been copied into this repo.
 

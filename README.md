@@ -7,11 +7,30 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.1.5 development preview. Not a production or daily-driver release.**
+**Status: v0.2.0 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
 - Native Qt desktop navigation, tabs, back/forward/reload, and shortcuts.
+- **Light mode by default**, with existing Light/Dark user preferences preserved.
+- Founder-directed **glyph-only toolbar in exact order:** Back, Forward, Refresh,
+  Home, Omnibox, Bookmarks, Extensions, Settings, Profile. Within the omnibox:
+  Verification and Permissions at left, Webspaces at right. Icons are vector
+  glyphs with accessible names, not text-only symbols.
+- **Native Settings page:** theme selector; Privacy Shield source status;
+  Webspaces manager; tab/download managers; ChatGPT.com user-copyable prompt
+  templates; cookie inspector; OS DNS status; global proxy configuration.
+  Unsupported extension and DNS controls explicitly report their limitations.
+- **Webspace containers** use separate Qt WebEngine cookie, cache and HTML5
+  storage profiles. Their isolation is tested against a local HTTP server;
+  they do not provide separate OS processes, IP addresses or per-space proxies.
+- **Default enabled OISD Small and StevenBlack domain subscriptions** with
+  fixed-source HTTPS retrieval, strict parsing, 24-hour cache checks and
+  last-known-good fallback. Only loaded rules are enforced; status is visible.
+  This is domain-level subresource blocking, not cosmetic ad filtering.
+- **Global System/Direct/HTTP/SOCKS5 proxy settings** applied on next restart;
+  local HTTP proxy routing verified. Authentication/PAC and per-Webspace routing
+  remain unqualified. DNS still follows operating-system settings.
 - **Founder-approved Prism Tabs v5 browser identity** shared with [GoreeCloud/browser-mobile](https://github.com/GoreeCloud/browser-mobile): bundled 48/256px icons for the Qt window, native Home/New Tab mark, and the Linux desktop launcher. Canonical [brand-assets source](https://github.com/GoreeCloud/brand-assets/blob/1b12ecbb043c89b4f461e68ce2cd83b5fd70eb3f/products/browser-mobile/app-icon.svg); exact source and raster integrity are locally tested. See [brand provenance](docs/BRANDING.md).
 - **Staged, user-confirmed downloads:** private temporary storage; publish completed
   files without overwriting existing destinations. Cancelled/failed files are
@@ -26,7 +45,8 @@ code, not a browser-engine fork.
   site redirects are not automatically sanitized; do not assume complete protection.**
 - Conservative entered-address validation rejects ambiguous percent-encoded hostnames,
   invalid DNS labels, bidi control characters, and URLs rejected by Qt's parser.
-- Small third-party tracker-domain blocker; **not** a complete ad blocker.
+- Built-in third-party tracker and subscribed-domain blocker; **not** a
+  complete ad blocker, anti-fingerprinting defense or full Privacy Shield.
 - Local bookmark storage with a 500-bookmark preview cap.
 - Session-only cookies by default; opt-in persistence; cookie/HTTP-cache
   clearing; and a separately confirmed **full website-data reset on restart**.
@@ -35,8 +55,11 @@ code, not a browser-engine fork.
 - Explicit user consent for website capability requests.
 - Light/dark native Qt theme adapted from the approved **GoreeCloud UI** Lagoon palette.
 
-Custom DNS, sync, extensions, private windows, full adblock lists, packaged installers
-and auto-updates are **not implemented**. DNS currently uses the operating system.
+Custom DNS/DoH, account sync, extension installation, private windows, cosmetic
+filtering, signed release packages and auto-updates are **not implemented**.
+Enabled list updates may connect to the OISD and StevenBlack HTTPS hosts at
+startup; **native Home and New Tab do not load remote website content**.
+Details: [feature status and Privacy Shield roadmap](docs/PRODUCT_SCOPE.md).
 
 ## Run from source
 
@@ -97,7 +120,8 @@ Windows/macOS testing remains deferred.
 | Bookmark page | Ctrl+D |
 | Zoom | Ctrl+Plus / Ctrl+Minus / Ctrl+0 |
 
-See [architecture and limitations](docs/ARCHITECTURE.md) and
+See [feature status and Privacy Shield roadmap](docs/PRODUCT_SCOPE.md),
+[architecture and limitations](docs/ARCHITECTURE.md) and
 [third-party notes](docs/THIRD_PARTY.md).
 
 **GoreeShield** governs privacy choices; **Wardveil** governs cybersecurity;

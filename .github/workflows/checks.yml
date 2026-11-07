@@ -11,6 +11,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      GC_BROWSER_FILTER_NETWORK: "off" # CI must not contact public list servers
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,6 +65,36 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: python -m unittest discover -s tests -p 'test_linux_layout_smoke.py' -v
+      - name: Linux native light toolbar, omnibox and Settings (offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_chrome_smoke.py' -v
+      - name: Linux native manager panels (offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_panels_smoke.py' -v
+      - name: Linux Webspace cookie isolation over loopback HTTP (offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_webspaces_smoke.py' -v
+      - name: Linux subscription filtering (offline fixture)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_filter_interceptor_smoke.py' -v
+      - name: Linux HTTP proxy routing over loopback (offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_proxy_smoke.py' -v
       - name: Linux X11 Qt and local HTTP smoke (Xvfb)
         env:
           GC_BROWSER_QT_SMOKE: "1"
@@ -81,6 +113,18 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_download_smoke.py' -v
+      - name: Linux X11 light toolbar, omnibox and Settings
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_chrome_smoke.py' -v
+      - name: Linux X11 Webspace cookie isolation over loopback HTTP
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_webspaces_smoke.py' -v
       - name: Linux X11 narrow native Home and New Tab layout
         env:
           GC_BROWSER_QT_SMOKE: "1"

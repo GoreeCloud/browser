@@ -9,6 +9,9 @@ import fcntl
 import os
 from pathlib import Path
 import shutil
+import re
+
+_SPACE_ID = re.compile(r"^[0-9a-f]{16}$")
 
 LOCK_NAME = ".linux-browser.lock"
 RESET_MARKER = ".clear-sites-on-next-start"
@@ -83,6 +86,18 @@ def apply_pending_site_reset(storage: Path) -> bool:
     if not marker.is_file() or marker.read_bytes() != RESET_SIGNATURE:
         raise ValueError("Reset request marker is invalid; site data is unchanged.")
     targets = [storage / name for name in SITE_DIRS]
+    # The same confirmation now covers every Webspace profile. Validate all
+    # targets before removing any; never follow a symlink outside the app root.
+    spaces = storage / "spaces"
+    if spaces.is_symlink() or (spaces.exists() and not spaces.is_dir()):
+        raise ValueError("Unsafe Webspace root; reset was not attempted.")
+    if spaces.is_dir():
+        for child in spaces.iterdir():
+            if not _SPACE_ID.fullmatch(child.name):
+                continue  # unrelated files are not touched
+            if child.is_symlink() or not child.is_dir():
+                raise ValueError("Unsafe Webspace directory; reset was not attempted.")
+            targets.extend(child / name for name in SITE_DIRS)
     for target in targets:
         if target.is_symlink() or (target.exists() and not target.is_dir()):
             raise ValueError("Unsafe site data path; reset was not attempted.")
