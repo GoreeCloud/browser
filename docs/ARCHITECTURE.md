@@ -20,8 +20,14 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   blocks a few known third-party trackers and cleans safe GET navigations.
   It does not implement full DNS control, MITM, VPN or certificate override.
 - **Persistence:** QSettings stores preferences and bookmarks locally. Qt
-  WebEngine may retain HTML5 site storage and visited-link data. Session-only
-  cookies are the default, but the clear action does not wipe all site storage.
+  WebEngine can retain HTML5 site storage and visited-link data. Session-only
+  cookies are the default. The cookie/cache-clear action is narrower than the
+  separately confirmed full-site reset on the next launch.
+- **Linux single-instance safety:** An advisory OS lock prevents two browser
+  processes sharing the same writable WebEngine profile. An explicit reset
+  marker is processed only before creating any pages, while holding that lock;
+  only the app-owned web-profile and cache directories are eligible. Bookmarks
+  and settings are deliberately preserved, and symlinked targets are rejected.
 - **Downloads:** Require a native save prompt. Saved files remain untrusted.
 
 ## Safeguards

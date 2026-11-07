@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.1.0 development preview. Not a production or daily-driver release.**
+**Status: v0.1.1 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -18,8 +18,10 @@ code, not a browser-engine fork.
 - URL cleaning for common tracking parameters, with signed URLs exempted.
 - Small third-party tracker-domain blocker; **not** a complete ad blocker.
 - Local bookmark storage with a 500-bookmark preview cap.
-- Session-only cookies by default, opt-in persistent cookies and cookie/HTTP-cache
-  clearing. Local site storage is **not** completely cleared by that action.
+- Session-only cookies by default; opt-in persistence; cookie/HTTP-cache
+  clearing; and a separately confirmed **full website-data reset on restart**.
+  An OS-level Linux lock prevents concurrent processes using the same profile.
+  The cookie/HTTP-cache action alone does not clear HTML5 site storage.
 - Explicit user consent for website capability requests.
 - Light/dark native Qt theme adapted from the approved **GoreeCloud UI** Lagoon palette.
 
