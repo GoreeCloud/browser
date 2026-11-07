@@ -26,7 +26,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from shiboken6 import delete as destroy_qobject
 
 from goreecloud_browser.core import (
-    clean_tracking_parameters, destination_for, is_known_tracker, valid_web_url,
+    destination_for, is_known_tracker, valid_web_url,
 )
 from goreecloud_browser.site_data import (
     ProfileLock, apply_pending_site_reset, schedule_site_reset,
@@ -114,7 +114,6 @@ class PrivacyInterceptor(QWebEngineUrlRequestInterceptor):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.block_trackers = True
-        self.clean_links = True
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo) -> None:
         url = info.requestUrl()
@@ -126,10 +125,6 @@ class PrivacyInterceptor(QWebEngineUrlRequestInterceptor):
                 is_known_tracker(url.host(), info.firstPartyUrl().host())):
             info.block(True)
             return
-        if self.clean_links and main_frame and bytes(info.requestMethod()).upper() == b"GET":
-            cleaned = clean_tracking_parameters(url.toString())
-            if cleaned != url.toString():
-                info.redirect(QUrl(cleaned))
 
 
 class BrowserPage(QWebEnginePage):
@@ -291,7 +286,7 @@ class BrowserTab(QWidget):
             return "goree://new-tab"
         if current is self.home:
             return "goree://home"
-        return self.view.url().toString()
+        return self.view.url().toString(QUrl.ComponentFormattingOption.FullyEncoded)
 
 
 class PrivacyDialog(QDialog):
@@ -313,8 +308,8 @@ class PrivacyDialog(QDialog):
         tracking.setChecked(browser.interceptor.block_trackers)
         tracking.toggled.connect(lambda value: browser.set_preference("block_trackers", value))
         box.addWidget(tracking)
-        cleaning = QCheckBox("Remove known tracking parameters from GET navigations")
-        cleaning.setChecked(browser.interceptor.clean_links)
+        cleaning = QCheckBox("Clean known tracking parameters from entered URLs")
+        cleaning.setChecked(browser.clean_links)
         cleaning.toggled.connect(lambda value: browser.set_preference("clean_links", value))
         box.addWidget(cleaning)
         cookies = QCheckBox("Allow cookies to persist after closing the browser")
@@ -323,9 +318,10 @@ class PrivacyDialog(QDialog):
         box.addWidget(cookies)
 
         note = QLabel(
-            "These starter protections are not a complete ad blocker or anti-fingerprinting system. "
-            "Cookie clearing removes cookies and HTTP cache, not all local site storage. "
-            "DNS currently follows your operating system."
+            "URL cleaning applies to addresses entered or pasted into this browser, "
+            "not automatically to clicked links or site redirects. "
+            "This is not a complete ad blocker or anti-fingerprinting system. "
+            "Cookie/cache clearing leaves some site storage. DNS follows your OS."
         )
         note.setWordWrap(True)
         note.setObjectName("FinePrint")
@@ -351,7 +347,7 @@ class BrowserWindow(QMainWindow):
             self.mode = "dark"
         self.interceptor = PrivacyInterceptor(self)
         self.interceptor.block_trackers = self.preferences.value("block_trackers", True, type=bool)
-        self.interceptor.clean_links = self.preferences.value("clean_links", True, type=bool)
+        self.clean_links = self.preferences.value("clean_links", True, type=bool)
         self.persistent_cookies = self.preferences.value("persistent_cookies", False, type=bool)
 
         storage = Path(QStandardPaths.writableLocation(QStandardPaths.StandardLocation.AppDataLocation))
@@ -489,7 +485,7 @@ class BrowserWindow(QMainWindow):
     def navigate(self, raw: str, tab=None):
         tab = tab if isinstance(tab, BrowserTab) else self.current()
         try:
-            dest = destination_for(raw)
+            dest = destination_for(raw, clean_links=self.clean_links)
         except ValueError as exc:
             QMessageBox.warning(self, "Unsupported address", str(exc))
             return
@@ -595,7 +591,7 @@ class BrowserWindow(QMainWindow):
         if key == "block_trackers":
             self.interceptor.block_trackers = bool(value)
         if key == "clean_links":
-            self.interceptor.clean_links = bool(value)
+            self.clean_links = bool(value)
         if key == "persistent_cookies":
             self.persistent_cookies = bool(value)
             self.profile.setPersistentCookiesPolicy(
@@ -660,7 +656,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.1.1\n\n"
+            "GoreeCloud Browser • development preview 0.1.2\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"

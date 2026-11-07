@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from ipaddress import ip_address
-from urllib.parse import parse_qsl, quote_plus, urlencode, urlsplit, urlunsplit
+from urllib.parse import quote_plus, unquote_plus, urlsplit, urlunsplit
 import re
 
 STARTPAGE_SEARCH = "https://www.startpage.com/sp/search?query="
@@ -82,7 +82,7 @@ def valid_web_url(raw: str) -> bool:
         return False
 
 
-def destination_for(text: str) -> Destination:
+def destination_for(text: str, *, clean_links: bool = True) -> Destination:
     raw = text.strip()
     if not raw:
         return Destination("new-tab", "goree://new-tab")
@@ -93,37 +93,41 @@ def destination_for(text: str) -> Destination:
         raise ValueError("Address contains unsupported characters or is too long.")
     if _host_looks_like_address(raw) and not raw.lower().startswith(("http://", "https://")):
         # HTTP is allowed explicitly; bare hosts always begin with HTTPS.
-        return Destination("url", clean_tracking_parameters("https://" + raw))
+        url = "https://" + raw
+        return Destination("url", clean_tracking_parameters(url) if clean_links else url)
     if SCHEME_RE.match(raw):
         if not valid_web_url(raw):
             raise ValueError("Only HTTP and HTTPS web addresses are supported.")
-        return Destination("url", clean_tracking_parameters(raw))
+        return Destination("url", clean_tracking_parameters(raw) if clean_links else raw)
     return Destination("url", STARTPAGE_SEARCH + quote_plus(raw))
 
 
 def clean_tracking_parameters(url: str) -> str:
     """Strip known click identifiers; never rewrite signed or non-HTTP URLs.
 
-    We preserve original encoding when no change is required.
+    Preserve the raw bytes/encoding of every surviving query segment even
+    when trackers are removed. Decoding and re-encoding a query can change the
+    meaning of a signed URL or a server expecting literal '+' and '%20'.
     """
     if not valid_web_url(url):
         return url
     parsed = urlsplit(url)
     if not parsed.query:
         return url
-    pairs = parse_qsl(parsed.query, keep_blank_values=True)
-    names = [name.casefold() for name, _ in pairs]
+    # Interpret names only; never parse or re-encode surviving query values.
+    # Split on literal '&' to preserve encoded ampersands, duplicate keys,
+    # empty segments and the original value encoding/order.
+    segments = parsed.query.split("&")
+    names = [unquote_plus(segment.partition("=")[0]).casefold()
+             for segment in segments]
     if any(name in SIGNED_PARAMETERS or name.startswith(("x-amz-", "x-goog-"))
            for name in names):
         return url
-    kept = [
-        (name, value) for name, value in pairs
-        if not (name.casefold().startswith("utm_")
-                or name.casefold() in TRACKING_PARAMETERS)
-    ]
-    if len(kept) == len(pairs):
+    kept = [segment for segment, name in zip(segments, names)
+            if not (name.startswith("utm_") or name in TRACKING_PARAMETERS)]
+    if len(kept) == len(segments):
         return url
-    return urlunsplit(parsed._replace(query=urlencode(kept, doseq=True)))
+    return urlunsplit(parsed._replace(query="&".join(kept)))
 
 
 def is_known_tracker(host: str, first_party_host: str) -> bool:

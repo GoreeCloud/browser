@@ -27,6 +27,16 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(destination_for("private search query").value,
                          STARTPAGE_SEARCH + "private+search+query")
 
+    def test_cleaning_enabled_for_typed_address(self):
+        self.assertEqual(
+            destination_for("https://example.com/?utm_source=mail&q=a%20b").value,
+            "https://example.com/?q=a%20b",
+        )
+
+    def test_cleaning_can_be_disabled_for_typed_address(self):
+        original = "https://example.com/?utm_source=mail&q=a%20b"
+        self.assertEqual(destination_for(original, clean_links=False).value, original)
+
     def test_reject_javascript(self):
         with self.assertRaises(ValueError):
             destination_for("javascript:alert(1)")
@@ -70,6 +80,33 @@ class PrivacyTests(unittest.TestCase):
     def test_preserve_noop_encoding(self):
         url = "https://e.com/?q=a%20b&c=1"
         self.assertEqual(clean_tracking_parameters(url), url)
+
+    def test_preserve_encoding_when_tracking_removed(self):
+        original = ("https://e.com/path?utm_source=mail&q=a%20b&literal=a%2Bb"
+                    "&raw=%26%3D&&utm_campaign=foo&empty=#fragment")
+        expected = ("https://e.com/path?q=a%20b&literal=a%2Bb"
+                    "&raw=%26%3D&&empty=#fragment")
+        self.assertEqual(clean_tracking_parameters(original), expected)
+
+    def test_encoded_tracking_name_removed_without_reencoding_values(self):
+        self.assertEqual(
+            clean_tracking_parameters("https://e.com/?%75tm_source=1&next=%2f%2F&item=0"),
+            "https://e.com/?next=%2f%2F&item=0",
+        )
+
+    def test_preserve_signed_url_with_encoded_signature_name(self):
+        original = "https://e.com/file?X-Amz-%53ignature=abc&utm_source=mail&q=a%20b"
+        self.assertEqual(clean_tracking_parameters(original), original)
+
+    def test_tracking_text_in_value_not_a_parameter_name(self):
+        original = "https://e.com/?redirect=utm_source%3Dfoo&x=2"
+        self.assertEqual(clean_tracking_parameters(original), original)
+
+    def test_preserve_duplicate_keys_and_empty_value(self):
+        self.assertEqual(
+            clean_tracking_parameters("https://e.com/?a=1&fbclid=hi&a=2&b="),
+            "https://e.com/?a=1&a=2&b=",
+        )
 
     def test_preserve_signed_url(self):
         url = "https://storage.example/file?X-Amz-Signature=abcdef&utm_source=mail"
