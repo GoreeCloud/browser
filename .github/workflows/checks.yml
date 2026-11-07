@@ -53,6 +53,12 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: python -m unittest discover -s tests -p 'test_linux_network_smoke.py' -v
+      - name: Linux local async antivirus gate (test-double scanner, offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_antimalware_smoke.py' -v
       - name: Linux offscreen download staging and no-overwrite smoke
         env:
           GC_BROWSER_QT_SMOKE: "1"
@@ -149,6 +155,12 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_network_smoke.py' -v
+      - name: Linux X11 local async antivirus gate (test-double scanner)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_antimalware_smoke.py' -v
       - name: Linux X11 download staging and no-overwrite smoke (Xvfb)
         env:
           GC_BROWSER_QT_SMOKE: "1"

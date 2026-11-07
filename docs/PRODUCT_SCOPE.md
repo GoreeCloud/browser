@@ -6,7 +6,7 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 
 ## Founder-directed desktop interface
 
-| Requirement | v0.2.5 development-preview status |
+| Requirement | v0.2.6 development-preview status |
 | --- | --- |
 | Light theme default; user preference respected | Implemented: new users light, existing Light/Dark QSettings preserved |
 | Toolbar exact order | Implemented: Back, Forward, Refresh, Home, Omnibox, Bookmark, Extensions, Settings, Profile |
@@ -14,7 +14,7 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 | Omnibox | Implemented: Verification and Permissions on left, input in center, Webspaces on right. Permissions opens a real per-Webspace stored-decision manager, not a placeholder |
 | Native Home and distinct New Tab | Retained, separately rendered, accessible at 700x480 by scrolling |
 | Advanced Tab Manager | Initial native search/switch/close by tab and Webspace; advanced grouping/sleep/session restore planned |
-| Advanced Download Manager | Initial active/cancel/progress/session view atop private staged no-overwrite saves; malware scanning and persisted history planned |
+| Advanced Download Manager | Active/cancel/progress/session view atop private staged no-overwrite saves. **Optional trusted-system ClamAV** process gate runs asynchronously when installed, and detection/error/timeout prevents saving. No scanner requires explicit unscanned-save confirmation (default No). No bundled antivirus, signature updates, persistent quarantine or scan guarantee |
 | Webspaces (Firefox-style containers) | Initial custom Webspaces with **separate Qt WebEngine profiles**, cookie jars, cache and HTML5 storage; real local HTTP isolation test. No per-Webspace process, IP or proxy isolation; no account sync |
 | Theme Manager | Light/Dark selection in Settings |
 | Privacy Shield site exceptions | Native exact-first-party-host manager with explicit confirmation before disabling OISD/StevenBlack and fallback tracker-domain blocking; restores protection immediately for new requests. Browser-wide across Webspaces (not per-Webspace) |
@@ -83,7 +83,9 @@ review, incident response and browser-engine isolation.
   expired/revoked certificates, real-network mixed-content enforcement, HSTS,
   revocation and TLS/origin UI; explicitly disabling Qt's insecure-content
   capability is a baseline, not comprehensive mixed-content acceptance.
-  Confirm transient permission/capture, download threat detection, site-data
+  Confirm transient permission/capture, download threat-detection quality
+  (real ClamAV signature database; only a test-double process is currently
+  accepted), scanner sandboxing/updates, quarantine and authenticity, site-data
   completeness and cookie/data retention. Stored permission reset is verified,
   but real camera/microphone capture termination remains unqualified.
 - Prove actual per-Webspace storage isolation on representative Linux hosts;

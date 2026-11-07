@@ -12,7 +12,7 @@ from unittest.mock import patch
 )
 class NativePanelsSmoke(unittest.TestCase):
     def test_managers_are_usable_without_remote_pages(self):
-        from PySide6.QtWidgets import QApplication
+        from PySide6.QtWidgets import QApplication, QLabel
         from PySide6.QtCore import Qt
         from shiboken6 import delete as destroy_qobject
         from goreecloud_browser.app import BrowserWindow
@@ -50,9 +50,15 @@ class NativePanelsSmoke(unittest.TestCase):
                     self.assertEqual(window.current().space_id, ident)
                     destroy_qobject(tabs)
 
-                    downloads = DownloadManagerDialog(window)
+                    with patch("goreecloud_browser.native_panels.find_clamscan",
+                               return_value=None):
+                        downloads = DownloadManagerDialog(window)
                     downloads.refresh()
                     self.assertEqual(downloads.table.rowCount(), 0)
+                    scanner_labels = [label.text() for label in downloads.findChildren(QLabel)]
+                    self.assertTrue(any("scanner: unavailable" in text.lower()
+                                        and "explicit approval" in text
+                                        for text in scanner_labels))
                     downloads.close()
                     destroy_qobject(downloads)
 

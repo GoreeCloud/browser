@@ -57,9 +57,19 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   file and atomic link. Existing files and symlink destinations are rejected.
   A cancelled/interrupted download is discarded and never auto-opened. Partial
   temporary downloads may remain after a process crash until OS temp cleanup.
-  This does **not** provide antimalware scanning, authenticity verification,
-  quarantine enforcement, or a mature download manager. Saved files remain
-  untrusted and must not be executed blindly.
+  A Wardveil scan gate now runs a *root-owned system-installed* ClamAV
+  command asynchronously against the private staged file, with a 90-second
+  timeout and one concurrent scanner limit. Exit code 1 (detected threat),
+  scanner failure, timeout, or staged-file metadata changes prevent publication
+  and delete staged bytes; a scan result of 0 means **no detection**, not safe
+  or fully scanned. On Linux without trusted ClamAV, the user must explicitly
+  approve saving an **UNSCANNED** file (default refusal); Downloads shows this
+  state and it never auto-opens. A scanner-busy new download is discarded with
+  warning rather than bypassing checks. These protections do **not** include
+  signature updates, comprehensive malware detection, a persistent quarantine,
+  authenticity verification or mature download history. Scanning an untrusted
+  file with a privileged or vulnerable engine has its own security implications.
+  Saved files remain untrusted and must not be executed blindly.
 
 - **Proxy:** Validated application-wide System/Direct/HTTP/SOCKS5 settings
   are applied before profile creation on the next restart through Qt Network.

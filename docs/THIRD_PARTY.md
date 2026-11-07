@@ -13,6 +13,12 @@ This license does not relicense Qt or Chromium content.
 - **Python**: standard library and any bundling require their applicable
   upstream copyright and license notices.
 
+- **ClamAV** is an optional local system malware-scanner executable.
+  This repository does not bundle its program, signatures or third-party
+  code. A system-installed, root-owned `clamscan` may be invoked against
+  privately staged downloads after the user selects a save destination.
+  GoreeCloud does not install/update ClamAV or certify its signatures.
+
 Browser filter subscriptions are fetched as **external data at runtime**, not
 redistributed or bundled in this repository:
 

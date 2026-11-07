@@ -79,6 +79,9 @@ class LinuxDownloadsSmoke(unittest.TestCase):
                     app.quit()
 
                 with patch.object(QFileDialog, "getSaveFileName", side_effect=save_dialog), \
+                        patch("goreecloud_browser.app.find_clamscan", return_value=None), \
+                        patch.object(QMessageBox, "question",
+                                     return_value=QMessageBox.StandardButton.Yes), \
                         patch.object(QMessageBox, "warning", return_value=QMessageBox.StandardButton.Ok):
                     window.profile.downloadRequested.connect(observe_download)
                     window.show()
@@ -93,6 +96,8 @@ class LinuxDownloadsSmoke(unittest.TestCase):
                 self.assertEqual(original.read_bytes(), b"existing file")
                 self.assertEqual(target.stat().st_mode & 0o777, 0o600)
                 self.assertEqual(window._pending_downloads, {})
+                self.assertTrue(any(row["status"] == "Saved — NOT SCANNED"
+                                    for row in window._download_history))
                 self.assertTrue(staged_directories)
                 self.assertTrue(all(not path.exists() for path in staged_directories))
                 app.processEvents()
