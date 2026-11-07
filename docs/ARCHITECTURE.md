@@ -33,7 +33,16 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   marker is processed only before creating any pages, while holding that lock;
   only the app-owned web-profile and cache directories are eligible. Bookmarks
   and settings are deliberately preserved, and symlinked targets are rejected.
-- **Downloads:** Require a native save prompt. Saved files remain untrusted.
+- **Downloads:** Require a native save prompt; Qt WebEngine writes only into
+  per-download private temporary directories. On successful completion the
+  browser publishes the file to the chosen destination with atomic no-clobber
+  link operations; cross-device destinations use a private fully copied sibling
+  file and atomic link. Existing files and symlink destinations are rejected.
+  A cancelled/interrupted download is discarded and never auto-opened. Partial
+  temporary downloads may remain after a process crash until OS temp cleanup.
+  This does **not** provide antimalware scanning, authenticity verification,
+  quarantine enforcement, or a mature download manager. Saved files remain
+  untrusted and must not be executed blindly.
 
 ## Safeguards
 
