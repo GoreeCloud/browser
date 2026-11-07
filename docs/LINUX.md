@@ -55,8 +55,12 @@ download antivirus signatures, or change OS services.
 
 - With trusted ClamAV available: the GUI launches one asynchronous scan at a
   time (90-second timeout), and only publishes if ClamAV exits 0 meaning
-  **no signature detection**. Positive detection (exit 1), error, crash or
-  timeout fails closed. Private staging is destroyed, not kept as a persistent
+  **no signature detection**. The scanner receives explicit
+  `--alert-exceeds-max=yes` and `--alert-encrypted=yes` flags: encrypted or
+  over-limit content is **blocked**, not accepted as fully scanned. Positive
+  alerts (commonly exit 1), errors (including some limit alerts reported with
+  exit 2), crash or timeout all fail closed. Private staging is destroyed,
+  not kept as a persistent
   malware quarantine. A second simultaneous download requiring a scan is
   discarded with a warning, not saved without one.
 - Without trusted ClamAV: **no scanner runs**. After the usual save-path dialog
@@ -65,15 +69,57 @@ download antivirus signatures, or change OS services.
   labeled *Saved — NOT SCANNED*. It is never opened automatically and is saved
   with restrictive permissions.
 - A scanner reporting no detection is **not a guarantee**: signatures may be
-  outdated, files may be encrypted or exceed scanner limits, and malware
-  families may be unknown. Downloaded programs must not be executed blindly.
+  outdated, archives may use unsupported encryption or formats, and malware
+  families may be unknown. The scanner limits checked are the supported
+  file/scan-size and recursion limits, not every internal work bound. The
+  browser **does not yet verify signed signature-database freshness**.
+  Downloaded programs must not be executed blindly.
 
 ClamAV's CLI exit code semantics are documented at
 [clamscan(1)](https://manpages.ubuntu.com/manpages/noble/man1/clamscan.1.html).
 The test-only scanner fixture exercises the state transitions and does **not**
 demonstrate detection against real threats. The authorized Zorin development
-laptop did not have ClamAV installed at this validation, so no real signature
-scan or system installation is claimed.
+laptop did not have ClamAV installed at this validation, and no system
+installation or real official signature database is claimed. For additional
+verification, the Ubuntu archive ClamAV 1.5.4 CLI and libclamav12 packages
+were downloaded using verified apt metadata and checked against their signed
+package-index SHA-256 hashes, then extracted into a private temporary directory.
+The real engine returned no detection for a harmless control, an alert for the
+harmless EICAR antivirus test pattern, and a nonzero failure for an over-limit
+file when tested through GoreeCloud Browser's native asynchronous gate. The
+test used a disposable SHA-256 `.hsb` test signature, **not** an official
+Cisco Talos ClamAV database. It passed offscreen, X11/Xvfb and Wayland.
+Notably, an attempted `--fail-if-cvd-older-than=7` freshness option returned
+success while missing an EICAR match in this custom-signature configuration;
+that option is deliberately excluded until a trustworthy production signature
+freshness and scan-completeness preflight can be implemented. No OS-wide
+ClamAV service, DB, trust store or default-browser setting was changed.
+
+The optional real-engine smoke test is disabled in routine test discovery. To
+run it after *independently verifying* a trusted ClamAV binary in an isolated
+environment, set `GC_BROWSER_REAL_CLAMSCAN` to its absolute executable path,
+`GC_BROWSER_QT_SMOKE=1`, and supply any needed loader library directory
+or `CVD_CERTS_DIR` within your test environment. The test generates a local
+`.hsb` signature and EICAR control, and calls only the selected local engine:
+
+~~~sh
+GC_BROWSER_QT_SMOKE=1 GC_BROWSER_REAL_CLAMSCAN=/path/to/verified/clamscan \
+QT_QPA_PLATFORM=offscreen QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+  python3 -m unittest discover -s tests -p test_linux_real_clamav_smoke.py -v
+~~~
+
+For reproducible CI, `scripts/linux/run_clamav_engine_acceptance.py` obtains
+Ubuntu packages from configured APT metadata, verifies each package's SHA-256
+against its authenticated APT index record, extracts them into disposable
+storage and runs this same real-engine Qt test with an offline local test
+signature. It does not run `apt install`, `freshclam`, or a daemon. CI uses a
+pinned Ubuntu 24.04 runner; ordinary application and unit tests do not require
+the test-only ClamAV packages.
+
+This does not change the browser's trusted production scanner path. For
+ClamAV's alert and signature-management semantics see
+[official scanning documentation](https://docs.clamav.net/manual/Usage/Scanning.html)
+and [signature documentation](https://docs.clamav.net/manual/Signatures.html).
 
 To run the optional native test using a disposable local HTTP server and
 a test-only process (no external malware or internet access):
@@ -221,8 +267,10 @@ roadmap](PRODUCT_SCOPE.md).
 
 Downloads use a user-chosen filename but land in a private temporary directory
 first, then publish atomically on completion with no existing-file overwrite.
-Interrupted downloads do not become user-visible files. This does not include
-antivirus scanning or trusted-source validation; never execute untrusted files.
+Interrupted downloads do not become user-visible files. The optional
+ClamAV gate blocks alerts/scan failures, but **does not** certify an unscanned
+download, official signature freshness or trusted-source authenticity.
+Never execute untrusted files blindly.
 
 GoreeShield: session-only cookies by default, independently enabled domain filters,
 tracking-parameter cleaning **only for user-entered/pasted URLs**, conservative

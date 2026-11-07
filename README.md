@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.2.6 development preview. Not a production or daily-driver release.**
+**Status: v0.2.7 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -64,7 +64,14 @@ code, not a browser-engine fork.
   is installed, saving **without scanning requires explicit confirmation**
   (default No), and the Download Manager labels it **NOT SCANNED**. Only one
   ClamAV scan runs at a time to bound resource use; extra downloads are rejected
-  with a warning. Scanner exit code 0 means *no detection*, **not proof of safety**.
+  with a warning. ClamAV is explicitly instructed to flag encrypted content and
+  scan-size/recursion limit exceedances (both are fail-closed). Scanner exit
+  code 0 means *no detection*, **not proof of safety or fresh signatures**.
+  A real Ubuntu ClamAV 1.5.4 engine passed EICAR/no-detection/limit
+  checks using only a disposable local test signature, not official signatures.
+  The Ubuntu 24.04 CI verifies actual package SHA-256 values from APT metadata,
+  extracts ClamAV into temporary storage, and repeats the real-engine Qt gate;
+  it never installs the scanner on the developer's computer.
   No malware signatures, ClamAV executable or antivirus service is bundled.
 - **Staged, user-confirmed downloads:** private temporary storage; publish completed
   files without overwriting existing destinations. Cancelled/failed files are
