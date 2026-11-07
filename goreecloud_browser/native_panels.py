@@ -4,6 +4,7 @@ These are Qt widgets, never privileged web pages. Features that are not yet
 implemented explicitly say so and do not expose fake settings or controls.
 """
 from __future__ import annotations
+from goreecloud_browser.malware_scan import find_clamscan
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QComboBox, QDialog, QFrame, QGroupBox, QHBoxLayout,
@@ -114,8 +115,10 @@ class SettingsPage(QWidget):
         stack.addWidget(panel)
 
         panel, controls = section("Advanced Download Manager",
-            "Monitor staged downloads; completed files require explicit save approval. "
-            "This preview does not scan files for malware.")
+            "Monitor private staged downloads. ClamAV scans completed files "
+            "when installed; findings and scan failures block saving. When "
+            "unavailable, saving UN-SCANNED files requires explicit approval. "
+            "A scan with no detection is not proof a file is safe.")
         controls.addWidget(action("Manage downloads", browser.show_download_manager))
         stack.addWidget(panel)
 
@@ -291,6 +294,14 @@ class DownloadManagerDialog(QDialog):
             "Session-only download activity. Downloads use private staging; "
             "they are never opened automatically."
         ))
+        scanner = find_clamscan()
+        root.addWidget(description(
+            "Wardveil scanner: system ClamAV available. A no-detection result "
+            "does not guarantee safety."
+            if scanner else
+            "Wardveil scanner: unavailable. Every unscanned save requires "
+            "explicit approval; No/discard is the default."
+        ))
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["File", "State", "Progress"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
@@ -313,12 +324,16 @@ class DownloadManagerDialog(QDialog):
              f"{entry[0].receivedBytes()} / {entry[0].totalBytes()} bytes")
             for key, entry in self.browser._pending_downloads.items()
         ]
+        scanning = [
+            (None, entry[4].name, "Scanning with ClamAV", "Private staging")
+            for entry in self.browser._scan_pending.values()
+        ]
         completed = [
             (None, row["filename"], row["status"], row.get("progress", ""))
             for row in self.browser._download_history[-80:]
         ]
-        self.table.setRowCount(len(active) + len(completed))
-        for row_no, (key, name, status, progress) in enumerate(active + completed):
+        self.table.setRowCount(len(active) + len(scanning) + len(completed))
+        for row_no, (key, name, status, progress) in enumerate(active + scanning + completed):
             for column, value in enumerate((name, status, progress)):
                 self.table.setItem(row_no, column, QTableWidgetItem(str(value)))
             self.table.item(row_no, 0).setData(Qt.ItemDataRole.UserRole, key)

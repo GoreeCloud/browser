@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.2.5 development preview. Not a production or daily-driver release.**
+**Status: v0.2.6 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -57,6 +57,15 @@ code, not a browser-engine fork.
   local HTTP proxy routing verified. Authentication/PAC and per-Webspace routing
   remain unqualified. DNS still follows operating-system settings.
 - **Founder-approved Prism Tabs v5 browser identity** shared with [GoreeCloud/browser-mobile](https://github.com/GoreeCloud/browser-mobile): bundled 48/256px icons for the Qt window, native Home/New Tab mark, and the Linux desktop launcher. Canonical [brand-assets source](https://github.com/GoreeCloud/brand-assets/blob/1b12ecbb043c89b4f461e68ce2cd83b5fd70eb3f/products/browser-mobile/app-icon.svg); exact source and raster integrity are locally tested. See [brand provenance](docs/BRANDING.md).
+- **Wardveil download malware-scan gate (Linux):** downloaded files remain
+  in private staging while a locally installed, root-owned ClamAV scanner runs
+  asynchronously. A detection, scanner error, timeout or changed staging file
+  blocks publication and discards the staged bytes. If no trusted ClamAV binary
+  is installed, saving **without scanning requires explicit confirmation**
+  (default No), and the Download Manager labels it **NOT SCANNED**. Only one
+  ClamAV scan runs at a time to bound resource use; extra downloads are rejected
+  with a warning. Scanner exit code 0 means *no detection*, **not proof of safety**.
+  No malware signatures, ClamAV executable or antivirus service is bundled.
 - **Staged, user-confirmed downloads:** private temporary storage; publish completed
   files without overwriting existing destinations. Cancelled/failed files are
   discarded; downloaded content is never automatically opened or executed.

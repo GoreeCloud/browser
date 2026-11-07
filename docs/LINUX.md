@@ -45,6 +45,45 @@ python3 scripts/linux/uninstall_user.py
 
 The installer stops rather than overwriting an existing installation or desktop launcher. PySide6 and build dependencies come from the package index unless already cached. It does not set the default browser, request sudo, install a service, or register HTTP URL handling. Application site data and settings are separate from the program folder; do not delete them without explicit consent and recovery planning.
 
+## Download scanning and consent
+
+This preview's Wardveil download gate inspects files **before** they become
+visible at the selected destination, using an optional locally installed
+ClamAV `clamscan` from a root-owned, non-writable `/usr/bin` or
+`/usr/local/bin` system installation. It does **not** install ClamAV,
+download antivirus signatures, or change OS services.
+
+- With trusted ClamAV available: the GUI launches one asynchronous scan at a
+  time (90-second timeout), and only publishes if ClamAV exits 0 meaning
+  **no signature detection**. Positive detection (exit 1), error, crash or
+  timeout fails closed. Private staging is destroyed, not kept as a persistent
+  malware quarantine. A second simultaneous download requiring a scan is
+  discarded with a warning, not saved without one.
+- Without trusted ClamAV: **no scanner runs**. After the usual save-path dialog
+  the browser asks for separate approval to save an **UNSCANNED** file;
+  **No is the default** and discards the file. If explicitly approved, it is
+  labeled *Saved — NOT SCANNED*. It is never opened automatically and is saved
+  with restrictive permissions.
+- A scanner reporting no detection is **not a guarantee**: signatures may be
+  outdated, files may be encrypted or exceed scanner limits, and malware
+  families may be unknown. Downloaded programs must not be executed blindly.
+
+ClamAV's CLI exit code semantics are documented at
+[clamscan(1)](https://manpages.ubuntu.com/manpages/noble/man1/clamscan.1.html).
+The test-only scanner fixture exercises the state transitions and does **not**
+demonstrate detection against real threats. The authorized Zorin development
+laptop did not have ClamAV installed at this validation, so no real signature
+scan or system installation is claimed.
+
+To run the optional native test using a disposable local HTTP server and
+a test-only process (no external malware or internet access):
+
+~~~sh
+GC_BROWSER_QT_SMOKE=1 GC_BROWSER_FILTER_NETWORK=off QT_QPA_PLATFORM=offscreen \
+QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+  python3 -m unittest discover -s tests -p test_linux_antimalware_smoke.py -v
+~~~
+
 ## Validate
 
 ~~~sh

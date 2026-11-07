@@ -10,7 +10,7 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSettings, QStandardPaths, QUrl, QTimer, QSize, Signal
+from PySide6.QtCore import Qt, QSettings, QStandardPaths, QUrl, QTimer, QSize, Signal, QProcess
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QFileDialog, QFrame, QHBoxLayout,
@@ -34,6 +34,10 @@ from goreecloud_browser.site_data import (
 )
 from goreecloud_browser.downloads import (
     new_staging, publish_complete_file, suggested_filename, validate_target,
+)
+from goreecloud_browser.malware_scan import (
+    SCAN_TIMEOUT_MS, MAX_PARALLEL_SCANS, ScanVerdict, find_clamscan, staged_fingerprint,
+    scanner_arguments, classify_clamscan_result,
 )
 from goreecloud_browser.chrome_icons import icon_for
 from goreecloud_browser.filters import (
@@ -530,6 +534,11 @@ class BrowserWindow(QMainWindow):
         self.profile.setUrlRequestInterceptor(self.interceptor)
         self.space_profiles[DEFAULT_ID] = self.profile
         self._pending_downloads = {}
+        # Qt QProcess scanners run asynchronously; never block the UI with
+        # a large archive and never publish before a clean scanner verdict.
+        self._scan_pending = {}
+        self._next_scan_id = 0  # Do not reuse id(download) after Qt releases it.
+        self._scan_timed_out = set()
         self._download_history = []
         # Qt may complete a small download without emitting a callback after
         # accept(); a bounded event-loop check catches that completion.
@@ -1101,6 +1110,12 @@ class BrowserWindow(QMainWindow):
         if not self._pending_downloads:
             self._download_poll_timer.stop()
 
+    def record_download(self, target: Path, status: str, progress: str = "") -> None:
+        if not getattr(self, "_closing", False):
+            self._download_history.append(
+                {"filename": target.name, "status": status, "progress": progress})
+            self._download_history = self._download_history[-100:]
+
     def finish_download(self, key: int):
         pending = self._pending_downloads.get(key)
         if pending is None:
@@ -1109,26 +1124,146 @@ class BrowserWindow(QMainWindow):
         if not download.isFinished():
             return
         self._pending_downloads.pop(key, None)
+        if download.state() == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
+            self.gate_download(key, staging, staged_file, target, download.receivedBytes())
+            return
+        self.record_download(target, "Not saved")
+        if not getattr(self, "_closing", False):
+            self.statusBar().showMessage(
+                "Download cancelled or interrupted; no file saved.", 7000)
+        staging.cleanup()
+
+    def gate_download(self, key, staging, staged_file: Path,
+                      target: Path, size: int) -> None:
+        """Keep the completed file private until its scan result is known."""
         try:
-            if download.state() == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
-                publish_complete_file(staged_file, target)
-                self._download_history.append({"filename": target.name, "status": "Saved",
-                                               "progress": f"{download.receivedBytes()} bytes"})
-                self.statusBar().showMessage(f"Saved {target.name} (not opened)", 7000)
-            elif not getattr(self, "_closing", False):
-                self._download_history.append({"filename": target.name, "status": "Not saved"})
-                self.statusBar().showMessage("Download cancelled or interrupted; no file saved.", 7000)
-            self._download_history = self._download_history[-100:]
+            fingerprint = staged_fingerprint(staged_file)
+            program = find_clamscan()
+            if not program:
+                answer = QMessageBox.question(
+                    self, "Antivirus scanning unavailable",
+                    "ClamAV is not installed or was not found. This downloaded "
+                    "file has NOT been scanned for malware.\n\n"
+                    "Save the unscanned file anyway? It will not be opened "
+                    "automatically. Choose No to discard it.",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No,
+                )
+                if answer == QMessageBox.StandardButton.Yes:
+                    if staged_fingerprint(staged_file) != fingerprint:
+                        raise ValueError("Staged file changed before publication.")
+                    publish_complete_file(staged_file, target)
+                    self.record_download(target, "Saved — NOT SCANNED", f"{size} bytes")
+                    self.statusBar().showMessage(
+                        f"Saved {target.name} — NOT SCANNED; do not execute blindly.", 10000)
+                else:
+                    self.record_download(target, "Discarded — not scanned")
+                    self.statusBar().showMessage(
+                        "Unscanned download discarded; no file saved.", 7000)
+                staging.cleanup()
+                return
+
+            # Running many clamscan processes simultaneously may exhaust RAM.
+            # This preview blocks extra downloads rather than silently saving
+            # them without a verdict. A queued scanner is a future feature.
+            if len(self._scan_pending) >= MAX_PARALLEL_SCANS:
+                self.record_download(target, "Discarded — scanner busy")
+                staging.cleanup()
+                QMessageBox.warning(
+                    self, "Antivirus scanner busy",
+                    "Another download is being scanned. This file was discarded "
+                    "without being saved. Retry after the scan completes.")
+                return
+
+            arguments = scanner_arguments(staged_file)
+            # A Qt download wrapper may be reclaimed while its independent
+            # antivirus process runs. Never identify scans by that reused id.
+            self._next_scan_id += 1
+            key = self._next_scan_id
+            process = QProcess(self)
+            timer = QTimer(self)
+            timer.setSingleShot(True)
+            self._scan_pending[key] = (
+                process, timer, staging, staged_file, target, fingerprint, size)
+            process.finished.connect(
+                lambda code, exit_status, k=key:
+                self.finish_malware_scan(k, code, exit_status))
+            process.errorOccurred.connect(
+                lambda error, k=key: self.scan_process_error(k, error))
+            # Never collect or display potentially sensitive scanner output.
+            process.readyReadStandardOutput.connect(
+                lambda p=process: p.readAllStandardOutput())
+            process.readyReadStandardError.connect(
+                lambda p=process: p.readAllStandardError())
+            timer.timeout.connect(lambda k=key: self.timeout_malware_scan(k))
+            timer.start(SCAN_TIMEOUT_MS)
+            process.start(program, arguments)
+            self.statusBar().showMessage(
+                f"Scanning {target.name} locally with ClamAV…", 7000)
         except (OSError, ValueError) as exc:
+            self.record_download(target, "Not saved — unsafe staging")
+            staging.cleanup()
             if not getattr(self, "_closing", False):
                 QMessageBox.warning(self, "Download not saved", str(exc))
+
+    def scan_process_error(self, key, error) -> None:
+        if error == QProcess.ProcessError.FailedToStart:
+            self.finish_malware_scan(key, 2, QProcess.ExitStatus.CrashExit)
+
+    def timeout_malware_scan(self, key) -> None:
+        job = self._scan_pending.get(key)
+        if job is None:
+            return
+        self._scan_timed_out.add(key)
+        job[0].kill()
+
+    def finish_malware_scan(self, key, code, exit_status) -> None:
+        job = self._scan_pending.pop(key, None)
+        if job is None:
+            return
+        process, timer, staging, staged_file, target, fingerprint, size = job
+        timer.stop()
+        timed_out = key in self._scan_timed_out
+        self._scan_timed_out.discard(key)
+        try:
+            verdict = classify_clamscan_result(
+                code, not timed_out
+                and exit_status == QProcess.ExitStatus.NormalExit)
+            if verdict is ScanVerdict.NO_DETECTION:
+                if staged_fingerprint(staged_file) != fingerprint:
+                    raise ValueError("Staged download changed during scanning.")
+                publish_complete_file(staged_file, target)
+                self.record_download(target, "Saved — ClamAV no detection",
+                                     f"{size} bytes")
+                self.statusBar().showMessage(
+                    f"Saved {target.name}; ClamAV found no threat (not opened).", 8000)
+            elif verdict is ScanVerdict.DETECTED:
+                self.record_download(target, "Blocked — malware detected")
+                self.statusBar().showMessage(
+                    "ClamAV detected a threat. Download discarded.", 10000)
+                QMessageBox.warning(
+                    self, "Threat detected — download blocked",
+                    "ClamAV reported malware in a downloaded file. "
+                    "The staged file will be deleted and nothing was saved.")
+            else:
+                self.record_download(target, "Not saved — scanning failed")
+                QMessageBox.warning(
+                    self, "Antivirus scan failed",
+                    "The antivirus scan did not complete successfully or "
+                    "timed out. Nothing was saved. Check your local ClamAV "
+                    "installation and signatures before retrying.")
+        except (OSError, ValueError) as exc:
+            self.record_download(target, "Not saved — file changed or inaccessible")
+            QMessageBox.warning(self, "Download not saved", str(exc))
         finally:
             staging.cleanup()
+            timer.deleteLater()
+            process.deleteLater()
 
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.2.5\n\n"
+            "GoreeCloud Browser • development preview 0.2.6\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"
@@ -1175,6 +1310,19 @@ class BrowserWindow(QMainWindow):
                 download.cancel()
             staging.cleanup()
         self._pending_downloads.clear()
+        # Terminate all still-running scanner processes before removing their
+        # private files. Closing the browser never publishes unfinished scans.
+        pending_scans = list(self._scan_pending.values())
+        self._scan_pending.clear()
+        self._scan_timed_out.clear()
+        for process, timer, staging, _, _, _, _ in pending_scans:
+            timer.stop()
+            if process.state() != QProcess.ProcessState.NotRunning:
+                process.kill()
+                process.waitForFinished(500)
+            staging.cleanup()
+            process.deleteLater()
+            timer.deleteLater()
         while self.tabs.count():
             tab = self.tabs.widget(0)
             self.tabs.removeTab(0)
