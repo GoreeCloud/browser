@@ -7,12 +7,15 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.1.3 development preview. Not a production or daily-driver release.**
+**Status: v0.1.4 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
-- Native Qt desktop navigation, tabs, back/forward/reload, downloads and shortcuts.
+- Native Qt desktop navigation, tabs, back/forward/reload, and shortcuts.
 - **Founder-approved Prism Tabs v5 browser identity** shared with [GoreeCloud/browser-mobile](https://github.com/GoreeCloud/browser-mobile): bundled 48/256px icons for the Qt window, native Home/New Tab mark, and the Linux desktop launcher. Canonical [brand-assets source](https://github.com/GoreeCloud/brand-assets/blob/1b12ecbb043c89b4f461e68ce2cd83b5fd70eb3f/products/browser-mobile/app-icon.svg); exact source and raster integrity are locally tested. See [brand provenance](docs/BRANDING.md).
+- **Staged, user-confirmed downloads:** private temporary storage; publish completed
+  files without overwriting existing destinations. Cancelled/failed files are
+  discarded; downloaded content is never automatically opened or executed.
 - **Distinct, entirely native Home and New Tab pages**; neither loads remote content.
 - Startpage search for text queries. Bare hosts use HTTPS by default. GoreeCloud Search
   is **not** enabled until it passes an independently verified stability gate.

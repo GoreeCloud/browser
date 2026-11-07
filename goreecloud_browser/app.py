@@ -10,7 +10,7 @@ import os
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QSettings, QStandardPaths, QUrl, Signal
+from PySide6.QtCore import Qt, QSettings, QStandardPaths, QUrl, QTimer, Signal
 from PySide6.QtGui import QAction, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication, QCheckBox, QDialog, QFileDialog, QFrame, QHBoxLayout,
@@ -31,6 +31,9 @@ from goreecloud_browser.core import (
 from goreecloud_browser.branding import browser_icon
 from goreecloud_browser.site_data import (
     ProfileLock, apply_pending_site_reset, schedule_site_reset,
+)
+from goreecloud_browser.downloads import (
+    new_staging, publish_complete_file, suggested_filename, validate_target,
 )
 
 # Values copied from the canonical GC UI token implementation
@@ -388,6 +391,12 @@ class BrowserWindow(QMainWindow):
         self.profile.settings().setAttribute(
             QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, False)
         self.profile.setUrlRequestInterceptor(self.interceptor)
+        self._pending_downloads = {}
+        # Qt may complete a small download without emitting a callback after
+        # accept(); a bounded event-loop check catches that completion.
+        self._download_poll_timer = QTimer(self)
+        self._download_poll_timer.setInterval(150)
+        self._download_poll_timer.timeout.connect(self.poll_downloads)
         self.profile.downloadRequested.connect(self.handle_download)
 
         self.setObjectName("Window")
@@ -659,23 +668,69 @@ class BrowserWindow(QMainWindow):
         QApplication.instance().setStyleSheet(stylesheet(self.mode))
 
     def handle_download(self, download: QWebEngineDownloadRequest):
-        suggested = os.path.basename(download.downloadFileName()) or "download"
+        # Never permit WebEngine to write directly into a chosen final path.
+        # The untrusted download lands in a private temporary directory first.
+        suggested = suggested_filename(download.downloadFileName())
         directory = QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)
-        proposed = str(Path(directory) / suggested)
+        proposed = str(Path(directory or str(Path.home() / "Downloads")) / suggested)
         selected, _ = QFileDialog.getSaveFileName(self, "Save downloaded file", proposed)
         if not selected:
             download.cancel()
             return
-        target = Path(selected)
-        download.setDownloadDirectory(str(target.parent))
-        download.setDownloadFileName(target.name)
-        download.accept()
-        self.statusBar().showMessage(f"Downloading to {target.name}", 5000)
+        try:
+            target = validate_target(Path(selected))
+            staging, staged_file = new_staging()
+        except (OSError, ValueError) as exc:
+            download.cancel()
+            QMessageBox.warning(self, "Download not started", str(exc))
+            return
+        try:
+            download.setDownloadDirectory(str(staged_file.parent))
+            download.setDownloadFileName(staged_file.name)
+            key = id(download)
+            self._pending_downloads[key] = (download, staging, staged_file, target)
+            download.stateChanged.connect(
+                lambda _state, k=key: self.finish_download(k))
+            download.accept()
+            self._download_poll_timer.start()
+        except (OSError, ValueError, RuntimeError) as exc:
+            self._pending_downloads.pop(id(download), None)
+            staging.cleanup()
+            download.cancel()
+            QMessageBox.warning(self, "Download not started", str(exc))
+            return
+        self.statusBar().showMessage(f"Downloading {target.name} to a private staging area…", 6000)
+
+    def poll_downloads(self):
+        for key in list(self._pending_downloads):
+            self.finish_download(key)
+        if not self._pending_downloads:
+            self._download_poll_timer.stop()
+
+    def finish_download(self, key: int):
+        pending = self._pending_downloads.get(key)
+        if pending is None:
+            return
+        download, staging, staged_file, target = pending
+        if not download.isFinished():
+            return
+        self._pending_downloads.pop(key, None)
+        try:
+            if download.state() == QWebEngineDownloadRequest.DownloadState.DownloadCompleted:
+                publish_complete_file(staged_file, target)
+                self.statusBar().showMessage(f"Saved {target.name} (not opened)", 7000)
+            elif not getattr(self, "_closing", False):
+                self.statusBar().showMessage("Download cancelled or interrupted; no file saved.", 7000)
+        except (OSError, ValueError) as exc:
+            if not getattr(self, "_closing", False):
+                QMessageBox.warning(self, "Download not saved", str(exc))
+        finally:
+            staging.cleanup()
 
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.1.3\n\n"
+            "GoreeCloud Browser • development preview 0.1.4\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"
@@ -716,6 +771,12 @@ class BrowserWindow(QMainWindow):
             event.accept()
             return
         self._closing = True
+        self._download_poll_timer.stop()
+        for download, staging, _, _ in list(self._pending_downloads.values()):
+            if not download.isFinished():
+                download.cancel()
+            staging.cleanup()
+        self._pending_downloads.clear()
         while self.tabs.count():
             tab = self.tabs.widget(0)
             self.tabs.removeTab(0)

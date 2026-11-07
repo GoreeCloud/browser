@@ -61,6 +61,9 @@ QT_QPA_PLATFORM=offscreen QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
 QT_QPA_PLATFORM=xcb QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
   GC_BROWSER_QT_SMOKE=1 xvfb-run -a -s '-screen 0 1280x800x24' \
     python3 -m unittest discover -s tests -p test_linux_network_smoke.py -v
+QT_QPA_PLATFORM=offscreen QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+  GC_BROWSER_QT_SMOKE=1 python3 -m unittest discover \
+    -s tests -p test_linux_download_smoke.py -v
 desktop-file-validate \
   "$HOME/.local/share/applications/com.goreecloud.browser.desktop"
 ~~~
@@ -68,6 +71,11 @@ desktop-file-validate \
 The disable-gpu flag is only for headless testing; it does **not** disable the Chromium sandbox. Normal desktop operation should use default GPU/sandbox behavior.
 
 ## Security and privacy status
+
+Downloads use a user-chosen filename but land in a private temporary directory
+first, then publish atomically on completion with no existing-file overwrite.
+Interrupted downloads do not become user-visible files. This does not include
+antivirus scanning or trusted-source validation; never execute untrusted files.
 
 GoreeShield: session-only cookies by default, limited tracker-blocking rules,
 tracking-parameter cleaning **only for user-entered/pasted URLs**, conservative
