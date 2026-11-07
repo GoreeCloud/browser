@@ -80,6 +80,46 @@ class SiteDataTests(unittest.TestCase):
             self.assertEqual((root / "cache" / "cache.txt").read_text(), "preserve")
             self.assertTrue((root / RESET_MARKER).exists())
 
+    def test_webspaces_reset_preserves_registry_and_unrelated_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            space = root / "spaces" / "1234567890abcdef"
+            (space / "web-profile").mkdir(parents=True)
+            (space / "web-profile" / "cookie.db").write_bytes(b"cookie")
+            (space / "cache").mkdir()
+            (space / "cache" / "one").write_text("cached")
+            (root / "bookmarks.json").write_text("keep")
+            lock = ProfileLock(root)
+            try:
+                schedule_site_reset(root)
+                self.assertTrue(apply_pending_site_reset(root))
+            finally:
+                lock.close()
+            self.assertFalse((space / "web-profile").exists())
+            self.assertFalse((space / "cache").exists())
+            self.assertEqual((root / "bookmarks.json").read_text(), "keep")
+
+    def test_symlinked_webspace_target_blocks_reset(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            out = root / "other"
+            out.mkdir()
+            (out / "secret").write_text("preserve")
+            space = root / "spaces" / "1234567890abcdef"
+            space.mkdir(parents=True)
+            (space / "web-profile").symlink_to(out, target_is_directory=True)
+            (root / "web-profile").mkdir()
+            (root / "web-profile" / "cookie").write_text("must-stay")
+            lock = ProfileLock(root)
+            try:
+                schedule_site_reset(root)
+                with self.assertRaises(ValueError):
+                    apply_pending_site_reset(root)
+            finally:
+                lock.close()
+            self.assertEqual((out / "secret").read_text(), "preserve")
+            self.assertEqual((root / "web-profile" / "cookie").read_text(), "must-stay")
+
     def test_marker_permissions_are_private(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

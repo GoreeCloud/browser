@@ -19,22 +19,28 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   native scroll areas; at 700x480, controls remain separated and reachable by
   vertical scrolling instead of shrinking into overlapping elements.
 - **Untrusted sites:** Rendered in Qt WebEngine; no privileged Python/web bridge.
-- **Network:** Qt WebEngine handles TLS and DNS. A limited request interceptor
-  blocks a few known third-party trackers. **Tracking-parameter cleaning only
+- **Network:** Qt WebEngine handles TLS and OS DNS. A native request
+  interceptor blocks known third-party trackers and domains loaded from the
+  enabled OISD Small and StevenBlack subscriptions. Only fixed public HTTPS
+  list origins are fetched for updates, never page URLs or cookies. Caches
+  are parsed, bounded and atomically replaced with last-known-good fallback;
+  lists are not cosmetic filters. **Tracking-parameter cleaning only
   applies before navigating an entered or pasted address**, when enabled.
   Clicked links and HTTP redirects are **not** automatically cleaned: a local
   integration test showed that a redirect can deliver its tracking parameter
   to the server even if a request interceptor changes the displayed URL.
   That misleading interceptor rewrite was removed. Full DNS control, MITM, VPN
   and certificate overrides are not implemented.
-- **Persistence:** QSettings stores preferences and bookmarks locally. Qt
-  WebEngine can retain HTML5 site storage and visited-link data. Session-only
+- **Persistence:** QSettings stores preferences, Webspace registry and bookmarks
+  locally. Default and custom Webspaces have separate Qt WebEngine profiles,
+  cookie jars, HTML5 storage and cache (not per-process/IP isolation). Qt
+  WebEngine can retain visited-link data. Session-only
   cookies are the default. The cookie/cache-clear action is narrower than the
   separately confirmed full-site reset on the next launch.
 - **Linux single-instance safety:** An advisory OS lock prevents two browser
-  processes sharing the same writable WebEngine profile. An explicit reset
+  processes sharing any Webspace's writable WebEngine profile. An explicit reset
   marker is processed only before creating any pages, while holding that lock;
-  only the app-owned web-profile and cache directories are eligible. Bookmarks
+  only app-owned default and Webspace web-profile/cache directories are eligible. Bookmarks
   and settings are deliberately preserved, and symlinked targets are rejected.
 - **Downloads:** Require a native save prompt; Qt WebEngine writes only into
   per-download private temporary directories. On successful completion the
@@ -46,6 +52,17 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   This does **not** provide antimalware scanning, authenticity verification,
   quarantine enforcement, or a mature download manager. Saved files remain
   untrusted and must not be executed blindly.
+
+- **Proxy:** Validated application-wide System/Direct/HTTP/SOCKS5 settings
+  are applied before profile creation on the next restart through Qt Network.
+  HTTP proxy routing has a local-WebEngine test; SOCKS5, PAC, authentication
+  and per-Webspace proxies remain separate acceptance gates. Python-based
+  filter updates pause outside System proxy mode to avoid unexpected bypass.
+- **Native chrome:** Founder-specified nine-item glyph toolbar and omnibox
+  affordances use original monochrome SVG strokes tinted from GC UI tokens.
+  Native Settings contain separate ChatGPT prompt, Webspace, cookie, DNS,
+  proxy and theme sections. ChatGPT is launched only by explicit action;
+  prompts are copied to clipboard only at user request, never sent automatically.
 
 ## Safeguards
 

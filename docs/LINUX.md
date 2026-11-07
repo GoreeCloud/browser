@@ -71,6 +71,26 @@ desktop-file-validate \
 
 The disable-gpu flag is only for headless testing; it does **not** disable the Chromium sandbox. Normal desktop operation should use default GPU/sandbox behavior.
 
+## New native Linux chrome and Webspaces
+
+New profiles open in **Light** unless an existing user saved Dark. The top
+row is Back, Forward, Refresh, Home, Omnibox, Bookmarks, Extensions, Settings,
+Profile; the omnibox nests Verification and Permissions at left and Webspaces
+at right. Native Settings expose ChatGPT prompt copying (no automatic send),
+per-Webspace cookies, the theme manager, system DNS status and validated
+application-wide proxy preferences applied **after restart**. SOCKS5 and
+per-Webspace proxy routing require further acceptance. User-created Webspaces
+get separate Qt WebEngine profiles and cookies, but not process or IP isolation.
+
+The built-in OISD Small and StevenBlack lists are enabled by default and
+refresh over their fixed public HTTPS endpoints when cached content is missing
+or older than 24 hours. The initial refresh **does disclose the computer's
+connection IP to both list hosts**; browsing URLs and cookies are not sent.
+No list is claimed active before valid domains load. Disabled lists do not
+refresh, and caches are retained after update failures. Filtering covers
+third-party domain-matched subresources, not comprehensive cosmetic ads.
+See [feature status and Privacy Shield roadmap](PRODUCT_SCOPE.md).
+
 ## Security and privacy status
 
 Downloads use a user-chosen filename but land in a private temporary directory
@@ -78,11 +98,11 @@ first, then publish atomically on completion with no existing-file overwrite.
 Interrupted downloads do not become user-visible files. This does not include
 antivirus scanning or trusted-source validation; never execute untrusted files.
 
-GoreeShield: session-only cookies by default, limited tracker-blocking rules,
+GoreeShield: session-only cookies by default, independently enabled domain filters,
 tracking-parameter cleaning **only for user-entered/pasted URLs**, conservative
  hostname and Unicode bidi-control validation, and per-session
 website permission decisions. HTTP redirects and clicked links are not cleaned;
-never assume the cleaner prevents all tracking. Wardveil: browser threat protection has **not** been qualified. The interface is native Qt; untrusted websites are rendered by Qt WebEngine with no privileged Python-webpage bridge. "Clear cookies and HTTP cache" does not remove every HTML5 storage item. A separate confirmed website-data reset removes the app-owned Qt profile/cache on the next launch, using a Linux single-instance lock; it preserves bookmarks and settings. No cloud sync, network telemetry, browser-level DNS control, or full content blocker is provided. Startpage remains the search default pending verified GoreeCloud Search maturity.
+never assume the cleaner prevents all tracking. Wardveil: browser threat protection has **not** been qualified. The interface is native Qt; untrusted websites are rendered by Qt WebEngine with no privileged Python-webpage bridge. "Clear cookies and HTTP cache" does not remove every HTML5 storage item. A separate confirmed website-data reset removes the app-owned Qt profile/cache on the next launch, using a Linux single-instance lock; it preserves bookmarks and settings. No cloud sync, behavioral telemetry, browser-level DNS control, or full cosmetic content blocker is provided. Startpage remains the search default pending verified GoreeCloud Search maturity.
 
 ## Linux acceptance priorities
 
