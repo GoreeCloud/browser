@@ -77,6 +77,12 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: python -m unittest discover -s tests -p 'test_linux_panels_smoke.py' -v
+      - name: Linux exact-host Privacy Shield exceptions (offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_site_exceptions_smoke.py' -v
       - name: Linux stored website permission review and revocation (offscreen)
         env:
           GC_BROWSER_QT_SMOKE: "1"
@@ -125,6 +131,12 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_chrome_smoke.py' -v
+      - name: Linux X11 exact-host Privacy Shield exceptions
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_site_exceptions_smoke.py' -v
       - name: Linux X11 stored website permission review and revocation
         env:
           GC_BROWSER_QT_SMOKE: "1"

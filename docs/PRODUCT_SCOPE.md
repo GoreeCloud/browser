@@ -6,7 +6,7 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 
 ## Founder-directed desktop interface
 
-| Requirement | v0.2.1 development-preview status |
+| Requirement | v0.2.2 development-preview status |
 | --- | --- |
 | Light theme default; user preference respected | Implemented: new users light, existing Light/Dark QSettings preserved |
 | Toolbar exact order | Implemented: Back, Forward, Refresh, Home, Omnibox, Bookmark, Extensions, Settings, Profile |
@@ -17,6 +17,7 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 | Advanced Download Manager | Initial active/cancel/progress/session view atop private staged no-overwrite saves; malware scanning and persisted history planned |
 | Webspaces (Firefox-style containers) | Initial custom Webspaces with **separate Qt WebEngine profiles**, cookie jars, cache and HTML5 storage; real local HTTP isolation test. No per-Webspace process, IP or proxy isolation; no account sync |
 | Theme Manager | Light/Dark selection in Settings |
+| Privacy Shield site exceptions | Native exact-first-party-host manager with explicit confirmation before disabling OISD/StevenBlack and fallback tracker-domain blocking; restores protection immediately for new requests. Browser-wide across Webspaces (not per-Webspace) |
 | Extensions button | Status entry only: installing extensions remains unsupported |
 | Settings: ChatGPT.com prompt integrations | Native five editable/copyable prompt templates and explicit open action; **no automatic page transfer, prompt submission or account access** |
 | Settings: Cookies Manager | Cookie names/domains/flags and delete controls for the active Webspace; cookie values hidden; site-data reset is separate |
@@ -43,8 +44,10 @@ Filtering is restricted to **third-party HTTP(S) subresource requests** with
 matched domains, preserving top-level navigations to avoid misleading rewrites.
 This is not cosmetic filtering, anti-fingerprinting, script injection, complete
 malvertising protection or DNS-level blocking. Small local tracker fallback rules
-remain independently toggleable. Additional site-exception and compatibility
-controls are planned. Outside System proxy mode, list updates are paused to
+remain independently toggleable. Exact first-party site exceptions (browser-wide across Webspaces) are now
+available with strict hostname validation, explicit confirmation and reversible
+removal. More granular subresource-domain allow/deny rules and compatibility
+management remain planned. Outside System proxy mode, list updates are paused to
 avoid bypassing the configured Qt WebEngine proxy with a separate downloader.
 
 ### Privacy Shield's nine proposed protection layers
@@ -59,7 +62,7 @@ avoid bypassing the configured Qt WebEngine proxy with a separate downloader.
 | 6. Embedded Content Privacy | Click-to-activate social media, widget and video replacements not implemented |
 | 7. Privacy Preference Enforcement | GPC/DNT signals not implemented; privacy-domain filtering does not depend on voluntary site signals |
 | 8. Adaptive Protection Intelligence | Manual and age-based fixed-source list updates implemented; behavior learning and signed intelligence feeds not implemented |
-| 9. Privacy Management | Native settings, per-Webspace cookie controls and truthful filter status; granular exceptions, counters, import/export and diagnostics pending |
+| 9. Privacy Management | Native settings, per-Webspace cookie controls, per-Webspace stored permission review, exact-first-party-host browser-wide privacy exceptions and truthful filter status; granular resource rules, counters, import/export and diagnostics pending |
 
 The 115 proposed Privacy Shield capabilities are a **product roadmap**, not
 115 released or fully implemented features. GoreeShield owns privacy decisions.
