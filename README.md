@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.2.2 development preview. Not a production or daily-driver release.**
+**Status: v0.2.3 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -21,6 +21,11 @@ code, not a browser-engine fork.
   Webspaces manager; tab/download managers; ChatGPT.com user-copyable prompt
   templates; cookie inspector; OS DNS status; global proxy configuration.
   Unsupported extension and DNS controls explicitly report their limitations.
+- **Wardveil sandbox startup preflight (Linux):** refuses known explicit
+  Qt WebEngine sandbox-disabling settings before profile access, including
+  `QTWEBENGINE_DISABLE_SANDBOX`, `--no-sandbox` and `--single-process`.
+  A separate offline `/proc` audit can observe namespace/seccomp evidence.
+  Neither check certifies every renderer or a hardened daily-driver browser.
 - **Native Website Permissions Center:** the omnibox Permissions glyph opens
   per-Webspace, per-origin stored permission decisions, with explicit selected
   and confirmed-all reset to Ask; capability prompts show the requesting origin

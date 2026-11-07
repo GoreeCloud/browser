@@ -71,6 +71,12 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: python -m unittest discover -s tests -p 'test_linux_chrome_smoke.py' -v
+      - name: Linux sandbox-bypass startup refusal (offscreen)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_sandbox_guard_smoke.py' -v
       - name: Linux native manager panels (offscreen)
         env:
           GC_BROWSER_QT_SMOKE: "1"
@@ -155,6 +161,12 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_permissions_smoke.py' -v
+      - name: Linux X11 sandbox-bypass startup refusal
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_sandbox_guard_smoke.py' -v
       - name: Linux X11 Webspace cookie isolation over loopback HTTP
         env:
           GC_BROWSER_QT_SMOKE: "1"

@@ -75,6 +75,32 @@ desktop-file-validate \
 
 The disable-gpu flag is only for headless testing; it does **not** disable the Chromium sandbox. Normal desktop operation should use default GPU/sandbox behavior.
 
+## Wardveil WebEngine sandbox preflight and offline process audit
+
+The Linux browser now **refuses explicit sandbox-disabling settings** before
+creating any QWebEngine profile or accessing browser site data. Do not set
+`QTWEBENGINE_DISABLE_SANDBOX` or pass `--no-sandbox`, `--single-process`,
+`--disable-seccomp-filter-sandbox`, or comparable unsafe flags in the launcher,
+CLI or `QTWEBENGINE_CHROMIUM_FLAGS`. The browser shows a refusal message;
+there is no supported silent insecure fallback. Unset the override and restart.
+
+From a trusted local checkout with PySide6 installed, an optional **offline,
+read-only** process audit can be run using the normal desktop display:
+
+~~~sh
+python3 scripts/linux/audit_webengine_sandbox.py
+~~~
+
+This command uses a temporary XDG profile, loads only local inline HTML, and
+checks descendant Linux `/proc` status and namespace symlinks. It does not
+change system DNS, user namespaces, system sandbox policy, installed packages,
+profiles or the default browser. An observed seccomp-filtered, namespaced
+Qt WebEngine child is **evidence of one process layer**, not a guarantee that
+all renderer, GPU, plugin and network processes are equally protected. An
+inconclusive result is a release blocker, not a reason to disable sandboxing.
+The Zorin host test observed one child with seccomp mode 2, NoNewPrivs 1 and
+separate user namespace; other child types did not all report the same layers.
+
 ## New native Linux chrome and Webspaces
 
 New profiles open in **Light** unless an existing user saved Dark. The top

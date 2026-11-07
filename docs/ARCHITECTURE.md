@@ -74,6 +74,23 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
 
 ## Safeguards
 
+- **Wardveil WebEngine sandbox startup preflight (Linux):** a pure-Python
+  configuration guard refuses known explicit sandbox-disabling Qt environment
+  settings and Chromium options (including `--no-sandbox`, `--single-process`,
+  `--disable-seccomp-filter-sandbox`, and network-service in-process mode)
+  before a QWebEngineProfile or browser data path is used. The launcher displays
+  an error rather than stripping flags or launching insecurely. The guard does
+  **not** establish that OS sandbox layers succeeded. A separate offline
+  `scripts/linux/audit_webengine_sandbox.py` uses a temporary XDG profile and
+  reads only descendant process metadata from Linux `/proc`. On the authorized
+  Zorin test host, 4 WebEngine descendants were observed, 3 with separate user
+  namespaces, 1 with seccomp mode 2 and a separate user namespace. This is
+  **partial evidence, not certification of every renderer/network/GPU role**.
+  Kernel user namespaces, seccomp, AppArmor and distribution permissions still
+  require broader real-device acceptance. Qt references:
+  [platform sandbox notes](https://doc.qt.io/qt-6/qtwebengine-platform-notes.html)
+  and [WebEngine debug options](https://doc.qt.io/qt-6/qtwebengine-debugging.html).
+
 - Typed addresses reject script, file, custom schemes, userinfo credentials,
   ambiguous percent-encoded hostnames, malformed DNS labels and Unicode bidi
   control characters. Qt additionally checks parser validity before loading.
