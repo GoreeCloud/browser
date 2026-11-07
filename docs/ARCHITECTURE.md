@@ -74,7 +74,7 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
 
 ## Safeguards
 
-- **Wardveil WebEngine sandbox startup preflight (Linux):** a pure-Python
+- **Wardveil WebEngine startup security preflight (Linux):** a pure-Python
   configuration guard refuses known explicit sandbox-disabling Qt environment
   settings and Chromium options (including `--no-sandbox`, `--single-process`,
   `--disable-seccomp-filter-sandbox`, and network-service in-process mode)
@@ -91,6 +91,15 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   [platform sandbox notes](https://doc.qt.io/qt-6/qtwebengine-platform-notes.html)
   and [WebEngine debug options](https://doc.qt.io/qt-6/qtwebengine-debugging.html).
 
+- **Wardveil strict HTTPS errors:** BrowserPage explicitly rejects every
+  `QWebEngineCertificateError`; there is no user, page or session bypass path.
+  Preflight also rejects common Chromium CLI switches for ignoring certificate
+  errors, accepting insecure localhost, disabling same-origin restrictions or
+  allowing active mixed content. A disposable local HTTPS server with a fresh
+  self-signed leaf cert verifies the failure signal, unsuccessful page load and
+  absence of HTTP content delivery. It **does not** establish revocation,
+  HSTS, hostname mismatch or every TLS and mixed-content failure mode.
+  Reference: [Qt certificate errors](https://doc.qt.io/qt-6/qwebenginecertificateerror.html).
 - Typed addresses reject script, file, custom schemes, userinfo credentials,
   ambiguous percent-encoded hostnames, malformed DNS labels and Unicode bidi
   control characters. Qt additionally checks parser validity before loading.

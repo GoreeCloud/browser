@@ -61,6 +61,25 @@ class SandboxSettingsTests(unittest.TestCase):
                     self.assertIn("refuses to start", str(ctx.exception))
                     self.assertIn("sandbox", str(ctx.exception).lower())
 
+    def test_tls_and_web_origin_security_bypass_flags_refused(self):
+        forbidden = (
+            "--ignore-certificate-errors",
+            "--ignore-certificate-errors-spki-list=abcdef",
+            "--allow-insecure-localhost",
+            "--allow-running-insecure-content",
+            "--disable-web-security",
+            "--unsafely-treat-insecure-origin-as-secure=http://example.org",
+        )
+        for flag in forbidden:
+            with self.subTest(flag=flag):
+                for environment, argv in (
+                    ({ENV_FLAGS: f"--disable-gpu {flag}"}, []),
+                    ({}, ["--webEngineArgs", flag]),
+                ):
+                    with self.assertRaises(WebEngineSecurityError) as ctx:
+                        require_safe_webengine_settings(environment, argv)
+                    self.assertIn("TLS", str(ctx.exception))
+
     def test_name_not_prefix_and_no_substring_false_positive(self):
         safe = (
             "--no-sandbox-extra",

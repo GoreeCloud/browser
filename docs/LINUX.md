@@ -101,6 +101,31 @@ inconclusive result is a release blocker, not a reason to disable sandboxing.
 The Zorin host test observed one child with seccomp mode 2, NoNewPrivs 1 and
 separate user namespace; other child types did not all report the same layers.
 
+## HTTPS certificate and origin protection
+
+GoreeCloud Browser rejects Qt WebEngine certificate errors without an unsafe
+bypass prompt. The startup preflight also refuses explicit Chromium switches
+such as `--ignore-certificate-errors`, `--allow-insecure-localhost`,
+`--allow-running-insecure-content`, `--disable-web-security`, and insecure-origin
+trust overrides. This is a Wardveil security guard, not a substitute for
+comprehensive browser/network security testing.
+
+An opt-in Linux acceptance test starts an **ephemeral loopback HTTPS server**
+with a newly generated, untrusted self-signed certificate and verifies that
+Qt rejects the connection without delivering the test HTML:
+
+~~~sh
+GC_BROWSER_QT_SMOKE=1 GC_BROWSER_FILTER_NETWORK=off \
+QT_QPA_PLATFORM=offscreen QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+  python3 -m unittest discover -s tests -p test_linux_tls_rejection_smoke.py -v
+~~~
+
+The test requires OpenSSL, creates temporary key material only inside the
+isolated test directory, and never installs/trusts a CA or contacts public
+websites. Success covers only this local authority error; expired/mismatched
+certificates, revocation, HSTS, certificate transparency and mixed-content
+behavior remain release-acceptance gates.
+
 ## New native Linux chrome and Webspaces
 
 New profiles open in **Light** unless an existing user saved Dark. The top
