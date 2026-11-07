@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtWebEngineCore import (
     QWebEngineDownloadRequest, QWebEnginePage, QWebEngineProfile,
-    QWebEngineSettings, QWebEngineUrlRequestInfo, QWebEngineUrlRequestInterceptor,
+    QWebEngineUrlRequestInfo, QWebEngineUrlRequestInterceptor,
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from shiboken6 import delete as destroy_qobject
@@ -58,6 +58,7 @@ from goreecloud_browser.site_exceptions import (
 from goreecloud_browser.sandbox import (
     WebEngineSecurityError, require_safe_webengine_settings,
 )
+from goreecloud_browser.web_security import configure_content_security
 
 # Values copied from the canonical GC UI token implementation
 # GoreeCloud/gc-ui: styles/tokens.css (verified 2026-11-06).
@@ -525,10 +526,7 @@ class BrowserWindow(QMainWindow):
         # Prevent granted website permissions from surviving an app restart.
         self.profile.setPersistentPermissionsPolicy(
             QWebEngineProfile.PersistentPermissionsPolicy.StoreInMemory)
-        self.profile.settings().setUnknownUrlSchemePolicy(
-            QWebEngineSettings.UnknownUrlSchemePolicy.DisallowUnknownUrlSchemes)
-        self.profile.settings().setAttribute(
-            QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, False)
+        configure_content_security(self.profile)
         self.profile.setUrlRequestInterceptor(self.interceptor)
         self.space_profiles[DEFAULT_ID] = self.profile
         self._pending_downloads = {}
@@ -660,10 +658,7 @@ class BrowserWindow(QMainWindow):
             if self.persistent_cookies else QWebEngineProfile.PersistentCookiesPolicy.NoPersistentCookies)
         profile.setPersistentPermissionsPolicy(
             QWebEngineProfile.PersistentPermissionsPolicy.StoreInMemory)
-        profile.settings().setUnknownUrlSchemePolicy(
-            QWebEngineSettings.UnknownUrlSchemePolicy.DisallowUnknownUrlSchemes)
-        profile.settings().setAttribute(
-            QWebEngineSettings.WebAttribute.JavascriptCanOpenWindows, False)
+        configure_content_security(profile)
         profile.setUrlRequestInterceptor(self.interceptor)
         profile.downloadRequested.connect(self.handle_download)
         self.space_profiles[space_id] = profile
@@ -1133,7 +1128,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.2.4\n\n"
+            "GoreeCloud Browser • development preview 0.2.5\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"

@@ -101,6 +101,32 @@ inconclusive result is a release blocker, not a reason to disable sandboxing.
 The Zorin host test observed one child with seccomp mode 2, NoNewPrivs 1 and
 separate user namespace; other child types did not all report the same layers.
 
+## Content-security defaults for every Webspace
+
+GoreeCloud Browser explicitly disables active mixed content, location access
+from insecure origins, cross-file and remote URL access from local HTML,
+JavaScript direct clipboard/paste access, popup window creation and hyperlink
+ping auditing in **every** Qt profile (including newly created Webspaces).
+This minimizes reliance on version-specific Qt defaults. It is separate from
+GoreeShield's domain filter and does not imply a complete CSP, WebRTC,
+certificate, or mixed-content audit. Some local file-based web applications may
+be restricted; normal HTTP/HTTPS browsing and native Home/New Tab remain.
+
+The offline Linux tests verify policy inheritance and demonstrate actual
+local-file isolation using two disposable HTML files. The test-only positive
+control shows cross-file access with Qt's default enabled setting; the protected
+profile does not allow it. No user document or operating-system setting is
+changed.
+
+~~~sh
+GC_BROWSER_QT_SMOKE=1 GC_BROWSER_FILTER_NETWORK=off QT_QPA_PLATFORM=offscreen \
+QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+  python3 -m unittest discover -s tests -p test_linux_content_security_smoke.py -v
+GC_BROWSER_QT_SMOKE=1 GC_BROWSER_FILTER_NETWORK=off QT_QPA_PLATFORM=offscreen \
+QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+  python3 -m unittest discover -s tests -p test_linux_file_access_smoke.py -v
+~~~
+
 ## HTTPS certificate and origin protection
 
 GoreeCloud Browser rejects Qt WebEngine certificate errors without an unsafe
