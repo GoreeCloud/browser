@@ -70,7 +70,8 @@ The disable-gpu flag is only for headless testing; it does **not** disable the C
 ## Security and privacy status
 
 GoreeShield: session-only cookies by default, limited tracker-blocking rules,
-tracking-parameter cleaning **only for user-entered/pasted URLs**, and per-session
+tracking-parameter cleaning **only for user-entered/pasted URLs**, conservative
+ hostname and Unicode bidi-control validation, and per-session
 website permission decisions. HTTP redirects and clicked links are not cleaned;
 never assume the cleaner prevents all tracking. Wardveil: browser threat protection has **not** been qualified. The interface is native Qt; untrusted websites are rendered by Qt WebEngine with no privileged Python-webpage bridge. "Clear cookies and HTTP cache" does not remove every HTML5 storage item. A separate confirmed website-data reset removes the app-owned Qt profile/cache on the next launch, using a Linux single-instance lock; it preserves bookmarks and settings. No cloud sync, network telemetry, browser-level DNS control, or full content blocker is provided. Startpage remains the search default pending verified GoreeCloud Search maturity.
 

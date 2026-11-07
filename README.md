@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.1.2 development preview. Not a production or daily-driver release.**
+**Status: v0.1.3 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -18,6 +18,8 @@ code, not a browser-engine fork.
 - Opt-in-controllable cleaning of **entered/pasted** URLs for known tracking parameters,
   preserving non-tracking query encoding. Signed URLs are exempt. **Clicked links and
   site redirects are not automatically sanitized; do not assume complete protection.**
+- Conservative entered-address validation rejects ambiguous percent-encoded hostnames,
+  invalid DNS labels, bidi control characters, and URLs rejected by Qt's parser.
 - Small third-party tracker-domain blocker; **not** a complete ad blocker.
 - Local bookmark storage with a 500-bookmark preview cap.
 - Session-only cookies by default; opt-in persistence; cookie/HTTP-cache

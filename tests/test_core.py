@@ -53,6 +53,24 @@ class NavigationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             destination_for("https://example.com:bad/")
 
+    def test_reject_percent_encoded_host_dot(self):
+        self.assertFalse(valid_web_url("https://example.com%2Eattacker.test/path"))
+        with self.assertRaises(ValueError):
+            destination_for("https://example.com%2Eattacker.test/path")
+
+    def test_reject_percent_encoded_host_slash(self):
+        self.assertFalse(valid_web_url("https://example.com%2fattacker.test/path"))
+
+    def test_reject_empty_domain_label(self):
+        self.assertFalse(valid_web_url("https://example..test/path"))
+
+    def test_reject_bidi_override_in_url(self):
+        self.assertFalse(valid_web_url("https://good.test\u202eevil.test/path"))
+
+    def test_accept_internationalized_host_and_ipv6(self):
+        self.assertTrue(valid_web_url("https://bücher.example/page"))
+        self.assertTrue(valid_web_url("http://[::1]:8080/page"))
+
     def test_reject_backslash_url(self):
         with self.assertRaises(ValueError):
             destination_for(r"https://trusted.example\@evil.example/")
