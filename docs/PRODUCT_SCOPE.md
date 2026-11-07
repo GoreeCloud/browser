@@ -6,7 +6,7 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 
 ## Founder-directed desktop interface
 
-| Requirement | v0.2.3 development-preview status |
+| Requirement | v0.2.4 development-preview status |
 | --- | --- |
 | Light theme default; user preference respected | Implemented: new users light, existing Light/Dark QSettings preserved |
 | Toolbar exact order | Implemented: Back, Forward, Refresh, Home, Omnibox, Bookmark, Extensions, Settings, Profile |
@@ -22,7 +22,8 @@ tested, partial, and planned behavior; a feature description is not proof of sec
 | Settings: ChatGPT.com prompt integrations | Native five editable/copyable prompt templates and explicit open action; **no automatic page transfer, prompt submission or account access** |
 | Settings: Cookies Manager | Cookie names/domains/flags and delete controls for the active Webspace; cookie values hidden; site-data reset is separate |
 | Settings: Website Permissions | Stored Qt permission decisions scoped to active Webspace and optional current origin, with individual/confirmed bulk reset to Ask. Transient capture permissions may not appear and active streams may require tab closure |
-| Wardveil Linux WebEngine sandbox preflight | Rejects explicit sandbox-bypass environment/command-line options before browser profile access; separate offline Linux `/proc` diagnostic observed one seccomp-filtered namespaced descendant on one host. No complete renderer/process-role certification |
+| Wardveil Linux WebEngine security preflight | Rejects explicit sandbox, certificate-trust, insecure-content and web-origin bypass options before browser profile access. Offline Linux `/proc` audit observed one seccomp-filtered namespaced descendant on one host; not a full renderer/process-role certification |
+| Wardveil HTTPS certificate errors | Native QWebEnginePage always rejects Qt certificate errors, including overridable errors, without a bypass option. Ephemeral loopback self-signed certificate test verifies failed load and no delivered HTTPS page. Other TLS, revocation, HSTS and mixed-content behavior requires qualification |
 | Settings: DNS Manager | Honest read-only OS DNS status; custom DNS/DoH/DoT not implemented |
 | Advanced Proxy Manager | Initial **global** System/Direct/HTTP/SOCKS5 configuration, validated host/port, applied on next restart through Qt Network before WebEngine starts. HTTP loopback route verified; SOCKS5, authentication, PAC and per-Webspace routing not accepted |
 
@@ -76,10 +77,12 @@ review, incident response and browser-engine isolation.
 ## Mandatory future acceptance
 
 - Complete Qt WebEngine role-specific process sandbox acceptance across Linux
-  distributions; the explicit bypass guard and one-host `/proc` seccomp/namespace
-  observation do not prove that all renderer/network/GPU processes are isolated.
-  Confirm transient permission/device capture handling, TLS/origin display,
-  download threat detection, site-data completeness and cookie/data retention. Stored permission reset is verified,
+  distributions; bypass guards and one-host `/proc` observations do not prove all
+  renderer/network/GPU processes are isolated. Qualify HTTPS hostname mismatch,
+  expired/revoked certificates, mixed-content, HSTS, revocation and TLS/origin
+  UI; the local self-signed-certificate test is not a comprehensive audit.
+  Confirm transient permission/capture, download threat detection, site-data
+  completeness and cookie/data retention. Stored permission reset is verified,
   but real camera/microphone capture termination remains unqualified.
 - Prove actual per-Webspace storage isolation on representative Linux hosts;
   close/rollback handling for all persisted profiles.

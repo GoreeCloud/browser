@@ -195,6 +195,16 @@ class BrowserPage(QWebEnginePage):
         self.space_id = space_id
         # Site capabilities always require consent; no silent grants.
         self.permissionRequested.connect(self.ask_permission)
+        # Never offer a certificate bypass, even for locally generated or
+        # otherwise Qt-overridable errors. Chromium's trust checks are the
+        # authority; this callback simply enforces their rejection.
+        self.certificateError.connect(self.reject_bad_certificate)
+
+    def reject_bad_certificate(self, certificate_error) -> None:
+        certificate_error.rejectCertificate()
+        if not getattr(self.owner, "_closing", False):
+            self.owner.statusBar().showMessage(
+                "Blocked an HTTPS connection with an invalid certificate.", 8000)
 
     def acceptNavigationRequest(self, url: QUrl, nav_type, is_main_frame: bool) -> bool:
         if is_main_frame and url.scheme() not in ("http", "https", "about"):
@@ -1123,7 +1133,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.2.3\n\n"
+            "GoreeCloud Browser • development preview 0.2.4\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"
@@ -1197,7 +1207,7 @@ def main() -> int:
         # Surface the reason instead of silently removing a security flag or
         # falling back to an unsandboxed renderer.
         print(str(error), file=sys.stderr)
-        QMessageBox.critical(None, "Unsafe browser sandbox configuration", str(error))
+        QMessageBox.critical(None, "Unsafe browser security configuration", str(error))
         return 2
     except RuntimeError as error:
         QMessageBox.critical(None, "Browser profile unavailable", str(error))

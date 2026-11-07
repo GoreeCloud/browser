@@ -51,6 +51,13 @@ class SandboxNativeSmoke(unittest.TestCase):
                             BrowserWindow()
                     self.assertFalse(data.exists())
 
+                    with patch.dict(os.environ, {
+                        "QTWEBENGINE_CHROMIUM_FLAGS": "--ignore-certificate-errors",
+                    }):
+                        with self.assertRaises(WebEngineSecurityError):
+                            BrowserWindow()
+                    self.assertFalse(data.exists())
+
                     with patch.object(sys, "argv", ["goreecloud-browser"]):
                         window = BrowserWindow()
                     window.show()
