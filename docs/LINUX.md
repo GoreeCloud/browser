@@ -4,7 +4,7 @@
 
 ## Validated Linux environment
 
-The development preview has been exercised on Zorin OS 18.1 (Ubuntu Noble family), Python 3.12 and PySide6 6.11.3. Native Qt startup, clean shutdown and a local HTTP navigation smoke test have passed. These offscreen smoke tests do not establish full Wayland/X11, accessibility or cross-distro acceptance.
+The development preview has been exercised on Zorin OS 18.1 (Ubuntu Noble family), Python 3.12 and PySide6 6.11.3. Native Qt startup, clean shutdown and a local HTTP navigation smoke test have passed. X11/XCB startup and clean shutdown also passed under Xvfb. These headless smoke checks do not establish full Wayland/X11, accessibility or cross-distro acceptance.
 
 ## Prerequisites
 
@@ -48,6 +48,9 @@ python3 -m compileall -q goreecloud_browser scripts tests
 QT_QPA_PLATFORM=offscreen QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
   GC_BROWSER_QT_SMOKE=1 python3 -m unittest discover \
     -s tests -p test_linux_smoke.py -v
+QT_QPA_PLATFORM=xcb QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
+  GC_BROWSER_QT_SMOKE=1 xvfb-run -a -s '-screen 0 1280x800x24' \
+    python3 -m unittest discover -s tests -p test_linux_smoke.py -v
 desktop-file-validate \
   "$HOME/.local/share/applications/com.goreecloud.browser.desktop"
 ~~~
