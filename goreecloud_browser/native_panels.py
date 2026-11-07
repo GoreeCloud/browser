@@ -98,6 +98,8 @@ class SettingsPage(QWidget):
         self.list_status = description(browser.filter_status_text())
         controls.addWidget(self.list_status)
         controls.addWidget(action("Update domain lists", lambda: browser.refresh_blocklists(self.list_status)))
+        controls.addWidget(action("Manage exact-host exceptions (all Webspaces)…",
+                                  browser.show_site_exceptions))
         stack.addWidget(panel)
 
         panel, controls = section("Webspaces • Website Containers",

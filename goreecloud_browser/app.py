@@ -44,12 +44,17 @@ from goreecloud_browser.native_panels import (
     SettingsPage, TabManagerDialog, DownloadManagerDialog,
     WebspacesDialog, CookieManagerDialog,
 )
+from goreecloud_browser.site_exceptions_panel import SiteExceptionsDialog
 from goreecloud_browser.webspaces import (
     DEFAULT_ID, decode_spaces, encode_spaces, create_space, storage_paths,
 )
 from goreecloud_browser.proxy import ProxyConfig, validate_proxy
 from goreecloud_browser.proxy_runtime import apply_global_proxy
 from goreecloud_browser.permissions import PermissionCenterDialog, display_origin
+from goreecloud_browser.site_exceptions import (
+    decode_exceptions, encode_exceptions, add_exception, remove_exception,
+    is_exempt_first_party,
+)
 
 # Values copied from the canonical GC UI token implementation
 # GoreeCloud/gc-ui: styles/tokens.css (verified 2026-11-06).
@@ -154,6 +159,7 @@ class PrivacyInterceptor(QWebEngineUrlRequestInterceptor):
         super().__init__(parent)
         self.block_trackers = True
         self.domain_rules = ()  # immutable snapshot swapped from the GUI thread
+        self.exempted_first_party_hosts = frozenset()
 
     def interceptRequest(self, info: QWebEngineUrlRequestInfo) -> None:
         url = info.requestUrl()
@@ -163,7 +169,14 @@ class PrivacyInterceptor(QWebEngineUrlRequestInterceptor):
                       QWebEngineUrlRequestInfo.ResourceType.ResourceTypeMainFrame)
         if not main_frame:
             host = url.host().lower().rstrip(".")
-            first_party = info.firstPartyUrl().host().lower().rstrip(".")
+            first_party_url = info.firstPartyUrl()
+            first_party = first_party_url.host().lower().rstrip(".")
+            # Explicit, saved host-only user exceptions are applied to the
+            # first-party site, not to every resource from a blocked domain.
+            if (first_party_url.scheme() in ("https", "http")
+                    and is_exempt_first_party(
+                        first_party, self.exempted_first_party_hosts)):
+                return
             if host != first_party and (
                 (self.block_trackers and is_known_tracker(host, first_party))
                 or is_blocked(host, self.domain_rules)
@@ -443,6 +456,9 @@ class BrowserWindow(QMainWindow):
         if self.mode not in THEMES:
             self.mode = "light"
         self.interceptor = PrivacyInterceptor(self)
+        self.site_exceptions = decode_exceptions(
+            self.preferences.value("privacy_site_exceptions", "[]"))
+        self.interceptor.exempted_first_party_hosts = frozenset(self.site_exceptions)
         self.interceptor.block_trackers = self.preferences.value("block_trackers", True, type=bool)
         self.clean_links = self.preferences.value("clean_links", True, type=bool)
         self.persistent_cookies = self.preferences.value("persistent_cookies", False, type=bool)
@@ -656,6 +672,27 @@ class BrowserWindow(QMainWindow):
             "to avoid bypassing the selected browser proxy."
         )
 
+    def add_site_exception(self, value: str) -> str:
+        proposed = add_exception(self.site_exceptions, value)
+        self.preferences.setValue("privacy_site_exceptions", encode_exceptions(proposed))
+        self.preferences.sync()
+        self.site_exceptions = proposed
+        self.interceptor.exempted_first_party_hosts = frozenset(proposed)
+        return proposed[-1]
+
+    def remove_site_exception(self, value: str):
+        proposed = remove_exception(self.site_exceptions, value)
+        self.preferences.setValue("privacy_site_exceptions", encode_exceptions(proposed))
+        self.preferences.sync()
+        self.site_exceptions = proposed
+        self.interceptor.exempted_first_party_hosts = frozenset(proposed)
+
+    def clear_site_exceptions(self):
+        self.preferences.setValue("privacy_site_exceptions", "[]")
+        self.preferences.sync()
+        self.site_exceptions = ()
+        self.interceptor.exempted_first_party_hosts = frozenset()
+
     def list_enabled(self, name: str) -> bool:
         return bool(self._list_enabled.get(name, False))
 
@@ -782,6 +819,9 @@ class BrowserWindow(QMainWindow):
 
     def show_permissions(self):
         PermissionCenterDialog(self).exec()
+
+    def show_site_exceptions(self):
+        SiteExceptionsDialog(self).exec()
 
     def show_webspaces(self):
         WebspacesDialog(self).exec()
@@ -1077,7 +1117,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.2.1\n\n"
+            "GoreeCloud Browser • development preview 0.2.2\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"

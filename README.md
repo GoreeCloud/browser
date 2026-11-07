@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.2.1 development preview. Not a production or daily-driver release.**
+**Status: v0.2.2 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -30,6 +30,12 @@ code, not a browser-engine fork.
 - **Webspace containers** use separate Qt WebEngine cookie, cache and HTML5
   storage profiles. Their isolation is tested against a local HTTP server;
   they do not provide separate OS processes, IP addresses or per-space proxies.
+- **Privacy Shield per-site compatibility exceptions:** native manager accepts
+  only exact DNS hostnames, with explicit confirmation before disabling the
+  built-in third-party domain blocker on that website. Exceptions are local,
+  reversible, and apply **across all Webspaces**; no wildcard or suffix matches.
+  A missing first-party origin never receives an exception. A reload applies
+  changed protection to previously loaded content.
 - **Default enabled OISD Small and StevenBlack domain subscriptions** with
   fixed-source HTTPS retrieval, strict parsing, 24-hour cache checks and
   last-known-good fallback. Only loaded rules are enforced; status is visible.

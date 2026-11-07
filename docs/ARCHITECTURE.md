@@ -24,7 +24,12 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   enabled OISD Small and StevenBlack subscriptions. Only fixed public HTTPS
   list origins are fetched for updates, never page URLs or cookies. Caches
   are parsed, bounded and atomically replaced with last-known-good fallback;
-  lists are not cosmetic filters. **Tracking-parameter cleaning only
+  lists are not cosmetic filters. Explicit exact-host site exceptions are
+  stored in local QSettings and applied across all Webspaces to the first-party
+  origin of future requests, with confirmation before weakening protections.
+  The exception does not match subdomains or arbitrary URL prefixes and does
+  not affect browser capability permissions. Unknown first-party contexts are
+  not exempt. **Tracking-parameter cleaning only
   applies before navigating an entered or pasted address**, when enabled.
   Clicked links and HTTP redirects are **not** automatically cleaned: a local
   integration test showed that a redirect can deliver its tracking parameter

@@ -90,7 +90,12 @@ connection IP to both list hosts**; browsing URLs and cookies are not sent.
 No list is claimed active before valid domains load. Disabled lists do not
 refresh, and caches are retained after update failures. Filtering covers
 third-party domain-matched subresources, not comprehensive cosmetic ads.
-See [feature status and Privacy Shield roadmap](PRODUCT_SCOPE.md).
+The Privacy Shield exception manager lets users explicitly allow third-party
+requests for an exact first-party hostname across **all Webspaces**. Adding an
+exception requires confirmation because it may permit tracking; removing it
+restores domain filtering for future requests. IP addresses, wildcard patterns
+and URL prefixes are not accepted. See [feature status and Privacy Shield
+roadmap](PRODUCT_SCOPE.md).
 
 ## Security and privacy status
 
