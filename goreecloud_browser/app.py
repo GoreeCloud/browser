@@ -494,6 +494,13 @@ class BrowserWindow(QMainWindow):
         elif dest.kind == "new-tab":
             tab.show_new()
         else:
+            # Reject URLs that Qt cannot safely interpret rather than silently
+            # displaying a failed/ambiguous navigation in the address bar.
+            parsed = QUrl(dest.value)
+            if not parsed.isValid() or parsed.scheme() not in ("http", "https") or not parsed.host():
+                QMessageBox.warning(self, "Unsupported address",
+                                    "The browser engine cannot safely parse this website address.")
+                return
             tab.browse(dest.value)
         self.update_navigation()
 
@@ -656,7 +663,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.1.2\n\n"
+            "GoreeCloud Browser • development preview 0.1.3\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"

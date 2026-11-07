@@ -28,6 +28,7 @@ SIGNED_PARAMETERS = frozenset({
 })
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
+BIDI_FORMAT_RE = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 HOST_LABEL_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
@@ -35,6 +36,35 @@ HOST_LABEL_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
 class Destination:
     kind: str  # "url", "home" or "new-tab"
     value: str
+
+
+def _safe_host(host: str) -> bool:
+    """Reject ambiguous host encodings before Qt interprets an entered URL.
+
+    For example, Qt decodes %2E within a host into a literal dot, which could
+    point a typed address to a different origin than the entered text suggests.
+    """
+    if not host or "%" in host:
+        return False
+    try:
+        ip_address(host)
+        return True
+    except ValueError:
+        pass
+    dns_host = host[:-1] if host.endswith(".") else host
+    try:
+        ascii_host = dns_host.encode("idna").decode("ascii")
+    except UnicodeError:
+        return False
+    if not ascii_host or len(ascii_host) > 253:
+        return False
+    labels = ascii_host.split(".")
+    return all(
+        0 < len(label) <= 63
+        and HOST_LABEL_RE.fullmatch(label)
+        and not label.startswith("-") and not label.endswith("-")
+        for label in labels
+    )
 
 
 def _host_looks_like_address(candidate: str) -> bool:
@@ -49,32 +79,28 @@ def _host_looks_like_address(candidate: str) -> bool:
         return False
     if not host or parts.username is not None or parts.password is not None:
         return False
+    if not _safe_host(host):
+        return False
     if host.lower() == "localhost":
         return True
     try:
         ip_address(host)
         return True
     except ValueError:
-        pass
-    if "." not in host or host.startswith(".") or host.endswith("."):
-        return False
-    try:
-        labels = host.encode("idna").decode("ascii").split(".")
-    except UnicodeError:
-        return False
-    return all(0 < len(label) <= 63 and HOST_LABEL_RE.fullmatch(label) for label in labels)
+        return "." in host and not host.endswith(".")
 
 
 def valid_web_url(raw: str) -> bool:
     """Only allow explicit HTTP(S) URLs without credentials or control chars."""
-    if not raw or "\\" in raw or CONTROL_RE.search(raw) or any(c.isspace() for c in raw):
+    if (not raw or "\\" in raw or CONTROL_RE.search(raw)
+            or BIDI_FORMAT_RE.search(raw) or any(c.isspace() for c in raw)):
         return False
     try:
         parsed = urlsplit(raw)
         _ = parsed.port
         return (
             parsed.scheme.lower() in {"http", "https"}
-            and bool(parsed.hostname)
+            and _safe_host(parsed.hostname or "")
             and parsed.username is None
             and parsed.password is None
         )

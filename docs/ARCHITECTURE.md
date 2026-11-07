@@ -37,7 +37,10 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
 
 ## Safeguards
 
-- Typed addresses reject script, file, custom schemes and userinfo credentials.
+- Typed addresses reject script, file, custom schemes, userinfo credentials,
+  ambiguous percent-encoded hostnames, malformed DNS labels and Unicode bidi
+  control characters. Qt additionally checks parser validity before loading.
+  IPv6 literals and legitimate IDNA hostnames remain supported.
 - HTTPS is chosen for a bare hostname; explicit HTTP addresses remain usable.
 - Signed URLs are exempt from typed-address cleaning. HTTP POST requests
   and redirects are not rewritten; a local loopback regression test covers
