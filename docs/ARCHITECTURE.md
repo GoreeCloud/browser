@@ -1,7 +1,8 @@
 # Architecture and current limitations
 
-**Status:** Development preview, 2026-11-06; source features do not prove an
-installed, hardened or distributed app.
+**Status:** Linux-first development preview, 2026-11-06; source features and
+Linux smoke checks do not prove a hardened or distributed app. Windows/macOS
+implementation and acceptance are explicitly deferred.
 
 ## Architectural decision
 
@@ -29,7 +30,8 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
 - HTTPS is chosen for a bare hostname; explicit HTTP addresses remain usable.
 - Signed URLs and non-GET requests bypass tracking-parameter rewriting.
 - TLS/certificate errors are not overridden.
-- Websites must request capability permission explicitly.
+- Websites must request capability permission explicitly; accepted/denied
+  permissions are held only in memory for the running session.
 - No telemetry, external code bridge or automated remote account login.
 
 ## GoreeCloud UI
@@ -42,15 +44,18 @@ Switch to an approved native token adapter once available.
 
 ## Acceptance and roadmap
 
-1. Launch and test on Linux, Windows and macOS, including sandboxing.
-2. Test redirects, POST/signed URLs, permissions, cookies, downloads and safe
-   URL display; maintain threat-model and dependency-vulnerability reviews.
-3. Perform screenshot-led whole-screen visual audit, keyboard, high contrast,
-   zoom, screen-reader and light/dark acceptance on real devices.
-4. Develop robust filter subscriptions, site-data manager, private profiles,
-   safe download tracking, bookmark export/import and history controls.
-5. Implement platform packaging, signing, update policy, rollback and
-   browser-engine vulnerability patch workflow.
+1. **Linux only:** qualify the Qt user installer and desktop launcher on
+   representative Linux distributions; check launcher isolation and sandboxing.
+2. **Linux only:** test redirects, POST/signed links, origins, permissions,
+   cookies/site data, downloads, TLS errors, and anti-spoof URL display.
+3. **Linux only:** complete full-screen UI, keyboard, contrast, zoom,
+   assistive-technology, Wayland/X11 and light/dark acceptance on real devices.
+4. Implement site-data management, secure download tracking, private profiles,
+   content filtering, history controls and bookmark portability.
+5. Define Linux dependency patch cadence, secure distributable bundles, code
+   signing, update policy and rollback before any stable release.
 6. Enable GoreeCloud Search only after independently verified stability.
+7. **Later:** assess Windows and macOS implementations and acceptance after
+   the Linux development-preview gates are materially satisfied.
 
 A source commit or passing CI check is **not** a stable browser release.

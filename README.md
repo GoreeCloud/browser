@@ -1,5 +1,8 @@
 # GoreeCloud Browser
 
+**Active platform: Linux first.** Windows and macOS are deferred until the Linux
+experience is sufficiently validated; neither is being qualified or packaged yet.
+
 A **native Qt desktop-browser development preview** for GoreeCloud, implemented with Python,
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
@@ -25,14 +28,15 @@ and auto-updates are **not implemented**. DNS currently uses the operating syste
 
 ## Run from source
 
-Requires Python **3.10–3.14**, graphical desktop and a supported Qt WebEngine runtime.
-Linux, Windows and macOS runtime compatibility require independent testing.
+Requires Python **3.10–3.14**, a graphical **Linux** desktop, and a supported
+Qt WebEngine runtime. Local development has been exercised on Zorin OS 18.1;
+other Linux distributions still need acceptance testing.
 
 ~~~sh
 git clone https://github.com/GoreeCloud/browser.git
 cd browser
 python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m goreecloud_browser
@@ -42,6 +46,18 @@ On Linux, ensure the desktop distribution provides Qt WebEngine runtime dependen
 including libEGL/libOpenGL and XKBCommon X11. Do not disable WebEngine sandboxing
 for routine use.
 
+### Install into the Linux application menu (development preview)
+
+The Linux-only per-user installer creates an isolated Python environment and a
+freedesktop launcher, without root access or changing the system default browser:
+
+~~~sh
+python3 scripts/linux/install_user.py
+~~~
+
+See [Linux installation and validation](docs/LINUX.md) before installing. It
+refuses to overwrite an existing install; this is not yet a managed updater.
+
 ## Tests
 
 ~~~sh
@@ -49,8 +65,10 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall -q goreecloud_browser tests
 ~~~
 
-CI checks pure helpers, compilation and Qt imports, but cannot establish visual,
-cross-OS, web-compatibility or security acceptance.
+Linux CI checks pure helpers, compilation, Qt imports, the Python package and
+an isolated native Qt/local-HTTP smoke. This does not establish full Linux
+visual, accessibility, web-compatibility or browser security acceptance.
+Windows/macOS testing remains deferred.
 
 ## Shortcuts
 
