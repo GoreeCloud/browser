@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.1.1 development preview. Not a production or daily-driver release.**
+**Status: v0.1.2 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -15,7 +15,9 @@ code, not a browser-engine fork.
 - **Distinct, entirely native Home and New Tab pages**; neither loads remote content.
 - Startpage search for text queries. Bare hosts use HTTPS by default. GoreeCloud Search
   is **not** enabled until it passes an independently verified stability gate.
-- URL cleaning for common tracking parameters, with signed URLs exempted.
+- Opt-in-controllable cleaning of **entered/pasted** URLs for known tracking parameters,
+  preserving non-tracking query encoding. Signed URLs are exempt. **Clicked links and
+  site redirects are not automatically sanitized; do not assume complete protection.**
 - Small third-party tracker-domain blocker; **not** a complete ad blocker.
 - Local bookmark storage with a 500-bookmark preview cap.
 - Session-only cookies by default; opt-in persistence; cookie/HTTP-cache
@@ -67,8 +69,11 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall -q goreecloud_browser tests
 ~~~
 
-Linux CI checks pure helpers, compilation, Qt imports, the Python package and
-an isolated native Qt/local-HTTP smoke. This does not establish full Linux
+Linux CI checks pure helpers, compilation, Qt imports, the Python package,
+native page lifecycle and isolated HTTP navigation/redirect/POST smoke tests
+through both offscreen and virtual X11 (Xvfb) backends.
+A short local Wayland session smoke was also verified on Zorin OS; CI does not
+emulate a true interactive Wayland desktop. This does not establish full Linux
 visual, accessibility, web-compatibility or browser security acceptance.
 Windows/macOS testing remains deferred.
 

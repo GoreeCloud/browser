@@ -45,9 +45,21 @@ jobs:
           XDG_CONFIG_HOME: ${{ runner.temp }}/goreecloud-browser-config
           XDG_DATA_HOME: ${{ runner.temp }}/goreecloud-browser-data
         run: python -m unittest discover -s tests -p 'test_linux_smoke.py' -v
+      - name: Linux offscreen HTTP navigation integrity (loopback)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_network_smoke.py' -v
       - name: Linux X11 Qt and local HTTP smoke (Xvfb)
         env:
           GC_BROWSER_QT_SMOKE: "1"
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_smoke.py' -v
+      - name: Linux X11 HTTP navigation integrity (Xvfb)
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_network_smoke.py' -v

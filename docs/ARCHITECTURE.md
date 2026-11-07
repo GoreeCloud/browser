@@ -17,8 +17,13 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   and file-save decisions. Native pages do not load remote content.
 - **Untrusted sites:** Rendered in Qt WebEngine; no privileged Python/web bridge.
 - **Network:** Qt WebEngine handles TLS and DNS. A limited request interceptor
-  blocks a few known third-party trackers and cleans safe GET navigations.
-  It does not implement full DNS control, MITM, VPN or certificate override.
+  blocks a few known third-party trackers. **Tracking-parameter cleaning only
+  applies before navigating an entered or pasted address**, when enabled.
+  Clicked links and HTTP redirects are **not** automatically cleaned: a local
+  integration test showed that a redirect can deliver its tracking parameter
+  to the server even if a request interceptor changes the displayed URL.
+  That misleading interceptor rewrite was removed. Full DNS control, MITM, VPN
+  and certificate overrides are not implemented.
 - **Persistence:** QSettings stores preferences and bookmarks locally. Qt
   WebEngine can retain HTML5 site storage and visited-link data. Session-only
   cookies are the default. The cookie/cache-clear action is narrower than the
@@ -34,7 +39,9 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
 
 - Typed addresses reject script, file, custom schemes and userinfo credentials.
 - HTTPS is chosen for a bare hostname; explicit HTTP addresses remain usable.
-- Signed URLs and non-GET requests bypass tracking-parameter rewriting.
+- Signed URLs are exempt from typed-address cleaning. HTTP POST requests
+  and redirects are not rewritten; a local loopback regression test covers
+  signed GET URLs, redirects, encoded query parameters and form POST bodies.
 - TLS/certificate errors are not overridden.
 - Websites must request capability permission explicitly; accepted/denied
   permissions are held only in memory for the running session.
