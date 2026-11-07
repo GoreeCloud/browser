@@ -65,9 +65,26 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   or fully scanned. On Linux without trusted ClamAV, the user must explicitly
   approve saving an **UNSCANNED** file (default refusal); Downloads shows this
   state and it never auto-opens. A scanner-busy new download is discarded with
-  warning rather than bypassing checks. These protections do **not** include
-  signature updates, comprehensive malware detection, a persistent quarantine,
-  authenticity verification or mature download history. Scanning an untrusted
+  warning rather than bypassing checks. The scanner is explicitly passed
+  `--alert-exceeds-max=yes` and `--alert-encrypted=yes`: encrypted archives
+  and files that hit scanner size/recursion limits must not be treated as
+  safely scanned. The QProcess exit status remains authoritative: both alert
+  and failure statuses prevent publication, even when ClamAV reports a limit
+  alert with exit code 2. The GUI describes ClamAV alerts generically because
+  they are not necessarily infections. An isolated Ubuntu ClamAV 1.5.4
+  executable was exercised through the actual native browser gate using an
+  EICAR harmless test pattern, a benign control and an over-limit control,
+  on Linux offscreen, X11/Xvfb and Wayland. Ubuntu 24.04 CI also runs this
+  integration with package SHA-256 verification and user-scoped extraction.
+  **The test-only .hsb signature is
+  not the production signed ClamAV database.**
+  ClamAV's `--fail-if-cvd-older-than` option was *not* enabled: with the
+  isolated test-only signature, a real 1.5.4 binary returned code 0 without
+  detecting EICAR when that flag was used, so database freshness cannot be
+  inferred from it without additional acceptance. These protections do
+  **not** include verified official signature freshness, signature updates,
+  comprehensive malware detection, a persistent quarantine, authenticity
+  verification or mature download history. Scanning an untrusted
   file with a privileged or vulnerable engine has its own security implications.
   Saved files remain untrusted and must not be executed blindly.
 

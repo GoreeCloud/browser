@@ -1238,20 +1238,22 @@ class BrowserWindow(QMainWindow):
                 self.statusBar().showMessage(
                     f"Saved {target.name}; ClamAV found no threat (not opened).", 8000)
             elif verdict is ScanVerdict.DETECTED:
-                self.record_download(target, "Blocked — malware detected")
+                self.record_download(target, "Blocked — ClamAV alert")
                 self.statusBar().showMessage(
-                    "ClamAV detected a threat. Download discarded.", 10000)
+                    "ClamAV flagged a file. Download discarded.", 10000)
                 QMessageBox.warning(
-                    self, "Threat detected — download blocked",
-                    "ClamAV reported malware in a downloaded file. "
-                    "The staged file will be deleted and nothing was saved.")
+                    self, "ClamAV alert — download blocked",
+                    "ClamAV flagged malware, encrypted/uninspectable content, "
+                    "or a scan-limit condition. The staged file was not "
+                    "published and will be discarded. An alert is not "
+                    "necessarily a confirmed malware infection.")
             else:
                 self.record_download(target, "Not saved — scanning failed")
                 QMessageBox.warning(
                     self, "Antivirus scan failed",
-                    "The antivirus scan did not complete successfully or "
-                    "timed out. Nothing was saved. Check your local ClamAV "
-                    "installation and signatures before retrying.")
+                    "The antivirus scan failed, exceeded a safety limit, "
+                    "or timed out. Nothing was saved. Check your local "
+                    "ClamAV installation and signature freshness before retrying.")
         except (OSError, ValueError) as exc:
             self.record_download(target, "Not saved — file changed or inaccessible")
             QMessageBox.warning(self, "Download not saved", str(exc))
@@ -1263,7 +1265,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.2.6\n\n"
+            "GoreeCloud Browser • development preview 0.2.7\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"

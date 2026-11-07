@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # Match the audited Linux/Noble package baseline.
     timeout-minutes: 15
     env:
       GC_BROWSER_FILTER_NETWORK: "off" # CI must not contact public list servers
@@ -59,6 +59,9 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: python -m unittest discover -s tests -p 'test_linux_antimalware_smoke.py' -v
+      - name: Real Ubuntu ClamAV EICAR and scan-limit gate (isolated, offscreen)
+        timeout-minutes: 4
+        run: python scripts/linux/run_clamav_engine_acceptance.py
       - name: Linux offscreen download staging and no-overwrite smoke
         env:
           GC_BROWSER_QT_SMOKE: "1"

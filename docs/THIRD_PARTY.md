@@ -17,7 +17,11 @@ This license does not relicense Qt or Chromium content.
   This repository does not bundle its program, signatures or third-party
   code. A system-installed, root-owned `clamscan` may be invoked against
   privately staged downloads after the user selects a save destination.
-  GoreeCloud does not install/update ClamAV or certify its signatures.
+  GoreeCloud does not install/update ClamAV or certify its signatures. The
+  Linux acceptance suite optionally tests the verified *Ubuntu archive*
+  executable with a disposable local EICAR test signature; that executable
+  and its third-party libraries remain outside this repository and are not
+  bundled with the browser. No production signed signature freshness is claimed.
 
 Browser filter subscriptions are fetched as **external data at runtime**, not
 redistributed or bundled in this repository:
