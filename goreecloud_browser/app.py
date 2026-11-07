@@ -49,6 +49,7 @@ from goreecloud_browser.webspaces import (
 )
 from goreecloud_browser.proxy import ProxyConfig, validate_proxy
 from goreecloud_browser.proxy_runtime import apply_global_proxy
+from goreecloud_browser.permissions import PermissionCenterDialog, display_origin
 
 # Values copied from the canonical GC UI token implementation
 # GoreeCloud/gc-ui: styles/tokens.css (verified 2026-11-06).
@@ -190,11 +191,20 @@ class BrowserPage(QWebEnginePage):
         return self.owner.new_tab(space_id=self.space_id).view.page()
 
     def ask_permission(self, permission) -> None:
-        origin = permission.origin().host() or "This site"
+        if not permission.isValid():
+            return
+        # Show the *requesting origin*, not just a host or current page title.
+        # Embedded third-party frames may request their own capabilities.
+        origin = permission.origin().toString(QUrl.ComponentFormattingOption.FullyEncoded)
+        top_origin = display_origin(self.url())
         answer = QMessageBox.question(
             self.owner, "Website permission",
-            f"{origin} requests {permission.permissionType().name}.\n\n"
-            "Allow this website permission for the current session?",
+            f"Requesting origin: {origin}\n"
+            f"Top-level website: {top_origin}\n"
+            f"Webspace: {self.owner.webspace_name(self.space_id)}\n\n"
+            f"Requested capability: {permission.permissionType().name}\n\n"
+            "Allow this website capability for the current session? "
+            "Review or reset stored decisions using Permissions in the omnibox.",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
@@ -771,13 +781,7 @@ class BrowserWindow(QMainWindow):
             f"Host: {parsed.host() or 'Native browser page'}\n\n{summary}")
 
     def show_permissions(self):
-        address = self.current().current_address()
-        parsed = QUrl(address)
-        QMessageBox.information(self, "Website permissions",
-            f"Current site: {parsed.host() or 'Native browser page'}\n\n"
-            "Websites must request permissions explicitly. Responses remain "
-            "in memory for this browser session; the complete per-origin "
-            "permission audit and revocation UI is still in development.")
+        PermissionCenterDialog(self).exec()
 
     def show_webspaces(self):
         WebspacesDialog(self).exec()
@@ -1073,7 +1077,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.2.0\n\n"
+            "GoreeCloud Browser • development preview 0.2.1\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"

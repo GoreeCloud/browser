@@ -76,7 +76,14 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   signed GET URLs, redirects, encoded query parameters and form POST bodies.
 - TLS/certificate errors are not overridden.
 - Websites must request capability permission explicitly; accepted/denied
-  permissions are held only in memory for the running session.
+  permissions are held only in memory for the running session. The native
+  Permissions glyph and Settings section expose the current Webspace's stored
+  per-origin decisions (not other Webspaces) and permit reset to Ask, with
+  confirmation before resetting every recorded decision. Consent prompts show
+  the exact requesting origin, its capability and the top-level website origin,
+  without displaying page path/query tokens. Qt may not expose transient media
+  capture decisions through its list; resetting stored state does not guarantee
+  an active stream stops. Close the relevant tab to stop ongoing activity.
 - No telemetry, external code bridge or automated remote account login.
 
 ## GoreeCloud UI

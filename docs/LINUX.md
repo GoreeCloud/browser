@@ -77,7 +77,8 @@ New profiles open in **Light** unless an existing user saved Dark. The top
 row is Back, Forward, Refresh, Home, Omnibox, Bookmarks, Extensions, Settings,
 Profile; the omnibox nests Verification and Permissions at left and Webspaces
 at right. Native Settings expose ChatGPT prompt copying (no automatic send),
-per-Webspace cookies, the theme manager, system DNS status and validated
+per-Webspace cookies and stored session permission decisions (with selective
+or confirmed bulk reset), the theme manager, system DNS status and validated
 application-wide proxy preferences applied **after restart**. SOCKS5 and
 per-Webspace proxy routing require further acceptance. User-created Webspaces
 get separate Qt WebEngine profiles and cookies, but not process or IP isolation.

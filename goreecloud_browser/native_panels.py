@@ -143,6 +143,13 @@ class SettingsPage(QWidget):
                                   lambda: browser.navigate("https://chatgpt.com/")))
         stack.addWidget(panel)
 
+        panel, controls = section("Website Permissions",
+            "Review or reset stored per-origin website capability decisions "
+            "for the active Webspace. Transient active capture permissions may "
+            "not appear in Qt's recorded-decision list.")
+        controls.addWidget(action("Review website permissions", browser.show_permissions))
+        stack.addWidget(panel)
+
         panel, controls = section("Cookies Manager",
             "Inspect cookie names and domains in the active Webspace without exposing "
             "cookie values in this interface.")
