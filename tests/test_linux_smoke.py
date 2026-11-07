@@ -30,6 +30,7 @@ class LinuxQtSmoke(unittest.TestCase):
         from PySide6.QtCore import QEventLoop, QTimer
         from PySide6.QtWidgets import QApplication
         from PySide6.QtWebEngineCore import QWebEngineProfile
+        from shiboken6 import delete as destroy_qobject
         from goreecloud_browser.app import BrowserWindow
         from goreecloud_browser.site_data import RESET_MARKER, schedule_site_reset
 
@@ -95,6 +96,7 @@ class LinuxQtSmoke(unittest.TestCase):
         finally:
             window.close()
             app.processEvents()
+            destroy_qobject(window)
             server.shutdown()
             server.server_close()
 
@@ -107,6 +109,10 @@ class LinuxQtSmoke(unittest.TestCase):
         finally:
             reopened.close()
             app.processEvents()
+            destroy_qobject(reopened)
+            app.quit()
+            app.processEvents()
+            destroy_qobject(app)
 
 
 if __name__ == "__main__":
