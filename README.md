@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.1.4 development preview. Not a production or daily-driver release.**
+**Status: v0.1.5 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -17,6 +17,8 @@ code, not a browser-engine fork.
   files without overwriting existing destinations. Cancelled/failed files are
   discarded; downloaded content is never automatically opened or executed.
 - **Distinct, entirely native Home and New Tab pages**; neither loads remote content.
+  Both scroll instead of crushing or overlapping their controls at the minimum
+  700×480 Linux window size, with theme-aware native scrollbar styling.
 - Startpage search for text queries. Bare hosts use HTTPS by default. GoreeCloud Search
   is **not** enabled until it passes an independently verified stability gate.
 - Opt-in-controllable cleaning of **entered/pasted** URLs for known tracking parameters,

@@ -57,6 +57,12 @@ jobs:
           QT_QPA_PLATFORM: offscreen
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: python -m unittest discover -s tests -p 'test_linux_download_smoke.py' -v
+      - name: Linux offscreen narrow native Home and New Tab layout
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: offscreen
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: python -m unittest discover -s tests -p 'test_linux_layout_smoke.py' -v
       - name: Linux X11 Qt and local HTTP smoke (Xvfb)
         env:
           GC_BROWSER_QT_SMOKE: "1"
@@ -75,3 +81,9 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_download_smoke.py' -v
+      - name: Linux X11 narrow native Home and New Tab layout
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_layout_smoke.py' -v
