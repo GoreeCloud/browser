@@ -11,6 +11,25 @@ from unittest.mock import patch
     "Opt-in Linux Qt native layout check",
 )
 class NativeStartLayoutSmoke(unittest.TestCase):
+    def test_scrollbar_thumb_has_nontext_contrast(self):
+        from goreecloud_browser.app import THEMES, stylesheet
+
+        def luminance(code):
+            rgb = [int(code[i:i+2], 16) / 255 for i in (1, 3, 5)]
+            linear = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4
+                      for x in rgb]
+            return sum(v * weight for v, weight in zip(linear, (0.2126, 0.7152, 0.0722)))
+
+        for mode, tokens in THEMES.items():
+            with self.subTest(mode=mode):
+                a, b = luminance(tokens["surface"]), luminance(tokens["soft"])
+                ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
+                self.assertGreaterEqual(ratio, 3.0)
+                self.assertIn(
+                    f"QScrollBar::handle:vertical {{ background: {tokens['soft']}",
+                    stylesheet(mode),
+                )
+
     def test_narrow_window_scrolls_without_covering_controls(self):
         from PySide6.QtCore import QPoint, QRect
         from PySide6.QtWidgets import QApplication, QLabel, QPushButton, QFrame

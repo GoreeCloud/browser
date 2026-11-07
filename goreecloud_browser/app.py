@@ -98,7 +98,7 @@ def stylesheet(mode: str) -> str:
     QStatusBar {{ background: {c['surface']}; color: {c['soft']}; }}
     QScrollArea {{ background: {c['canvas']}; border: none; }}
     QScrollBar:vertical {{ background: {c['surface']}; width: 10px; margin: 0; }}
-    QScrollBar::handle:vertical {{ background: {c['outline']}; border-radius: 5px; min-height: 36px; }}
+    QScrollBar::handle:vertical {{ background: {c['soft']}; border-radius: 5px; min-height: 36px; }}
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
     QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: transparent; }}
     """
