@@ -12,6 +12,7 @@ code, not a browser-engine fork.
 ## Implemented in source
 
 - Native Qt desktop navigation, tabs, back/forward/reload, downloads and shortcuts.
+- **Founder-approved Prism Tabs v5 browser identity** shared with [GoreeCloud/browser-mobile](https://github.com/GoreeCloud/browser-mobile): bundled 48/256px icons for the Qt window, native Home/New Tab mark, and the Linux desktop launcher. Canonical [brand-assets source](https://github.com/GoreeCloud/brand-assets/blob/1b12ecbb043c89b4f461e68ce2cd83b5fd70eb3f/products/browser-mobile/app-icon.svg); exact source and raster integrity are locally tested. See [brand provenance](docs/BRANDING.md).
 - **Distinct, entirely native Home and New Tab pages**; neither loads remote content.
 - Startpage search for text queries. Bare hosts use HTTPS by default. GoreeCloud Search
   is **not** enabled until it passes an independently verified stability gate.

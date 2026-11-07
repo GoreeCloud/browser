@@ -28,6 +28,7 @@ from shiboken6 import delete as destroy_qobject
 from goreecloud_browser.core import (
     destination_for, is_known_tracker, valid_web_url,
 )
+from goreecloud_browser.branding import browser_icon
 from goreecloud_browser.site_data import (
     ProfileLock, apply_pending_site_reset, schedule_site_reset,
 )
@@ -180,9 +181,19 @@ class NativeStart(QWidget):
             eyebrow, heading = "NEW TAB  /  EXPLORE", "Find your next idea."
             subtitle = "Search privately with Startpage while GoreeCloud Search matures."
 
+        # Product identity is a bundled, first-party Qt image, not remote page content.
+        brand_row = QHBoxLayout()
+        brand = QLabel()
+        brand.setObjectName("BrandMark")
+        brand.setFixedSize(54, 54)
+        brand.setPixmap(browser_icon().pixmap(52, 52))
+        brand.setAccessibleName("GoreeCloud Browser Prism Tabs icon")
+        brand_row.addWidget(brand)
         label = QLabel(eyebrow)
         label.setObjectName("Eyebrow")
-        box.addWidget(label)
+        brand_row.addWidget(label)
+        brand_row.addStretch(1)
+        box.addLayout(brand_row)
         title = QLabel(heading)
         title.setObjectName("HeroTitle")
         title.setWordWrap(True)
@@ -339,6 +350,7 @@ class BrowserWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("GoreeCloud Browser")
+        self.setWindowIcon(browser_icon())
         self.resize(1250, 790)
         self.setMinimumSize(700, 480)
         self.preferences = QSettings("GoreeCloud", "GoreeCloudBrowser")
@@ -721,6 +733,7 @@ def main() -> int:
     QApplication.setOrganizationName("GoreeCloud")
     QApplication.setApplicationName("GoreeCloudBrowser")
     app = QApplication(sys.argv)
+    app.setWindowIcon(browser_icon())
     app.setStyle("Fusion")
     try:
         window = BrowserWindow()
