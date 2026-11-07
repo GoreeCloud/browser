@@ -7,7 +7,7 @@ A **native Qt desktop-browser development preview** for GoreeCloud, implemented 
 PySide6 Qt Widgets and Qt WebEngine (Chromium rendering). Original first-party application
 code, not a browser-engine fork.
 
-**Status: v0.2.4 development preview. Not a production or daily-driver release.**
+**Status: v0.2.5 development preview. Not a production or daily-driver release.**
 
 ## Implemented in source
 
@@ -28,6 +28,12 @@ code, not a browser-engine fork.
   self-signed HTTPS test verifies strict certificate-error rejection without
   installing a CA; an offline `/proc` audit observes namespace/seccomp evidence.
   None of this certifies every renderer or a hardened daily-driver browser.
+- **Wardveil Webspace content-security baseline:** all new and default Qt
+  profiles explicitly disallow active mixed content, geolocation on insecure
+  origins, HTML access to local files or remote resources, clipboard/paste from
+  JavaScript and hyperlink auditing. A test-only positive control confirms a
+  local HTML frame could read another temporary file with Qt's prior setting;
+  with this baseline it cannot. This is not a complete web security audit.
 - **Native Website Permissions Center:** the omnibox Permissions glyph opens
   per-Webspace, per-origin stored permission decisions, with explicit selected
   and confirmed-all reset to Ask; capability prompts show the requesting origin

@@ -91,6 +91,18 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   [platform sandbox notes](https://doc.qt.io/qt-6/qtwebengine-platform-notes.html)
   and [WebEngine debug options](https://doc.qt.io/qt-6/qtwebengine-debugging.html).
 
+- **Wardveil Webspace content security:** Every default and newly created Qt
+  WebEngine profile is configured through one first-party `web_security.py`
+  policy before page construction. It disables `AllowRunningInsecureContent`,
+  `AllowGeolocationOnInsecureOrigins`, `LocalContentCanAccessFileUrls`,
+  `LocalContentCanAccessRemoteUrls`, JavaScript clipboard/paste, JavaScript
+  window-opening and hyperlink ping auditing. `file://` navigation is already
+  refused by the browser UI; local HTML file isolation is additional defense
+  in depth for future page/script interactions. An offline, disposable fixture
+  verifies Qt can read a neighboring file with its original default but **not**
+  with this new setting; profile and page policy parity is tested across
+  Webspaces. This does not certify all mixed-content, WebRTC, CSP or browser
+  permissions behavior, and may restrict local file-based web applications.
 - **Wardveil strict HTTPS errors:** BrowserPage explicitly rejects every
   `QWebEngineCertificateError`; there is no user, page or session bypass path.
   Preflight also rejects common Chromium CLI switches for ignoring certificate
