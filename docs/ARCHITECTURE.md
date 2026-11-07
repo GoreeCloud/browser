@@ -14,7 +14,10 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
 ## Trust boundaries
 
 - **Native UI:** Qt controls tabs, Home, New Tab, menus, preferences, bookmarks
-  and file-save decisions. Native pages do not load remote content.
+  and file-save decisions. Native pages do not load remote content. The Home
+  and New Tab widgets have a minimum usable content height inside theme-aware
+  native scroll areas; at 700x480, controls remain separated and reachable by
+  vertical scrolling instead of shrinking into overlapping elements.
 - **Untrusted sites:** Rendered in Qt WebEngine; no privileged Python/web bridge.
 - **Network:** Qt WebEngine handles TLS and DNS. A limited request interceptor
   blocks a few known third-party trackers. **Tracking-parameter cleaning only

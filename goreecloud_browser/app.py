@@ -96,6 +96,11 @@ def stylesheet(mode: str) -> str:
     QProgressBar {{ border: none; background: {c['tonal']}; max-height: 3px; }}
     QProgressBar::chunk {{ background: {c['brand']}; }}
     QStatusBar {{ background: {c['surface']}; color: {c['soft']}; }}
+    QScrollArea {{ background: {c['canvas']}; border: none; }}
+    QScrollBar:vertical {{ background: {c['surface']}; width: 10px; margin: 0; }}
+    QScrollBar::handle:vertical {{ background: {c['outline']}; border-radius: 5px; min-height: 36px; }}
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: transparent; }}
     """
 
 
@@ -167,12 +172,16 @@ class NativeStart(QWidget):
     """Qt-native Home and New Tab experiences; no remote HTML or JavaScript."""
     def __init__(self, browser, tab, kind: str):
         super().__init__()
+        # Preserve the form's minimum usable content height; the parent
+        # QScrollArea provides access at the supported 700x480 window size.
+        self.setMinimumHeight(565)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(28, 26, 28, 30)
         outer.setSpacing(20)
         hero = QFrame()
         hero.setObjectName("Hero")
         hero.setMaximumWidth(880)
+        hero.setMinimumHeight(310)
         box = QVBoxLayout(hero)
         box.setContentsMargins(38, 36, 38, 38)
         box.setSpacing(15)
@@ -266,8 +275,10 @@ class BrowserTab(QWidget):
         self.view.setPage(BrowserPage(profile, browser, self.view))
         self.home = NativeStart(browser, self, "home")
         self.new = NativeStart(browser, self, "new-tab")
-        self.stack.addWidget(self.new)
-        self.stack.addWidget(self.home)
+        self.new_scroll = self._native_scroll(self.new)
+        self.home_scroll = self._native_scroll(self.home)
+        self.stack.addWidget(self.new_scroll)
+        self.stack.addWidget(self.home_scroll)
         self.stack.addWidget(self.view)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -282,12 +293,25 @@ class BrowserTab(QWidget):
                 "Page loaded" if ok else "Page could not be loaded", 4000))
         self.show_new()
 
+    @staticmethod
+    def _native_scroll(content: QWidget) -> QScrollArea:
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        area.setFrameShape(QFrame.Shape.NoFrame)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        area.setWidget(content)
+        area.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        return area
+
     def show_new(self):
-        self.stack.setCurrentWidget(self.new)
+        self.new_scroll.verticalScrollBar().setValue(0)
+        self.stack.setCurrentWidget(self.new_scroll)
         self.browser.update_tab(self)
 
     def show_home(self):
-        self.stack.setCurrentWidget(self.home)
+        self.home_scroll.verticalScrollBar().setValue(0)
+        self.stack.setCurrentWidget(self.home_scroll)
         self.browser.update_tab(self)
 
     def browse(self, target: str):
@@ -296,9 +320,9 @@ class BrowserTab(QWidget):
 
     def current_address(self) -> str:
         current = self.stack.currentWidget()
-        if current is self.new:
+        if current is self.new_scroll:
             return "goree://new-tab"
-        if current is self.home:
+        if current is self.home_scroll:
             return "goree://home"
         return self.view.url().toString(QUrl.ComponentFormattingOption.FullyEncoded)
 
@@ -730,7 +754,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.1.4\n\n"
+            "GoreeCloud Browser • development preview 0.1.5\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"

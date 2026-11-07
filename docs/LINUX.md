@@ -5,8 +5,9 @@
 ## Validated Linux environment
 
 The development preview has been exercised on Zorin OS 18.1 (Ubuntu Noble family), Python 3.12 and PySide6 6.11.3. Native Qt startup, clean shutdown and loopback HTTP navigation smoke tests passed.
-A short native UI Home/New Tab launch also passed in the laptop's real Wayland
-session; X11/XCB startup and clean shutdown passed under Xvfb. None of these
+A native Home/New Tab launch and 700x480 scroll/overlap regression check passed
+in the laptop's real Wayland session; X11/XCB layout validation also passed under
+Xvfb. None of these
 checks establishes full Wayland/X11 interaction, accessibility or cross-distro
 acceptance.
 
