@@ -55,6 +55,9 @@ from goreecloud_browser.site_exceptions import (
     decode_exceptions, encode_exceptions, add_exception, remove_exception,
     is_exempt_first_party,
 )
+from goreecloud_browser.sandbox import (
+    WebEngineSecurityError, require_safe_webengine_settings,
+)
 
 # Values copied from the canonical GC UI token implementation
 # GoreeCloud/gc-ui: styles/tokens.css (verified 2026-11-06).
@@ -447,6 +450,9 @@ class PrivacyDialog(QDialog):
 class BrowserWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        # Run before Qt WebEngine profile creation, cache access and any
+        # browsing state changes. It also covers direct Python constructors.
+        require_safe_webengine_settings(os.environ, sys.argv[1:])
         self.setWindowTitle("GoreeCloud Browser")
         self.setWindowIcon(browser_icon())
         self.resize(1250, 790)
@@ -1117,7 +1123,7 @@ class BrowserWindow(QMainWindow):
     def show_about(self):
         QMessageBox.information(
             self, "About GoreeCloud Browser",
-            "GoreeCloud Browser • development preview 0.2.2\n\n"
+            "GoreeCloud Browser • development preview 0.2.3\n\n"
             "Native Qt Widgets interface; pages rendered by Qt WebEngine.\n"
             "Search: Startpage until GoreeCloud Search is verified stable.\n"
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"
@@ -1187,6 +1193,12 @@ def main() -> int:
     app.setStyle("Fusion")
     try:
         window = BrowserWindow()
+    except WebEngineSecurityError as error:
+        # Surface the reason instead of silently removing a security flag or
+        # falling back to an unsandboxed renderer.
+        print(str(error), file=sys.stderr)
+        QMessageBox.critical(None, "Unsafe browser sandbox configuration", str(error))
+        return 2
     except RuntimeError as error:
         QMessageBox.critical(None, "Browser profile unavailable", str(error))
         return 1
