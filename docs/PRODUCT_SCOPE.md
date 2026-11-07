@@ -46,8 +46,11 @@ This is not cosmetic filtering, anti-fingerprinting, script injection, complete
 malvertising protection or DNS-level blocking. Small local tracker fallback rules
 remain independently toggleable. Exact first-party site exceptions (browser-wide across Webspaces) are now
 available with strict hostname validation, explicit confirmation and reversible
-removal. More granular subresource-domain allow/deny rules and compatibility
-management remain planned. Outside System proxy mode, list updates are paused to
+removal. A live Qt WebEngine loopback HTTP test now proves blocked-by-default,
+allowed-after-exception and blocked-again-after-removal behavior for a third-party
+image request, with only process-local `.invalid` host resolution. This does not
+establish universal real-site compatibility or DNS-level filtering. More granular
+subresource-domain allow/deny rules and compatibility management remain planned. Outside System proxy mode, list updates are paused to
 avoid bypassing the configured Qt WebEngine proxy with a separate downloader.
 
 ### Privacy Shield's nine proposed protection layers

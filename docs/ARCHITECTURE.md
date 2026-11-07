@@ -29,7 +29,10 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   origin of future requests, with confirmation before weakening protections.
   The exception does not match subdomains or arbitrary URL prefixes and does
   not affect browser capability permissions. Unknown first-party contexts are
-  not exempt. **Tracking-parameter cleaning only
+  not exempt. A real Qt WebEngine loopback test with process-local `.invalid`
+  hostname resolution verifies block/allow/restore on a cross-origin image;
+  it does not alter OS DNS or prove universal website compatibility.
+  **Tracking-parameter cleaning only
   applies before navigating an entered or pasted address**, when enabled.
   Clicked links and HTTP redirects are **not** automatically cleaned: a local
   integration test showed that a redirect can deliver its tracking parameter
