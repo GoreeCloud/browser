@@ -141,6 +141,16 @@ python3 -m unittest discover -s tests -v
 python3 -m compileall -q goreecloud_browser tests
 ~~~
 
+Linux CI first builds two **unpublished, same-run** Python wheels with a fixed
+`SOURCE_DATE_EPOCH` and requires byte-identical results. The local verifier
+checks wheel RECORD hashes/sizes, exact packaged Python and approved assets
+against the source tree, package/dependency metadata, CLI entry point and the
+embedded **LICENSE, NOTICE and third-party provenance**. CI also imports a
+wheel installed into a disposable directory, without replacing the live app. Corrupted and missing-
+notice wheels are rejected by dedicated negative tests. These checks do **not**
+provide an independently reproducible build, SBOM, signed provenance, release
+signature or a complete third-party redistribution/legal review.
+
 Linux CI checks pure helpers, compilation, Qt imports, the Python package,
 native page lifecycle and isolated HTTP navigation/redirect/POST smoke tests
 through both offscreen and virtual X11 (Xvfb) backends. It also verifies

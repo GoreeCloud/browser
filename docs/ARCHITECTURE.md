@@ -159,6 +159,24 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   an active stream stops. Close the relevant tab to stop ongoing activity.
 - No telemetry, external code bridge or automated remote account login.
 
+## Linux packaging provenance and integrity
+
+The source uses `pyproject.toml` to build a pure-Python wheel, but PySide6/Qt
+and Qt WebEngine remain separately distributed LGPL/GPL and third-party
+runtime dependencies. The project explicitly declares its first-party Apache-2.0
+license, NOTICE and `docs/THIRD_PARTY.md` in PEP 639 `project.license-files`.
+The standalone `scripts/linux/verify_wheel_integrity.py` checks both the
+standard wheel RECORD hash/size manifest and byte equality with the current
+first-party source and icon files, rejects unexpected/symlink/traversal archive
+members, and checks metadata, pinned Qt dependency and legal notices. Twelve
+positive/negative unit tests exercise the checker. CI independently builds two
+unpublished wheels with a fixed source timestamp and compares their bytes on
+the same Ubuntu runner, then installs one into an isolated target to verify the
+installed Python package imports with its icon before testing native Qt. This does not verify Qt's
+binary supply chain, code-sign or attest the wheel, or qualify multi-machine
+reproducibility or stable installation/upgrades. Release publication remains
+blocked by other Linux acceptance requirements.
+
 ## GoreeCloud UI
 
 Native theme values mirror official GC UI semantic roles, Lagoon accent,

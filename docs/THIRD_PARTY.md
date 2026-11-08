@@ -1,6 +1,10 @@
 # Third-party provenance and distribution notes
 
 Original GoreeCloud Browser Python sources are Apache-2.0 (LICENSE and NOTICE).
+The unpublished Python wheel explicitly includes this Markdown third-party
+provenance document alongside LICENSE and NOTICE, verified against the source
+in CI. That inclusion is **not** a substitute for verifying all third-party
+notices required by a future Qt/Chromium-bundled Linux installer.
 This license does not relicense Qt or Chromium content.
 
 - **PySide6 / Qt for Python**: Qt Project, pinned at 6.11.3 in requirements.txt.
