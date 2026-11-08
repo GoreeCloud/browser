@@ -15,6 +15,15 @@ jobs:
       GC_BROWSER_FILTER_NETWORK: "off" # CI must not contact public list servers
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # Upstream v4 tag verified 2026-11-07
+        with:
+          persist-credentials: false # Do not retain the read-only token in .git/config
+      - name: Refuse retained checkout HTTP authentication headers
+        run: |
+          git rev-parse --is-inside-work-tree | grep -qx true
+          if git config --local --get-regexp '^http\..*\.extraheader$' >/dev/null 2>&1; then
+            echo '::error::Checkout retained a Git authentication header' >&2
+            exit 1
+          fi
       - name: Refuse movable GitHub Actions refs and write-permission drift
         run: python3 scripts/linux/check_action_pins.py
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # Upstream v5.6.0 tag verified 2026-11-07

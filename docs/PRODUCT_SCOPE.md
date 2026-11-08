@@ -91,7 +91,9 @@ Linux signing, SBOM, system packaging, verified update and rollback remain open.
 All current GitHub Actions used by the Linux CI are fixed at upstream-verified
 40-character commit SHAs. A standalone source policy tests every workflow for
 unreviewed references and write-level token permissions; the workflow uses
-`contents: read`. A tag/reference upgrade must be reviewed explicitly.
+`contents: read`. Checkout authentication is not persisted in Git configuration,
+and a CI runtime check tests that no HTTP auth header remains. A tag/reference
+upgrade must be reviewed explicitly.
 This is a supply-chain risk reduction, not a signed provenance or complete
 third-party code / runner isolation audit. Linux signing, independent build
 reproduction, audited SBOM, and update/rollback remain open.

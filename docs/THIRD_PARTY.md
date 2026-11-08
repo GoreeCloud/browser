@@ -34,7 +34,9 @@ CI-only third-party GitHub Actions are **not bundled** with the application.
 `actions/checkout` and `actions/setup-python` are pinned to immutable SHA
 revisions verified against their official upstream Git tags on November 7,
 2026, and the repository's workflow token requests `contents: read` only.
-These pins do not certify source safety, signatures or runner isolation.
+Checkout disables persistent credential storage and CI checks that no Git HTTP
+authentication header was retained. These controls do not certify source safety,
+signatures or runner isolation.
 
 Browser filter subscriptions are fetched as **external data at runtime**, not
 redistributed or bundled in this repository:

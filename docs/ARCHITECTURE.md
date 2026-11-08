@@ -192,9 +192,12 @@ Python setup use these immutable, upstream-verified Git commits:
 `scripts/linux/check_action_pins.py` validates all source-controlled workflow
 files without third-party Python dependencies, and must pass immediately after
 checkout. It rejects mutable/tag references, unreviewed third-party Actions,
-changed approved commits, and non-read-only token permissions. A deliberate
-change to the allowlist needs review against upstream source, regression tests,
-and a full CI run. This checker uses intentionally limited YAML surface parsing
+changed approved commits, non-read-only token permissions, and the unsafe
+default checkout behavior of retaining the GitHub token in local Git settings.
+Checkout sets `persist-credentials: false`; an immediate CI step independently
+checks that no HTTP `extraheader` authentication setting was retained. A
+deliberate change to the allowlist needs review against upstream source,
+regression tests, and a full CI run. This checker uses intentionally limited YAML surface parsing
 rather than a general YAML analyzer, and neither pins Ubuntu APT packages nor
 certifies third-party Actions code, identity/signature provenance, GitHub runner
 isolation, or a release artifact. No secrets are used by this workflow.

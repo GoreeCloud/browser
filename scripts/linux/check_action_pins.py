@@ -62,6 +62,30 @@ def validate_workflow(text: str, name: str) -> set[str]:
                 raise ActionPinError(
                     f"{name}:{index + 1}: unreviewed action or commit for {action}"
                 )
+            if action == "actions/checkout":
+                # Current workflow style is deliberately explicit: the token
+                # must not be kept after checkout, and an ambiguous or omitted
+                # input cannot inherit the upstream default of true.
+                indent = len(line) - len(line.lstrip())
+                required = ("with:", "persist-credentials: false")
+                for offset, expected in enumerate(required, start=1):
+                    next_index = index + offset
+                    if next_index >= len(lines):
+                        raise ActionPinError(f"{name}: checkout must disable persisted credentials")
+                    value_line = lines[next_index]
+                    actual_indent = len(value_line) - len(value_line.lstrip())
+                    if value_line.split(" #", 1)[0].strip() != expected or actual_indent != indent + offset * 2:
+                        raise ActionPinError(f"{name}: checkout must disable persisted credentials")
+                for later in lines[index + 3 :]:
+                    if not later.strip() or later.lstrip().startswith("#"):
+                        continue
+                    later_indent = len(later) - len(later.lstrip())
+                    if later_indent <= indent:
+                        break
+                    if re.match(r"^\s*persist-credentials\s*:", later):
+                        raise ActionPinError(
+                            f"{name}: duplicate checkout credential option rejected"
+                        )
             approved.add(action)
         if match := PERMISSIONS.match(line):
             indent = len(match.group("indent"))
