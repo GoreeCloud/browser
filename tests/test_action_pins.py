@@ -19,6 +19,7 @@ class ActionPinPolicyTests(unittest.TestCase):
             "permissions:\n  contents: read\n"
             "jobs:\n  test:\n    steps:\n"
             "      - uses: actions/checkout@" + APPROVED_ACTIONS["actions/checkout"] + "\n"
+            "        with:\n          persist-credentials: false\n"
             "      - uses: actions/setup-python@" +
             APPROVED_ACTIONS["actions/setup-python"] + "\n"
         )
@@ -118,6 +119,37 @@ class ActionPinPolicyTests(unittest.TestCase):
                 self.verified.replace("contents: read", "actions: read"),
                 "check.yml"
             )
+
+    def test_checkout_default_credentials_are_refused(self):
+        cases = (
+            "        with:\n          persist-credentials: false\n",
+            "          persist-credentials: false\n",
+        )
+        for removed in cases:
+            with self.subTest(removed=removed), self.assertRaisesRegex(
+                ActionPinError, "checkout must disable persisted credentials"
+            ):
+                validate_workflow(self.verified.replace(removed, ""), "check.yml")
+
+    def test_checkout_credential_true_or_ambiguous_refused(self):
+        for substituted in (
+            "persist-credentials: true", "persist-credentials: 'false'",
+            "persist-credentials: ${OFF}", "persist-credentials: False",
+        ):
+            with self.subTest(value=substituted), self.assertRaisesRegex(
+                ActionPinError, "checkout must disable persisted credentials"
+            ):
+                validate_workflow(self.verified.replace(
+                    "persist-credentials: false", substituted
+                ), "check.yml")
+
+    def test_duplicate_checkout_credential_setting_refused(self):
+        bad = self.verified.replace(
+            "persist-credentials: false\n",
+            "persist-credentials: false\n          persist-credentials: true\n"
+        )
+        with self.assertRaisesRegex(ActionPinError, "duplicate checkout credential"):
+            validate_workflow(bad, "check.yml")
 
     def test_comment_not_action(self):
         text = self.verified + "      # - uses: unverified/tool@main\n"

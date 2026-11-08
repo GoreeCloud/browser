@@ -135,7 +135,12 @@ QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
 The GitHub workflow's `actions/checkout` and `actions/setup-python` dependencies
 are pinned to reviewed full Git commit SHAs, not movable major-version tags.
 The SHA values were checked against upstream GitHub tag/ref objects on
-November 7, 2026. The workflow declares `permissions: contents: read` and
+November 7, 2026. The workflow declares `permissions: contents: read` and disables checkout's
+default of storing that GitHub token in `.git/config` with explicit
+`persist-credentials: false`. A separate runtime step checks that the checkout
+left no Git HTTP `extraheader` in the repository's local config. This prevents
+accidental credential persistence in post-checkout build steps, not all possible
+access to the temporary checkout token during the action itself. The workflow
 runs the dependency-free, fail-closed policy gate after checkout:
 
 ~~~sh

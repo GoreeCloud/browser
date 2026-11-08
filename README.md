@@ -139,8 +139,11 @@ refuses to overwrite an existing install; this is not yet a managed updater.
 Linux GitHub CI pins its two external Actions (`actions/checkout` and
 `actions/setup-python`) to immutable full commit SHAs, verified against the
 upstream Git refs on November 7, 2026, and explicitly limits the workflow
-token to `contents: read`. A dependency-free preflight refuses unknown or
-movable Actions references and write-permission drift. This narrows CI
+token to `contents: read`. Checkout also sets `persist-credentials: false`
+so no GitHub authentication header is retained in the checked-out Git config;
+CI checks this state at runtime. A dependency-free preflight refuses unknown
+or movable Actions references, checkout token persistence, and write-permission
+drift. This narrows CI
 supply-chain exposure; it does **not** prove the upstream action code is
 harmless, make Ubuntu packages immutable, or sign the browser artifacts.
 
