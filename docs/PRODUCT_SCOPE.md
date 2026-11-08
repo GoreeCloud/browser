@@ -86,6 +86,16 @@ This is **not** a signed release or an independent cross-environment build
 reproduction, and does not certify Qt/Chromium legal notices or security.
 Linux signing, SBOM, system packaging, verified update and rollback remain open.
 
+## Wardveil GitHub Actions supply-chain gate
+
+All current GitHub Actions used by the Linux CI are fixed at upstream-verified
+40-character commit SHAs. A standalone source policy tests every workflow for
+unreviewed references and write-level token permissions; the workflow uses
+`contents: read`. A tag/reference upgrade must be reviewed explicitly.
+This is a supply-chain risk reduction, not a signed provenance or complete
+third-party code / runner isolation audit. Linux signing, independent build
+reproduction, audited SBOM, and update/rollback remain open.
+
 ## Wardveil engine-patch metadata gate
 
 CI verifies pinned PySide6 6.11.3, Qt WebEngine 6.11.3, Chromium source base

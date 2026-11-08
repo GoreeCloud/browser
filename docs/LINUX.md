@@ -130,6 +130,27 @@ QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
   python3 -m unittest discover -s tests -p test_linux_antimalware_smoke.py -v
 ~~~
 
+## Wardveil CI action revision and workflow token guard
+
+The GitHub workflow's `actions/checkout` and `actions/setup-python` dependencies
+are pinned to reviewed full Git commit SHAs, not movable major-version tags.
+The SHA values were checked against upstream GitHub tag/ref objects on
+November 7, 2026. The workflow declares `permissions: contents: read` and
+runs the dependency-free, fail-closed policy gate after checkout:
+
+~~~sh
+python3 scripts/linux/check_action_pins.py
+python3 -m unittest discover -s tests -p test_action_pins.py -v
+~~~
+
+A new unreviewed action, ref change, job-level write token, or other unsupported
+`uses:` syntax fails the gate until deliberately reviewed. The checker is
+limited to the workflow style currently authored in this repository; it does
+not validate arbitrary YAML structures, sandbox all CI processes, pin OS/apt
+system dependencies, audit third-party code fully, or create signed provenance.
+Approved upstream source references: [checkout v4](https://github.com/actions/checkout/commit/11d5960a326750d5838078e36cf38b85af677262)
+and [setup-python v5.6.0](https://github.com/actions/setup-python/commit/a26af69be951a213d495a4c3e4e4022e16d87065).
+
 ## Unpublished wheel integrity and reproducibility gate
 
 The Python wheel is **not** a signed Linux distribution or an official release.
