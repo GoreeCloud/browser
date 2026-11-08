@@ -178,6 +178,27 @@ dependency/version review, functional and sandbox/browser regression testing,
 and an updated verified baseline. Runtime/browser data is not touched by this
 read-only CI check.
 
+## GitHub Actions CI trust boundary (Wardveil)
+
+Linux CI runs external GitHub-maintained Actions before building artifacts.
+To avoid implicit upgrades through mutable major-version tags, checkout and
+Python setup use these immutable, upstream-verified Git commits:
+
+- `actions/checkout` v4 branch head as of November 7, 2026:
+  [`11d5960a326750d5838078e36cf38b85af677262`](https://github.com/actions/checkout/commit/11d5960a326750d5838078e36cf38b85af677262)
+- `actions/setup-python` v5.6.0:
+  [`a26af69be951a213d495a4c3e4e4022e16d87065`](https://github.com/actions/setup-python/commit/a26af69be951a213d495a4c3e4e4022e16d87065)
+
+`scripts/linux/check_action_pins.py` validates all source-controlled workflow
+files without third-party Python dependencies, and must pass immediately after
+checkout. It rejects mutable/tag references, unreviewed third-party Actions,
+changed approved commits, and non-read-only token permissions. A deliberate
+change to the allowlist needs review against upstream source, regression tests,
+and a full CI run. This checker uses intentionally limited YAML surface parsing
+rather than a general YAML analyzer, and neither pins Ubuntu APT packages nor
+certifies third-party Actions code, identity/signature provenance, GitHub runner
+isolation, or a release artifact. No secrets are used by this workflow.
+
 ## Linux packaging provenance and integrity
 
 The source uses `pyproject.toml` to build a pure-Python wheel, but PySide6/Qt

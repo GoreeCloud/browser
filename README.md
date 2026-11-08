@@ -136,6 +136,14 @@ refuses to overwrite an existing install; this is not yet a managed updater.
 
 ## Tests
 
+Linux GitHub CI pins its two external Actions (`actions/checkout` and
+`actions/setup-python`) to immutable full commit SHAs, verified against the
+upstream Git refs on November 7, 2026, and explicitly limits the workflow
+token to `contents: read`. A dependency-free preflight refuses unknown or
+movable Actions references and write-permission drift. This narrows CI
+supply-chain exposure; it does **not** prove the upstream action code is
+harmless, make Ubuntu packages immutable, or sign the browser artifacts.
+
 ~~~sh
 python3 -m unittest discover -s tests -v
 python3 -m compileall -q goreecloud_browser tests
