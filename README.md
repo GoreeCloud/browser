@@ -146,8 +146,8 @@ Linux CI first builds two **unpublished, same-run** Python wheels with a fixed
 checks wheel RECORD hashes/sizes, exact packaged Python and approved assets
 against the source tree, package/dependency metadata, CLI entry point and the
 embedded **LICENSE, NOTICE and third-party provenance**. CI also imports a
-wheel installed into a disposable directory, without replacing the live app. Corrupted and missing-
-notice wheels are rejected by dedicated negative tests. These checks do **not**
+wheel installed into a disposable directory, without replacing the live app.
+Corrupted and missing-notice wheels are rejected by dedicated negative tests. These checks do **not**
 provide an independently reproducible build, SBOM, signed provenance, release
 signature or a complete third-party redistribution/legal review.
 
@@ -157,6 +157,12 @@ through both offscreen and virtual X11 (Xvfb) backends. It also verifies
 Privacy Shield exact-host exceptions against **real Qt WebEngine HTTP requests**
 using temporary RFC-reserved `.invalid` hosts mapped to 127.0.0.1 by
 process-local Chromium resolver flags, with no OS DNS/hosts-file changes.
+CI also checks the pinned PySide6 and Qt WebEngine versions, Chromium source
+base and the minimum documented Chromium security-patch metadata against the
+reviewed Qt 6.11.3 baseline. The browser reports the Chromium 140 base with
+security-patch metadata 155.0.8059.85; this is **version provenance, not a
+claim that every Chromium CVE is fixed**. An upgrade to a new Qt branch must
+receive a reviewed baseline rather than silently weakening this gate.
 A separate OpenSSL-generated, ephemeral loopback HTTPS test verifies invalid
 certificates are rejected and browser TLS bypass flags are refused.
 A short local Wayland session smoke was also verified on Zorin OS; CI does not

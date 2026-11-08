@@ -190,6 +190,30 @@ desktop-file-validate \
 
 The disable-gpu flag is only for headless testing; it does **not** disable the Chromium sandbox. Normal desktop operation should use default GPU/sandbox behavior.
 
+## Wardveil Qt WebEngine patch-level baseline
+
+The build checks the installed PySide6 binding, Qt WebEngine runtime, Chromium
+source base and the Qt-reported security-patch metadata. At the reviewed
+Linux 6.11.3 baseline, `qWebEngineChromiumVersion()` reports the Chromium
+**140.0.7339.264** base and `qWebEngineChromiumSecurityPatchVersion()`
+reports **155.0.8059.85** as the patch reference. The latter is not the same
+as the Chromium source base, and neither API provides a full CVE audit.
+
+~~~sh
+python3 scripts/linux/check_webengine_patch_baseline.py
+~~~
+
+Run with the pinned PySide6 environment; GitHub CI executes it after Qt imports.
+The checker refuses a changed/unpinned PySide6 dependency, incompatible Qt
+WebEngine runtime, downgraded patch metadata or an upgrade to a new Qt version
+before that version's official Chromium mapping is independently reviewed.
+Qt 6.11.3 was published October 26, 2026 as the final Qt 6.11 patch release;
+a controlled Qt 6.12 upgrade requires separate testing and license review.
+See [Qt's upstream Chromium version table](https://wiki.qt.io/QtWebEngine/ChromiumVersions)
+and the [Qt 6.11.3 announcement](https://www.qt.io/blog/qt-6.11.3-released).
+This is a **release-monitoring checkpoint**, not real-time vulnerability
+scanning, proof of Chromium CVE coverage or a replacement for Qt patch updates.
+
 ## Wardveil WebEngine sandbox preflight and offline process audit
 
 The Linux browser now **refuses explicit sandbox-disabling settings** before

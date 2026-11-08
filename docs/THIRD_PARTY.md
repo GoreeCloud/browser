@@ -13,7 +13,10 @@ This license does not relicense Qt or Chromium content.
   requires review for the actual platform and bundle.
 - **Qt WebEngine**: includes Chromium-derived components with multiple
   third-party licenses. Preserve actual shipped Qt and Chromium license
-  notices and relevant source/linking/replacement obligations.
+  notices and relevant source/linking/replacement obligations. The Linux CI
+  records Qt 6.11.3 with Chromium 140.0.7339.264 source and Qt-reported
+  155.0.8059.85 security-patch metadata, verified against Qt's published
+  version table. Neither version string proves complete Chromium CVE coverage.
 - **Python**: standard library and any bundling require their applicable
   upstream copyright and license notices.
 
