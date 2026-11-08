@@ -86,6 +86,16 @@ This is **not** a signed release or an independent cross-environment build
 reproduction, and does not certify Qt/Chromium legal notices or security.
 Linux signing, SBOM, system packaging, verified update and rollback remain open.
 
+## Wardveil engine-patch metadata gate
+
+CI verifies pinned PySide6 6.11.3, Qt WebEngine 6.11.3, Chromium source base
+140.0.7339.264 and a minimum Qt-reported Chromium security-patch reference
+155.0.8059.85, as documented in Qt's official version table. A pin change
+without an independently reviewed mapping is refused. This prevents accidental
+version drift in the development preview, **not** incomplete CVE coverage,
+future unpatched vulnerabilities or unsupported runtime versions. Continue
+regular security advisory review and a separately qualified Qt 6.12 migration.
+
 ## Mandatory future acceptance
 
 - Complete Qt WebEngine role-specific process sandbox acceptance across Linux

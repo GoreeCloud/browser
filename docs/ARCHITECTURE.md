@@ -159,6 +159,25 @@ profiles or interceptors. Qt is selected here as the direct desktop toolchain.
   an active stream stops. Close the relevant tab to stop ongoing activity.
 - No telemetry, external code bridge or automated remote account login.
 
+## Wardveil engine patch baseline and maintenance
+
+The Linux CI runtime now checks that `pyproject.toml` and `requirements.txt`
+agree on a single explicit PySide6 version and that actual PySide6 and Qt
+WebEngine versions match. For the reviewed **6.11.3** preview, the Qt-published
+WebEngine Chromium source base is **140.0.7339.264** and the Chromium security
+patch metadata is **155.0.8059.85**. The gate rejects an older reported patch
+level or an unreviewed new Qt branch rather than silently interpreting the
+base Chromium number as the effective security patch number. Source:
+[Qt's Chromium versions table](https://wiki.qt.io/QtWebEngine/ChromiumVersions)
+and [Qt 6.11.3 release notes](https://www.qt.io/blog/qt-6.11.3-released).
+
+This checkpoint is **not** a CVE database, vulnerability scan, confirmed
+remediation of every Chromium issue, or a guarantee that the Qt release is
+fully supported indefinitely. New Qt/Chromium releases require an explicit
+dependency/version review, functional and sandbox/browser regression testing,
+and an updated verified baseline. Runtime/browser data is not touched by this
+read-only CI check.
+
 ## Linux packaging provenance and integrity
 
 The source uses `pyproject.toml` to build a pure-Python wheel, but PySide6/Qt
