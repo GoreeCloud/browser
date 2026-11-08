@@ -130,6 +130,36 @@ QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu \
   python3 -m unittest discover -s tests -p test_linux_antimalware_smoke.py -v
 ~~~
 
+## Unpublished wheel integrity and reproducibility gate
+
+The Python wheel is **not** a signed Linux distribution or an official release.
+GitHub CI builds the wheel twice on the same pinned Ubuntu 24.04 runner, with
+`SOURCE_DATE_EPOCH=1700000000` and disabled pip wheel caching, then verifies
+that the archives are byte-for-byte identical. It also validates package
+identity and pinned dependencies, the `goreecloud-browser` entry point, the
+wheel `RECORD` SHA-256 hashes and sizes, and byte equality with the checked-out
+first-party Python modules and approved icon assets. The mandatory source
+`LICENSE`, `NOTICE` and `docs/THIRD_PARTY.md` must be packaged unchanged under
+wheel `.dist-info/licenses/`. Unexpected files, symlinks, traversal paths,
+missing notices, or tampered bytes fail CI. The first checked wheel is also
+installed under a disposable, non-system target and imported with its bundled
+Prism Tabs asset (no default-browser setting or user profile is changed).
+The verifier uses Python 3.11+;
+it does not change the browser's Python >=3.10 runtime compatibility target.
+
+~~~sh
+SOURCE_DATE_EPOCH=1700000000 python -m pip wheel --no-deps --no-cache-dir \
+  --wheel-dir /tmp/browser-wheel-a .
+python3 scripts/linux/verify_wheel_integrity.py /tmp/browser-wheel-a/*.whl \
+  --source-root .
+~~~
+
+**Scope:** reproducibility is tested only for two builds on the **same CI
+runner/toolchain**. Cross-run, cross-host, cross-architecture and independent
+rebuild equivalence, third-party SBOM completeness, audited Qt redistribution
+obligations, signed provenance, a system package and managed updates/rollback
+remain open Linux release gates. No wheel is uploaded or published by this CI.
+
 ## Validate
 
 ~~~sh

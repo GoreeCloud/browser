@@ -22,6 +22,30 @@ jobs:
         run: |
           python -m compileall -q goreecloud_browser tests
           python -m unittest discover -s tests -v
+      - name: Verify same-run reproducible wheel and legal notice integrity (no publish)
+        env:
+          SOURCE_DATE_EPOCH: "1700000000"
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/browser-wheel-a" "$RUNNER_TEMP/browser-wheel-b"
+          python -m pip wheel --disable-pip-version-check --no-deps --no-cache-dir \
+            --wheel-dir "$RUNNER_TEMP/browser-wheel-a" .
+          python -m pip wheel --disable-pip-version-check --no-deps --no-cache-dir \
+            --wheel-dir "$RUNNER_TEMP/browser-wheel-b" .
+          python scripts/linux/verify_wheel_integrity.py \
+            "$RUNNER_TEMP"/browser-wheel-a/*.whl --source-root .
+          python scripts/linux/verify_wheel_integrity.py \
+            "$RUNNER_TEMP"/browser-wheel-b/*.whl --source-root .
+          cmp "$RUNNER_TEMP"/browser-wheel-a/*.whl \
+            "$RUNNER_TEMP"/browser-wheel-b/*.whl
+          python -m pip install --disable-pip-version-check --no-deps \
+            --target "$RUNNER_TEMP/browser-wheel-install" \
+            "$RUNNER_TEMP"/browser-wheel-a/*.whl
+          ( cd "$RUNNER_TEMP" && \
+            PYTHONPATH="$RUNNER_TEMP/browser-wheel-install" \
+            python -c 'from pathlib import Path; import importlib.metadata as im; import goreecloud_browser as gc; p=Path(gc.__file__).resolve(); assert p.is_relative_to(Path("browser-wheel-install").resolve()); assert gc.__version__==im.version("goreecloud-browser"); assert (p.parent/"assets/prism-tabs-v5.svg").is_file(); print("Isolated wheel import and branding PASS")' )
+          sha256sum "$RUNNER_TEMP"/browser-wheel-a/*.whl
+          echo "Same-run wheel bytes, wheel RECORD, source, and legal notices verified"
       - name: Install required Linux Qt shared libraries
         run: |
           sudo apt-get update -qq

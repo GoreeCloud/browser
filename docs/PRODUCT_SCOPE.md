@@ -75,6 +75,17 @@ The 115 proposed Privacy Shield capabilities are a **product roadmap**, not
 Wardveil remains responsible for cybersecurity, malware defenses, dependency
 review, incident response and browser-engine isolation.
 
+## Linux packaging integrity (development gate)
+
+Unpublished pure-Python wheels include byte-identical copies of project
+LICENSE, NOTICE and third-party provenance, and are checked against the
+checkout's code and assets. CI requires two byte-identical builds on the same
+pinned Ubuntu runner using a fixed build timestamp and validates wheel RECORD
+integrity, dependency/entry-point metadata and anti-tamper negative tests.
+This is **not** a signed release or an independent cross-environment build
+reproduction, and does not certify Qt/Chromium legal notices or security.
+Linux signing, SBOM, system packaging, verified update and rollback remain open.
+
 ## Mandatory future acceptance
 
 - Complete Qt WebEngine role-specific process sandbox acceptance across Linux
