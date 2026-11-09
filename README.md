@@ -61,7 +61,7 @@ code, not a browser-engine fork.
   This is domain-level subresource blocking, not cosmetic ad filtering.
 - **Global System/Direct/HTTP/SOCKS5 proxy settings** applied on next restart;
   local HTTP proxy routing verified. Proxy address validation refuses ambiguous
-  legacy numeric IP spellings and malformed IP brackets. Authentication/PAC and
+  legacy and IDNA-mapped Unicode numeric IP spellings, plus malformed IP brackets. Authentication/PAC and
   per-Webspace routing remain unqualified. DNS still follows operating-system settings.
 - **Founder-approved Prism Tabs v5 browser identity** shared with [GoreeCloud/browser-mobile](https://github.com/GoreeCloud/browser-mobile): bundled 48/256px icons for the Qt window, native Home/New Tab mark, and the Linux desktop launcher. Canonical [brand-assets source](https://github.com/GoreeCloud/brand-assets/blob/1b12ecbb043c89b4f461e68ce2cd83b5fd70eb3f/products/browser-mobile/app-icon.svg); exact source and raster integrity are locally tested. See [brand provenance](docs/BRANDING.md).
 - **Wardveil download malware-scan gate (Linux):** downloaded files remain
@@ -92,8 +92,9 @@ code, not a browser-engine fork.
   preserving non-tracking query encoding. Signed URLs are exempt. **Clicked links and
   site redirects are not automatically sanitized; do not assume complete protection.**
 - Conservative entered-address validation rejects ambiguous percent-encoded hostnames,
-  noncanonical numeric IPv4 spellings (legacy octal, hexadecimal and short
-  forms), invalid DNS labels, bidi control characters and URLs rejected by Qt's parser.
+  noncanonical numeric IPv4 spellings (legacy octal, hexadecimal, short and
+  IDNA-mapped Unicode digit/dot aliases), invalid DNS labels, bidi control
+  characters and URLs rejected by Qt's parser.
 - Built-in third-party tracker and subscribed-domain blocker; **not** a
   complete ad blocker, anti-fingerprinting defense or full Privacy Shield.
 - Local bookmark storage with a 500-bookmark preview cap.
