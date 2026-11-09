@@ -85,7 +85,8 @@ code, not a browser-engine fork.
   preserving non-tracking query encoding. Signed URLs are exempt. **Clicked links and
   site redirects are not automatically sanitized; do not assume complete protection.**
 - Conservative entered-address validation rejects ambiguous percent-encoded hostnames,
-  invalid DNS labels, bidi control characters, and URLs rejected by Qt's parser.
+  noncanonical numeric IPv4 spellings (legacy octal, hexadecimal and short
+  forms), invalid DNS labels, bidi control characters and URLs rejected by Qt's parser.
 - Built-in third-party tracker and subscribed-domain blocker; **not** a
   complete ad blocker, anti-fingerprinting defense or full Privacy Shield.
 - Local bookmark storage with a 500-bookmark preview cap.
