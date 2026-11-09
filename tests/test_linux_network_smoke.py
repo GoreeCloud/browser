@@ -171,6 +171,33 @@ class NetworkNavigationSmoke(unittest.TestCase):
                     )
 
                     page = view.page()
+                    # Native Qt had previously accepted userinfo-bearing
+                    # clicked links, bypassing the address-bar URL guard.
+                    # Block unsafe navigations without altering signed query
+                    # bytes or changing the original POST behavior above.
+                    for unsafe in (
+                        f"http://user:password@127.0.0.1:{server.server_port}/private",
+                        f"http://user@127.0.0.1:{server.server_port}/private",
+                        "https://example..test/broken-host",
+                    ):
+                        with self.subTest(unsafe=unsafe.rsplit("@", 1)[-1]):
+                            self.assertFalse(page.acceptNavigationRequest(
+                                QUrl(unsafe),
+                                QWebEnginePage.NavigationType.NavigationTypeLinkClicked,
+                                True,
+                            ))
+                    signed_clicked = QUrl(base + signed)
+                    original_clicked_url = signed_clicked.toString(
+                        QUrl.ComponentFormattingOption.FullyEncoded)
+                    self.assertTrue(page.acceptNavigationRequest(
+                        signed_clicked,
+                        QWebEnginePage.NavigationType.NavigationTypeLinkClicked,
+                        True,
+                    ))
+                    self.assertEqual(
+                        signed_clicked.toString(QUrl.ComponentFormattingOption.FullyEncoded),
+                        original_clicked_url,
+                    )
                     self.assertFalse(page.acceptNavigationRequest(
                         QUrl("file:///etc/passwd"),
                         QWebEnginePage.NavigationType.NavigationTypeLinkClicked,

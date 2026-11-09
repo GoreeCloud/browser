@@ -49,6 +49,10 @@ code, not a browser-engine fork.
   reversible, and apply **across all Webspaces**; no wildcard or suffix matches.
   A missing first-party origin never receives an exception. A reload applies
   changed protection to previously loaded content.
+- **Additional main-frame navigation integrity:** native WebEngine navigation
+  rejects unsafe HTTP(S) clicked links and redirects with embedded credentials
+  or invalid hosts; signed query parameters and POST form bodies remain untouched.
+  This is not yet full redirect tracking cleanup or renderer isolation proof.
 - **Default enabled OISD Small and StevenBlack domain subscriptions** with
   fixed-source HTTPS retrieval, strict parsing, 24-hour cache checks and
   last-known-good fallback. Empty, invalid, undersized, unsafe or future-dated

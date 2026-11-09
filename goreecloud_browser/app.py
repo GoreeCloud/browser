@@ -215,6 +215,16 @@ class BrowserPage(QWebEnginePage):
         if is_main_frame and url.scheme() not in ("http", "https", "about"):
             self.owner.statusBar().showMessage("Blocked an unsupported navigation scheme.", 5000)
             return False
+        # Clicked links, scripts and redirects do not pass through the address
+        # bar's typed-URL validation. Reject unsafe HTTP(S) main-frame URLs
+        # *before* handing them to Qt WebEngine, without rewriting query strings
+        # or replacing navigation methods (POST and signed URLs must survive).
+        if (is_main_frame and url.scheme() in ("http", "https")
+                and not valid_web_url(
+                    url.toString(QUrl.ComponentFormattingOption.FullyEncoded)
+                )):
+            self.owner.statusBar().showMessage("Blocked an unsafe website address.", 5000)
+            return False
         return super().acceptNavigationRequest(url, nav_type, is_main_frame)
 
     def createWindow(self, _type):
