@@ -54,8 +54,9 @@ code, not a browser-engine fork.
   last-known-good fallback. Only loaded rules are enforced; status is visible.
   This is domain-level subresource blocking, not cosmetic ad filtering.
 - **Global System/Direct/HTTP/SOCKS5 proxy settings** applied on next restart;
-  local HTTP proxy routing verified. Authentication/PAC and per-Webspace routing
-  remain unqualified. DNS still follows operating-system settings.
+  local HTTP proxy routing verified. Proxy address validation refuses ambiguous
+  legacy numeric IP spellings and malformed IP brackets. Authentication/PAC and
+  per-Webspace routing remain unqualified. DNS still follows operating-system settings.
 - **Founder-approved Prism Tabs v5 browser identity** shared with [GoreeCloud/browser-mobile](https://github.com/GoreeCloud/browser-mobile): bundled 48/256px icons for the Qt window, native Home/New Tab mark, and the Linux desktop launcher. Canonical [brand-assets source](https://github.com/GoreeCloud/brand-assets/blob/1b12ecbb043c89b4f461e68ce2cd83b5fd70eb3f/products/browser-mobile/app-icon.svg); exact source and raster integrity are locally tested. See [brand provenance](docs/BRANDING.md).
 - **Wardveil download malware-scan gate (Linux):** downloaded files remain
   in private staging while a locally installed, root-owned ClamAV scanner runs
