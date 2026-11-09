@@ -103,7 +103,9 @@ code, not a browser-engine fork.
   characters and URLs rejected by Qt's parser.
 - Built-in third-party tracker and subscribed-domain blocker; **not** a
   complete ad blocker, anti-fingerprinting defense or full Privacy Shield.
-- Local bookmark storage with a 500-bookmark preview cap.
+- Local bookmark storage with a 500-bookmark preview cap. Webpage titles are
+  normalized for native menus (no control/bidi formatting); malformed saved
+  titles fall back to the validated URL without discarding other bookmarks.
 - Session-only cookies by default; opt-in persistence; cookie/HTTP-cache
   clearing; and a separately confirmed **full website-data reset on restart**.
   An OS-level Linux lock prevents concurrent processes using the same profile.

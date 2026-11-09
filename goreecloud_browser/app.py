@@ -26,7 +26,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from shiboken6 import delete as destroy_qobject
 
 from goreecloud_browser.core import (
-    destination_for, is_known_tracker, valid_web_url,
+    destination_for, is_known_tracker, safe_bookmark_title, valid_web_url,
 )
 from goreecloud_browser.branding import browser_icon
 from goreecloud_browser.site_data import (
@@ -979,8 +979,21 @@ class BrowserWindow(QMainWindow):
     def read_bookmarks(self):
         try:
             items = json.loads(self.preferences.value("bookmarks", "[]"))
-            return [i for i in items[:500] if isinstance(i, dict)
-                    and valid_web_url(i.get("url", ""))]
+            if not isinstance(items, list):
+                return []
+            # One corrupt entry or untrusted page title must not destroy the
+            # other user's bookmarks or crash the native menu.
+            valid = []
+            for item in items[:500]:
+                if not isinstance(item, dict):
+                    continue
+                url = item.get("url")
+                if not isinstance(url, str) or not valid_web_url(url):
+                    continue
+                valid.append({"url": url, "title": safe_bookmark_title(
+                    item.get("title"), url,
+                )})
+            return valid
         except (ValueError, TypeError):
             return []
 
@@ -997,7 +1010,7 @@ class BrowserWindow(QMainWindow):
         if len(items) >= 500:
             QMessageBox.information(self, "Bookmark limit", "The preview supports up to 500 bookmarks.")
             return
-        items.append({"title": (tab.view.title() or url)[:150], "url": url})
+        items.append({"title": safe_bookmark_title(tab.view.title(), url), "url": url})
         self.preferences.setValue("bookmarks", json.dumps(items))
         self.statusBar().showMessage("Bookmark saved locally.", 4000)
 
