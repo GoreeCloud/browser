@@ -19,6 +19,8 @@ class ProxyTests(unittest.TestCase):
             "0177.0.0.1", "0x7f.0.0.1", "127.1",
             "2130706433", "0x7f000001", "123.456",
             "10.0.0.01", "127.0.0.999", "００１２７.0.0.1",
+            "０１７７.0.0.1", "１２７.1", "０x7f.0.0.1",
+            "１２７.０.０.１", "127。0。0。1",
         ):
             with self.subTest(host=host):
                 with self.assertRaises(ValueError):
@@ -37,6 +39,7 @@ class ProxyTests(unittest.TestCase):
     def test_canonical_hosts_and_short_numeric_port_limits(self):
         self.assertEqual(valid_proxy_host("127.0.0.1"), "127.0.0.1")
         self.assertEqual(valid_proxy_host("42.example.com"), "42.example.com")
+        self.assertEqual(valid_proxy_host("４２.example.com"), "42.example.com")
         self.assertEqual(
             validate_proxy("socks5", "42.example.com", "00080"),
             ProxyConfig("socks5", "42.example.com", 80),

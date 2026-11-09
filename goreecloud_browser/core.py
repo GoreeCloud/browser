@@ -46,15 +46,27 @@ def is_ambiguous_numeric_host(host: str) -> bool:
     These are not DNS names just because ipaddress rejects their spelling.
     """
     candidate = host.rstrip(".")
-    if not candidate or not all(
-        NUMERIC_IPV4_LABEL_RE.fullmatch(label) for label in candidate.split(".")
+    if not candidate:
+        return False
+    # IDNA maps fullwidth digits, hex letters and Unicode dot separators to
+    # ASCII. Checking only the raw string missed e.g. "０１７７.0.0.1",
+    # which Qt/Chromium navigates to 127.0.0.1.
+    try:
+        ascii_candidate = candidate.encode("idna").decode("ascii")
+    except UnicodeError:
+        return False
+    if not all(
+        NUMERIC_IPV4_LABEL_RE.fullmatch(label)
+        for label in ascii_candidate.split(".")
     ):
         return False
     try:
-        ip_address(candidate)
+        ip_address(ascii_candidate)
     except ValueError:
         return True
-    return False
+    # A non-ASCII spelling of even a canonical IPv4 is a different, easily
+    # misleading visual address. Preserve only the canonical literal form.
+    return ascii_candidate != candidate
 
 
 def _safe_host(host: str) -> bool:
@@ -143,7 +155,8 @@ def destination_for(text: str, *, clean_links: bool = True) -> Destination:
             entered_host = ""
         # A typed dotted numeric address must not become a search query or
         # navigate to a different canonical IP after Qt normalizes it.
-        if "." in entered_host and is_ambiguous_numeric_host(entered_host):
+        numeric_separator = any(char in entered_host for char in ".。．｡")
+        if numeric_separator and is_ambiguous_numeric_host(entered_host):
             raise ValueError("Ambiguous numeric IP address; use canonical IPv4.")
     if _host_looks_like_address(raw) and not raw.lower().startswith(("http://", "https://")):
         # HTTP is allowed explicitly; bare hosts always begin with HTTPS.

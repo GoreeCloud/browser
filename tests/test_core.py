@@ -84,8 +84,23 @@ class NavigationTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         destination_for(host)
 
+    def test_reject_idna_mapped_numeric_ip_aliases(self):
+        # Qt normalizes these to 127.0.0.1, but Python's ipaddress checks
+        # alone do not recognize Unicode digits and Unicode dot separators.
+        for host in (
+            "０１７７.0.0.1", "１２７.1", "０x7f.0.0.1",
+            "１２７.０.０.１", "127。0。0。1", "１２７．0．0．1",
+        ):
+            with self.subTest(host=host):
+                self.assertFalse(valid_web_url("https://" + host + "/"))
+                with self.assertRaises(ValueError):
+                    destination_for("https://" + host + "/")
+                with self.assertRaises(ValueError):
+                    destination_for(host)
+
     def test_canonical_ips_and_numeric_dns_labels_still_work(self):
-        for host in ("127.0.0.1", "1.2.3.4", "42.example.com", "example.123"):
+        for host in ("127.0.0.1", "1.2.3.4", "42.example.com",
+                     "４２.example.com", "example.123"):
             with self.subTest(host=host):
                 self.assertTrue(valid_web_url("https://" + host + "/"))
                 self.assertEqual(destination_for(host).value, "https://" + host)
