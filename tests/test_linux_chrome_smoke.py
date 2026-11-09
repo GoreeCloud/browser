@@ -71,7 +71,8 @@ class ChromeAndWebspaceTests(unittest.TestCase):
                     # Corrupted persisted bookmark titles are normalized
                     # without discarding otherwise-valid saved destinations.
                     window.preferences.setValue("bookmarks", json.dumps([
-                        {"url": "https://valid.example", "title": 42},
+                        {"url": "https://valid.example", "title": 42,
+                         "legacy_marker": "preserve"},
                         {"url": "https://other.example",
                          "title": "  Verified\u202e\n Website "},
                         {"url": 14, "title": "invalid destination"},
@@ -79,6 +80,7 @@ class ChromeAndWebspaceTests(unittest.TestCase):
                     saved = window.read_bookmarks()
                     self.assertEqual(len(saved), 2)
                     self.assertEqual(saved[0]["title"], "https://valid.example")
+                    self.assertEqual(saved[0]["legacy_marker"], "preserve")
                     self.assertEqual(saved[1]["title"], "Verified Website")
                     window.populate_bookmarks()
                     menu_titles = [action.text() for action in window.bookmark_menu.actions()]

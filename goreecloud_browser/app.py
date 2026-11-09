@@ -990,7 +990,9 @@ class BrowserWindow(QMainWindow):
                 url = item.get("url")
                 if not isinstance(url, str) or not valid_web_url(url):
                     continue
-                valid.append({"url": url, "title": safe_bookmark_title(
+                # Keep unrelated saved fields for forward/backward-compatible
+                # round trips while sanitizing only what the menu displays.
+                valid.append({**item, "title": safe_bookmark_title(
                     item.get("title"), url,
                 )})
             return valid
