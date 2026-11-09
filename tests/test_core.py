@@ -71,6 +71,25 @@ class NavigationTests(unittest.TestCase):
         self.assertTrue(valid_web_url("https://bücher.example/page"))
         self.assertTrue(valid_web_url("http://[::1]:8080/page"))
 
+    def test_reject_legacy_numeric_ip_spellings(self):
+        # Qt/Chromium canonicalizes e.g. 0177.0.0.1 and 127.1 to 127.0.0.1.
+        for host in ("0177.0.0.1", "0x7f.0.0.1", "127.1",
+                     "2130706433", "0x7f000001", "123.456",
+                     "000127.0.0.1", "10.0.0.01", "127.0.0.999"):
+            with self.subTest(host=host):
+                self.assertFalse(valid_web_url("https://" + host + "/"))
+                with self.assertRaises(ValueError):
+                    destination_for("https://" + host + "/")
+                if "." in host:
+                    with self.assertRaises(ValueError):
+                        destination_for(host)
+
+    def test_canonical_ips_and_numeric_dns_labels_still_work(self):
+        for host in ("127.0.0.1", "1.2.3.4", "42.example.com", "example.123"):
+            with self.subTest(host=host):
+                self.assertTrue(valid_web_url("https://" + host + "/"))
+                self.assertEqual(destination_for(host).value, "https://" + host)
+
     def test_reject_backslash_url(self):
         with self.assertRaises(ValueError):
             destination_for(r"https://trusted.example\@evil.example/")
