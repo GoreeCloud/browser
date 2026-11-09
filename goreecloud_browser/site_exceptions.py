@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 
+from goreecloud_browser.core import is_ambiguous_numeric_host
 from goreecloud_browser.filters import normalize_domain
 
 MAX_EXCEPTIONS = 64
@@ -28,7 +29,10 @@ def exact_host(value: str) -> str:
         ascii_hostname = original.encode("idna").decode("ascii").lower().rstrip(".")
     except UnicodeError as exc:
         raise ValueError("Invalid IDN hostname") from exc
-    if not normalize_domain(ascii_hostname):
+    # An IP written in legacy numeric or IDNA-mapped notation must not be
+    # persisted as a DNS-only Privacy Shield protection exception. The shared
+    # typed-URL/proxy policy already recognizes these Chromium aliases.
+    if is_ambiguous_numeric_host(ascii_hostname) or not normalize_domain(ascii_hostname):
         raise ValueError("Only exact DNS hostnames are allowed (not URLs, IPs or wildcards)")
     return ascii_hostname
 
