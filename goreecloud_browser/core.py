@@ -39,7 +39,7 @@ class Destination:
     value: str
 
 
-def _ambiguous_numeric_host(host: str) -> bool:
+def is_ambiguous_numeric_host(host: str) -> bool:
     """Reject noncanonical numeric IP spelling that Qt may remap to another host.
 
     Chromium treats short, octal and hexadecimal IPv4 forms as numeric IPs.
@@ -63,7 +63,7 @@ def _safe_host(host: str) -> bool:
     For example, Qt decodes %2E within a host into a literal dot, which could
     point a typed address to a different origin than the entered text suggests.
     """
-    if not host or "%" in host or _ambiguous_numeric_host(host):
+    if not host or "%" in host or is_ambiguous_numeric_host(host):
         return False
     try:
         ip_address(host)
@@ -143,7 +143,7 @@ def destination_for(text: str, *, clean_links: bool = True) -> Destination:
             entered_host = ""
         # A typed dotted numeric address must not become a search query or
         # navigate to a different canonical IP after Qt normalizes it.
-        if "." in entered_host and _ambiguous_numeric_host(entered_host):
+        if "." in entered_host and is_ambiguous_numeric_host(entered_host):
             raise ValueError("Ambiguous numeric IP address; use canonical IPv4.")
     if _host_looks_like_address(raw) and not raw.lower().startswith(("http://", "https://")):
         # HTTP is allowed explicitly; bare hosts always begin with HTTPS.
