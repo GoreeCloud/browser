@@ -28,6 +28,33 @@ class FilterTests(unittest.TestCase):
         self.assertNotIn("localhost", parsed)
         self.assertFalse(is_blocked("example.com", (parsed,)))
 
+    def test_ambiguous_numeric_addresses_are_not_filter_domains(self):
+        from goreecloud_browser.filters import normalize_domain
+
+        aliases = ("127.1", "0177.0.0.1", "0x7f.0.0.1", "123.456",
+                   "2130706433", "０１７７.0.0.1")
+        for host in aliases:
+            with self.subTest(host=host):
+                self.assertIsNone(normalize_domain(host))
+        self.assertIsNone(normalize_domain("127.0.0.1"))
+        self.assertEqual(normalize_domain("42.example.com"), "42.example.com")
+        valid = frozenset({"ad.example.net", "42.example.com"})
+        self.assertEqual(parse_subscription(
+            b"||127.1^\n||0177.0.0.1^\n||42.example.com^\n||ad.example.net^\n",
+            "oisd-small",
+        ), valid)
+        self.assertEqual(parse_subscription(
+            b"0.0.0.0 127.1 0177.0.0.1 42.example.com ad.example.net\n",
+            "stevenblack",
+        ), valid)
+        self.assertFalse(is_blocked("127.1", (frozenset({"127.1"}),)))
+        # Ordinary DNS subscription entries should not trigger the IDNA
+        # numeric-host detector thousands of times in the parsing hot path.
+        with patch("goreecloud_browser.filters.is_ambiguous_numeric_host",
+                   side_effect=AssertionError("unneeded numeric check")):
+            self.assertEqual(normalize_domain("track.example.org"),
+                             "track.example.org")
+
     def test_empty_and_malformed_never_replace_last_good_cache(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

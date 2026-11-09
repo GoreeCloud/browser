@@ -102,8 +102,10 @@ code, not a browser-engine fork.
   noncanonical numeric IPv4 spellings (legacy octal, hexadecimal, short and
   IDNA-mapped Unicode digit/dot aliases), invalid DNS labels, bidi control
   characters and URLs rejected by Qt's parser.
-- Built-in third-party tracker and subscribed-domain blocker; **not** a
-  complete ad blocker, anti-fingerprinting defense or full Privacy Shield.
+- Built-in third-party tracker and subscribed-domain blocker with strict
+  DNS-only subscriptions (legacy numeric IP aliases cannot enter filter
+  rules); **not** a complete ad blocker, anti-fingerprinting defense or full
+  Privacy Shield.
 - Local bookmark storage with a 500-bookmark preview cap. Webpage titles are
   normalized for native menus (no control/bidi formatting); malformed saved
   titles fall back to the validated URL without discarding other bookmarks.

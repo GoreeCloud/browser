@@ -16,6 +16,8 @@ from urllib.parse import urlsplit
 from urllib.request import Request, build_opener, HTTPSHandler, HTTPRedirectHandler
 import ssl
 
+from goreecloud_browser.core import is_ambiguous_numeric_host
+
 
 SOURCES = {
     "oisd-small": "https://small.oisd.nl/",
@@ -31,7 +33,15 @@ MAX_ENTRIES = 300_000
 
 def normalize_domain(value: str) -> str | None:
     host = value.strip().lower().rstrip(".")
-    if len(host) > 253 or not DOMAIN.fullmatch(host):
+    # Chromium's numeric IPv4 aliases (short, octal and hexadecimal) are
+    # addresses, not DNS domains, even if ipaddress does not parse them.
+    # Reuse the typed-address/Privacy Shield guard rather than maintaining a
+    # looser exception for remote subscription entries.
+    # The domain parser is on the hot path for large subscriptions.
+    # Every numeric IPv4 alias begins with an ASCII digit; ordinary DNS
+    # labels can skip the more expensive IDNA numeric check entirely.
+    if (len(host) > 253 or not DOMAIN.fullmatch(host)
+            or (host[0].isdigit() and is_ambiguous_numeric_host(host))):
         return None
     try:
         ip_address(host)
