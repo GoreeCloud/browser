@@ -2,6 +2,7 @@
 
 Opt-in, isolated temporary XDG paths. No external URLs or filter downloads.
 """
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -67,6 +68,24 @@ class ChromeAndWebspaceTests(unittest.TestCase):
                     for expected in ("Theme Manager", "ChatGPT.com", "Cookies Manager", "DNS Manager",
                                      "Proxy Manager", "Advanced Tab Manager", "Advanced Download Manager"):
                         self.assertTrue(any(expected in title for title in titles), expected)
+                    # Corrupted persisted bookmark titles are normalized
+                    # without discarding otherwise-valid saved destinations.
+                    window.preferences.setValue("bookmarks", json.dumps([
+                        {"url": "https://valid.example", "title": 42,
+                         "legacy_marker": "preserve"},
+                        {"url": "https://other.example",
+                         "title": "  Verified\u202e\n Website "},
+                        {"url": 14, "title": "invalid destination"},
+                    ]))
+                    saved = window.read_bookmarks()
+                    self.assertEqual(len(saved), 2)
+                    self.assertEqual(saved[0]["title"], "https://valid.example")
+                    self.assertEqual(saved[0]["legacy_marker"], "preserve")
+                    self.assertEqual(saved[1]["title"], "Verified Website")
+                    window.populate_bookmarks()
+                    menu_titles = [action.text() for action in window.bookmark_menu.actions()]
+                    self.assertIn("https://valid.example", menu_titles)
+                    self.assertIn("Verified Website", menu_titles)
                     content.theme.setCurrentText("Dark")
                     self.assertEqual(window.mode, "dark")
                     self.assertEqual(window.preferences.value("appearance"), "dark")

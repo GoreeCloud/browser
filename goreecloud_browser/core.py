@@ -39,6 +39,21 @@ class Destination:
     value: str
 
 
+def safe_bookmark_title(value: object, fallback: str) -> str:
+    """Render an untrusted webpage/bookmark title safely in native menus.
+
+    Preserve ordinary Unicode text, but exclude terminal/control and bidi
+    formatting characters that can misrepresent a saved destination.
+    """
+    text = value if isinstance(value, str) else ""
+    clean = " ".join("".join(
+        character if character.isprintable()
+        and BIDI_FORMAT_RE.fullmatch(character) is None else " "
+        for character in text[:4096]
+    ).split())
+    return (clean or fallback)[:150]
+
+
 def is_ambiguous_numeric_host(host: str) -> bool:
     """Reject noncanonical numeric IP spelling that Qt may remap to another host.
 

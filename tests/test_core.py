@@ -1,8 +1,29 @@
 import unittest
 from goreecloud_browser.core import (
     STARTPAGE_SEARCH, clean_tracking_parameters, destination_for,
-    is_known_tracker, valid_web_url,
+    is_known_tracker, safe_bookmark_title, valid_web_url,
 )
+
+
+class BookmarkTitleTests(unittest.TestCase):
+    def test_untrusted_page_title_is_bidi_and_control_safe(self):
+        self.assertEqual(
+            safe_bookmark_title("  PayPal\u202e secure\n site\t", "https://example.test"),
+            "PayPal secure site",
+        )
+        self.assertEqual(safe_bookmark_title("Café 文本", "fallback"), "Café 文本")
+
+    def test_missing_or_invalid_saved_title_uses_url(self):
+        for title in (None, 5, [], {}, "", "\x00\u202e\n"):
+            with self.subTest(title=title):
+                self.assertEqual(
+                    safe_bookmark_title(title, "https://example.test"),
+                    "https://example.test",
+                )
+
+    def test_titles_are_bounded_and_collapse_whitespace(self):
+        self.assertEqual(len(safe_bookmark_title("A" * 10000, "fallback")), 150)
+        self.assertEqual(safe_bookmark_title(" one   two ", "fallback"), "one two")
 
 
 class NavigationTests(unittest.TestCase):
