@@ -27,7 +27,13 @@ code, not a browser-engine fork.
   `--ignore-certificate-errors`, `--disable-web-security`, etc.). A local
   self-signed HTTPS test verifies strict certificate-error rejection without
   installing a CA; an offline `/proc` audit observes namespace/seccomp evidence.
-  None of this certifies every renderer or a hardened daily-driver browser.
+  The read-only /proc diagnostic reports bounded subprocess-role hints
+  (renderer, GPU, utility, or unclassified) without echoing argv, and counts
+  observed layered isolation for renderer-role samples. Qt may omit these
+  role markers; unclassified subprocesses are explicitly reported rather
+  than guessed. Names alone cannot establish kernel security. None of this
+  certifies every renderer or a
+  hardened daily-driver browser.
 - **Wardveil Webspace content-security baseline:** all new and default Qt
   profiles explicitly disallow active mixed content, geolocation on insecure
   origins, HTML access to local files or remote resources, clipboard/paste from

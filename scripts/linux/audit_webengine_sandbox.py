@@ -13,6 +13,27 @@ import sys
 import tempfile
 
 
+# Only a fixed taxonomy is emitted. Never print arbitrary Chromium argv:
+# arguments may include profile paths, cookies, URLs or future secrets.
+_PROCESS_TYPES = frozenset({"renderer", "gpu-process", "utility", "zygote", "broker"})
+
+
+def safe_webengine_role(raw: bytes) -> str:
+    """Conservative process role hint extracted from NUL-delimited argv."""
+    if not isinstance(raw, bytes):
+        return "unreadable"
+    markers = [arg[7:] for arg in raw.split(b"\x00") if arg.startswith(b"--type=")]
+    if not markers:
+        return "unspecified"
+    if len(markers) != 1:
+        return "ambiguous"
+    try:
+        name = markers[0].decode("ascii", errors="strict")
+    except UnicodeDecodeError:
+        return "unrecognized"
+    return name if name in _PROCESS_TYPES else "unrecognized"
+
+
 def observe_descendants(parent_pid: int) -> list[dict[str, object]]:
     """Read only this audit process's descendants using /proc task children."""
     proc = Path("/proc")
@@ -57,6 +78,12 @@ def observe_descendants(parent_pid: int) -> list[dict[str, object]]:
         if not executable.startswith("QtWebEngineProc"):
             continue
         try:
+            with (path / "cmdline").open("rb") as command:
+                # Bounded read; only the recognized --type value survives.
+                role = safe_webengine_role(command.read(4096))
+        except OSError:
+            role = "unreadable"
+        try:
             own_ns = proc / str(parent_pid) / "ns"
             child_ns = path / "ns"
             namespace_diff = {
@@ -66,6 +93,7 @@ def observe_descendants(parent_pid: int) -> list[dict[str, object]]:
         except OSError:
             namespace_diff = {}
         findings.append({
+            "role": role,
             "seccomp": fields.get("Seccomp", "").strip(),
             "seccomp_filters": fields.get("Seccomp_filters", "").strip(),
             "no_new_privs": fields.get("NoNewPrivs", "").strip(),
@@ -137,6 +165,24 @@ def main() -> int:
         and row["namespace_distinct_from_parent"].get("user") is True
     )
     print(f"WebEngine child descendants observed: {total}")
+    # These labels are process-reported hints, not proof of kernel isolation,
+    # and unrecognized roles are deliberately not guessed.
+    role_counts = {
+        role: sum(row["role"] == role for row in findings)
+        for role in sorted({row["role"] for row in findings})
+    }
+    print("Subprocess role hints (bounded /proc cmdline): "
+          + (", ".join(f"{role}={count}" for role, count in role_counts.items())
+             if role_counts else "none"))
+    renderer_combined = sum(
+        1 for row in findings if row["role"] == "renderer"
+        and row["seccomp"] == "2" and row["no_new_privs"] == "1"
+        and row["namespace_distinct_from_parent"].get("user") is True
+    )
+    print(f"Renderer-role samples with combined layered evidence: {renderer_combined}")
+    if not any(row["role"] == "renderer" for row in findings):
+        print("LIMITATION: renderer role was not identifiable from process "
+              "arguments; renderer-specific confinement remains unverified.")
     print(f"Separate user namespace observed: {namespace_isolated}")
     print(f"Seccomp-BPF active in a descendant: {seccomp_filtered}")
     print(f"Combined seccomp + user-namespace + no-new-privileges evidence: {combined}")
