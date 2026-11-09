@@ -30,6 +30,7 @@ SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]")
 BIDI_FORMAT_RE = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
 HOST_LABEL_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+NUMERIC_IPV4_LABEL_RE = re.compile(r"(?:[0-9]+|0[xX][0-9a-fA-F]+)\Z")
 
 
 @dataclass(frozen=True)
@@ -38,13 +39,31 @@ class Destination:
     value: str
 
 
+def _ambiguous_numeric_host(host: str) -> bool:
+    """Reject noncanonical numeric IP spelling that Qt may remap to another host.
+
+    Chromium treats short, octal and hexadecimal IPv4 forms as numeric IPs.
+    These are not DNS names just because ipaddress rejects their spelling.
+    """
+    candidate = host.rstrip(".")
+    if not candidate or not all(
+        NUMERIC_IPV4_LABEL_RE.fullmatch(label) for label in candidate.split(".")
+    ):
+        return False
+    try:
+        ip_address(candidate)
+    except ValueError:
+        return True
+    return False
+
+
 def _safe_host(host: str) -> bool:
     """Reject ambiguous host encodings before Qt interprets an entered URL.
 
     For example, Qt decodes %2E within a host into a literal dot, which could
     point a typed address to a different origin than the entered text suggests.
     """
-    if not host or "%" in host:
+    if not host or "%" in host or _ambiguous_numeric_host(host):
         return False
     try:
         ip_address(host)
@@ -117,6 +136,15 @@ def destination_for(text: str, *, clean_links: bool = True) -> Destination:
         return Destination(INTERNAL_PAGES[page], page)
     if len(raw) > 4096 or "\\" in raw or CONTROL_RE.search(raw):
         raise ValueError("Address contains unsupported characters or is too long.")
+    if not SCHEME_RE.match(raw):
+        try:
+            entered_host = urlsplit("//" + raw).hostname or ""
+        except ValueError:
+            entered_host = ""
+        # A typed dotted numeric address must not become a search query or
+        # navigate to a different canonical IP after Qt normalizes it.
+        if "." in entered_host and _ambiguous_numeric_host(entered_host):
+            raise ValueError("Ambiguous numeric IP address; use canonical IPv4.")
     if _host_looks_like_address(raw) and not raw.lower().startswith(("http://", "https://")):
         # HTTP is allowed explicitly; bare hosts always begin with HTTPS.
         url = "https://" + raw
