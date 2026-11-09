@@ -761,7 +761,9 @@ class BrowserWindow(QMainWindow):
             return
         names = tuple(
             name for name in SOURCES if self._list_enabled.get(name, False)
-            and (not only_stale or needs_update(self.filter_storage, name))
+            and (not only_stale or needs_update(
+                self.filter_storage, name, loaded_domains=self._filter_domains.get(name),
+            ))
         )
         if not names:
             return

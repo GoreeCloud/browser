@@ -99,7 +99,9 @@ def cache_file(root: Path, name: str) -> Path:
 
 def read_cached(root: Path, name: str) -> frozenset[str]:
     target = cache_file(root, name)
-    if target.is_symlink() or not target.is_file():
+    # Writing already refuses a symlinked cache root; reads must not bypass
+    # the same trust boundary through an alias of the cache directory.
+    if root.is_symlink() or target.is_symlink() or not target.is_file():
         return frozenset()
     try:
         if target.stat().st_size > LIST_MAX_BYTES:
@@ -109,13 +111,31 @@ def read_cached(root: Path, name: str) -> frozenset[str]:
         return frozenset()
 
 
-def needs_update(root: Path, name: str, now: float | None = None) -> bool:
+def needs_update(
+    root: Path, name: str, now: float | None = None, *,
+    loaded_domains: frozenset[str] | None = None,
+) -> bool:
+    """Refresh stale, corrupt or unsafe caches without waiting a full day.
+
+    The browser passes the rules already parsed at startup, avoiding a second
+    full-list parse on the Qt GUI thread. Standalone callers validate on disk.
+    """
     path = cache_file(root, name)
-    if path.is_symlink() or not path.is_file():
+    if root.is_symlink() or path.is_symlink() or not path.is_file():
         return True
     try:
-        return (time.time() if now is None else now) - path.stat().st_mtime >= CACHE_AGE_SECONDS
-    except OSError:
+        stat = path.stat()
+        current = time.time() if now is None else now
+        if stat.st_size == 0 or stat.st_size > LIST_MAX_BYTES:
+            return True
+        # Future filesystem timestamps must not postpone privacy updates.
+        if stat.st_mtime > current + 300:
+            return True
+        if current - stat.st_mtime >= CACHE_AGE_SECONDS:
+            return True
+        domains = loaded_domains if loaded_domains is not None else read_cached(root, name)
+        return len(domains) < 500
+    except (OSError, ValueError):
         return True
 
 

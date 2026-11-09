@@ -51,7 +51,9 @@ code, not a browser-engine fork.
   changed protection to previously loaded content.
 - **Default enabled OISD Small and StevenBlack domain subscriptions** with
   fixed-source HTTPS retrieval, strict parsing, 24-hour cache checks and
-  last-known-good fallback. Only loaded rules are enforced; status is visible.
+  last-known-good fallback. Empty, invalid, undersized, unsafe or future-dated
+  caches trigger an earlier refresh instead of silently disabling protection.
+  Only loaded rules are enforced; status is visible.
   This is domain-level subresource blocking, not cosmetic ad filtering.
 - **Global System/Direct/HTTP/SOCKS5 proxy settings** applied on next restart;
   local HTTP proxy routing verified. Proxy address validation refuses ambiguous
