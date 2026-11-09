@@ -23,6 +23,25 @@ class SiteExceptionTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     exact_host(value)
 
+    def test_numeric_ip_aliases_cannot_disable_privacy_shield(self):
+        for value in (
+            "127.1", "0177.0.0.1", "0x7f.0.0.1", "123.456",
+            "１２７.1", "０１７７.0.0.1", "127。1",
+        ):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    exact_host(value)
+                with self.assertRaises(ValueError):
+                    add_exception((), value)
+                self.assertFalse(is_exempt_first_party(value, frozenset({value})))
+        self.assertEqual(
+            decode_exceptions(json.dumps(["127.1", "news.example.org",
+                                          "0177.0.0.1", "１２７.1"])),
+            ("news.example.org",),
+        )
+        # Legitimate internationalized DNS remains compatible.
+        self.assertEqual(exact_host("４２.example.org"), "42.example.org")
+
     def test_roundtrip_persistence_only_exact_host(self):
         entries = add_exception((), " News.Example.org ")
         entries = add_exception(entries, "Another.example.org")

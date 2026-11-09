@@ -51,7 +51,8 @@ code, not a browser-engine fork.
   they do not provide separate OS processes, IP addresses or per-space proxies.
 - **Privacy Shield per-site compatibility exceptions:** native manager accepts
   only exact DNS hostnames, with explicit confirmation before disabling the
-  built-in third-party domain blocker on that website. Exceptions are local,
+  built-in third-party domain blocker on that website. Noncanonical numeric
+  IP aliases are refused or discarded from stored exception lists. Exceptions are local,
   reversible, and apply **across all Webspaces**; no wildcard or suffix matches.
   A missing first-party origin never receives an exception. A reload applies
   changed protection to previously loaded content.
