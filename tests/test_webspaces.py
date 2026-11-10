@@ -31,6 +31,34 @@ class WebspacesTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     create_space(entries, value)
 
+    def test_security_sensitive_webspace_names_disallow_invisible_formatting(self):
+        for invalid in (
+            "Work\u202e", "Default\u2066", "Work\u200b",
+            "Main\ufeff", "Team\u061c", "Work\x00", 42, None, {},
+        ):
+            with self.subTest(value=invalid):
+                with self.assertRaises(ValueError):
+                    clean_label(invalid)
+                with self.assertRaises(ValueError):
+                    create_space([], invalid)
+                self.assertEqual(decode_spaces(json.dumps([
+                    {"id": "0123456789abcdef", "name": invalid},
+                    {"id": "fedcba9876543210", "name": "Safe"},
+                ])), [{"id": "fedcba9876543210", "name": "Safe"}])
+
+    def test_unicode_names_remain_readable_and_canonically_unique(self):
+        self.assertEqual(clean_label("  Café   文本  "), "Café 文本")
+        self.assertEqual(clean_label("Cafe\u0301"), "Café")
+        entries = create_space([], "Café")
+        with self.assertRaises(ValueError):
+            create_space(entries, "Cafe\u0301")
+        self.assertEqual(
+            decode_spaces(json.dumps([{"id": "0123456789abcdef",
+                                      "name": "Cafe\u0301"}])),
+            [{"id": "0123456789abcdef", "name": "Café"}],
+        )
+        self.assertEqual(decode_spaces(encode_spaces(entries)), entries)
+
     def test_decode_rejects_injected_ids(self):
         content = json.dumps([
             {"id": "../outside", "name": "Bad"},

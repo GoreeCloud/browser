@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 import re
 import secrets
+import unicodedata
 
 MAX_WEBSPACES = 16
 _ID = re.compile(r"^[0-9a-f]{16}$")
@@ -15,8 +16,17 @@ DEFAULT_ID = "default"
 
 
 def clean_label(value: str) -> str:
-    label = " ".join(str(value).split()).strip()
-    if not 1 <= len(label) <= 36 or any(ord(ch) < 32 or ord(ch) == 127 for ch in label):
+    """Canonical visible name for a security-sensitive, isolated Webspace.
+
+    Reject invisible/bidi format controls rather than silently stripping
+    them: changing a displayed identity could hide a misleading saved name.
+    """
+    if not isinstance(value, str):
+        raise ValueError("Webspace name must be 1 to 36 visible characters")
+    label = unicodedata.normalize("NFC", " ".join(value.split()).strip())
+    if (not 1 <= len(label) <= 36
+            or any(unicodedata.category(ch) in ("Cc", "Cf", "Cs")
+                   or not ch.isprintable() for ch in label)):
         raise ValueError("Webspace name must be 1 to 36 visible characters")
     return label
 
