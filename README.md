@@ -113,7 +113,9 @@ code, not a browser-engine fork.
   clearing; and a separately confirmed **full website-data reset on restart**.
   An OS-level Linux lock prevents concurrent processes using the same profile.
   The cookie/HTTP-cache action alone does not clear HTML5 site storage.
-- Explicit user consent for website capability requests.
+- Explicit user consent for website capability requests. The native
+  Permission Center displays only requesting origins (never embedded URL
+  credentials, private paths, query tokens or fragments).
 - Light/dark native Qt theme adapted from the approved **GoreeCloud UI** Lagoon palette.
 
 Custom DNS/DoH, account sync, extension installation, private windows, cosmetic
