@@ -46,6 +46,9 @@ code, not a browser-engine fork.
   and top-level website, not only an ambiguous hostname. Qt may omit transient
   camera/screen-capture decisions; resetting a decision does not stop ongoing
   device capture. Close the active tab to stop an ongoing session.
+- **Webspace names** are canonicalized and reject invisible/bidirectional
+  formatting controls to prevent visually misleading security-context labels;
+  malformed legacy names are ignored without deleting their stored data.
 - **Webspace containers** use separate Qt WebEngine cookie, cache and HTML5
   storage profiles. Their isolation is tested against a local HTTP server;
   they do not provide separate OS processes, IP addresses or per-space proxies.

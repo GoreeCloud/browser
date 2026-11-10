@@ -55,6 +55,14 @@ class WebspaceIsolationSmoke(unittest.TestCase):
                     browser.show()
                     default_tab = browser.current()
                     ident = browser.add_webspace("Work")
+                    # Malformed or visually misleading labels must not
+                    # persist even through the real browser UI controller.
+                    before = browser.preferences.value("webspaces")
+                    for misleading in ("Work\u202e", "Work\u200b", "Team\u2066"):
+                        with self.subTest(name=misleading):
+                            with self.assertRaises(ValueError):
+                                browser.add_webspace(misleading)
+                            self.assertEqual(browser.preferences.value("webspaces"), before)
                     # Do not allow storage to escape via a symlinked parent.
                     outside = Path(tmp) / "outside"
                     outside.mkdir()
