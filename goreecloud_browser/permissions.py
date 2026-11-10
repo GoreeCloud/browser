@@ -97,6 +97,8 @@ class PermissionCenterDialog(QDialog):
             if not permission.isValid():
                 continue
             key = origin_key(permission.origin())
+            if key is None:
+                continue  # Do not display unsupported or malformed origins.
             if self.site_only.isChecked() and key != self._current_origin:
                 continue
             # State Ask should not be presented as an existing decision.
@@ -107,7 +109,10 @@ class PermissionCenterDialog(QDialog):
             self.table.insertRow(row)
             self._rows.append(permission)
             values = (
-                permission.origin().toString(QUrl.ComponentFormattingOption.FullyEncoded),
+                # Qt normally supplies an origin; still redact credentials,
+                # URL paths, query tokens and fragments if a malformed or
+                # adapter-supplied permission includes them.
+                display_origin(permission.origin()),
                 permission.permissionType().name,
                 state.name,
             )

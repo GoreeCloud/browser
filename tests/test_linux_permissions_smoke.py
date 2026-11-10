@@ -4,6 +4,7 @@ No external navigation, live device capture or private user profile is used.
 The app runs with a temporary XDG profile and all background list fetches off.
 """
 import os
+from types import SimpleNamespace
 from pathlib import Path
 import tempfile
 import unittest
@@ -15,6 +16,62 @@ from unittest.mock import patch
     "Opt-in native Linux permission-center smoke",
 )
 class PermissionCenterSmoke(unittest.TestCase):
+    def test_permission_table_redacts_unexpected_url_sensitive_fields(self):
+        from PySide6.QtCore import QUrl
+        from PySide6.QtWidgets import QApplication, QWidget
+        from shiboken6 import delete as destroy_qobject
+        from goreecloud_browser.permissions import PermissionCenterDialog
+
+        class SyntheticPermission:
+            def isValid(self):
+                return True
+
+            def origin(self):
+                return QUrl(
+                    "https://account:secret@example.org:8443/private"
+                    "?token=private-data#fragment"
+                )
+
+            def permissionType(self):
+                return SimpleNamespace(name="Geolocation")
+
+            def state(self):
+                return SimpleNamespace(name="Granted")
+
+        class SyntheticProfile:
+            def listAllPermissions(self):
+                return [SyntheticPermission()]
+
+        app = QApplication([])
+        parent = QWidget()
+        parent.current = lambda: SimpleNamespace(
+            profile=SyntheticProfile(), space_id="default",
+            current_address=lambda: "https://example.org:8443/home",
+        )
+        parent.webspace_name = lambda space: "Default"
+        center = None
+        try:
+            center = PermissionCenterDialog(parent)
+            self.assertEqual(center.table.rowCount(), 1)
+            self.assertEqual(
+                center.table.item(0, 0).text(), "https://example.org:8443"
+            )
+            # Redaction must still hold when displaying all stored
+            # permissions, not only the active-site filtered view.
+            center.site_only.setChecked(False)
+            self.assertEqual(center.table.rowCount(), 1)
+            self.assertEqual(
+                center.table.item(0, 0).text(), "https://example.org:8443"
+            )
+        finally:
+            if center is not None:
+                center.close()
+                destroy_qobject(center)
+            parent.close()
+            destroy_qobject(parent)
+            app.quit()
+            destroy_qobject(app)
+
     def test_review_revoke_and_webspace_isolation(self):
         from PySide6.QtCore import QUrl
         from PySide6.QtWidgets import QApplication, QMessageBox
