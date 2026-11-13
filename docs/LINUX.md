@@ -11,6 +11,25 @@ Xvfb. None of these
 checks establishes full Wayland/X11 interaction, accessibility or cross-distro
 acceptance.
 
+## Default desktop window behavior
+
+GoreeCloud Browser starts as a **normal, resizable Qt window**, not maximized or
+full-screen. The initial client size is capped at 1250×790 and normally at
+90% of the primary display's available work area (excluding panels and docks),
+while honoring its existing 700×480 minimum layout size. The operating-system
+window manager continues to own the window borders, controls, focus and placement;
+users can maximize, restore or enter full-screen through supported native actions.
+
+If the usable display area is smaller than the 700×480 minimum, some overflow
+cannot be avoided by sizing alone. This change does not add automatic saving or
+restoring of window geometry or an explicit remembered full-screen preference.
+Real multi-monitor, scaling, window manager and session restoration acceptance
+remain outstanding. The source-level policy is checked by pure offline unit
+tests; a true desktop acceptance test is still necessary before a Stable claim.
+
+This follows [GoreeCloud UI desktop windowing](https://github.com/GoreeCloud/gc-ui/blob/main/docs/PLATFORM_ADAPTERS.md)
+without changing the GC UI web-only Stable 1.0 candidate scope.
+
 ## Prerequisites
 
 Python 3, python3-venv, pip, a graphical desktop session and compatible Qt graphics libraries. Ubuntu-family dependencies can include libegl1, libopengl0 and libxkbcommon-x11-0. The installer never uses sudo, changes global handlers or installs system packages.
