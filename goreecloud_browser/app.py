@@ -63,6 +63,9 @@ from goreecloud_browser.sandbox import (
     WebEngineSecurityError, require_safe_webengine_settings,
 )
 from goreecloud_browser.web_security import configure_content_security
+from goreecloud_browser.windowing import (
+    DEFAULT_WINDOW_SIZE, MIN_WINDOW_SIZE, initial_window_size,
+)
 
 # Values copied from the canonical GC UI token implementation
 # GoreeCloud/gc-ui: styles/tokens.css (verified 2026-11-06).
@@ -480,8 +483,13 @@ class BrowserWindow(QMainWindow):
         require_safe_webengine_settings(os.environ, sys.argv[1:])
         self.setWindowTitle("GoreeCloud Browser")
         self.setWindowIcon(browser_icon())
-        self.resize(1250, 790)
-        self.setMinimumSize(700, 480)
+        self.setMinimumSize(*MIN_WINDOW_SIZE)
+        screen = QApplication.primaryScreen()
+        if screen is None:
+            self.resize(*DEFAULT_WINDOW_SIZE)
+        else:
+            work_area = screen.availableGeometry()
+            self.resize(*initial_window_size(work_area.width(), work_area.height()))
         self.preferences = QSettings("GoreeCloud", "GoreeCloudBrowser")
         self.mode = self.preferences.value("appearance", "light")
         if self.mode not in THEMES:
