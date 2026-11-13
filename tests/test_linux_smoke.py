@@ -32,7 +32,9 @@ class LinuxQtSmoke(unittest.TestCase):
         from PySide6.QtWebEngineCore import QWebEngineProfile
         from shiboken6 import delete as destroy_qobject
         from goreecloud_browser.app import BrowserWindow
-        from goreecloud_browser.windowing import initial_window_size
+        from goreecloud_browser.windowing import (
+            initial_window_size, restored_window_size,
+        )
         from goreecloud_browser.site_data import RESET_MARKER, schedule_site_reset
 
         class Handler(BaseHTTPRequestHandler):
@@ -108,6 +110,11 @@ class LinuxQtSmoke(unittest.TestCase):
             site_storage.mkdir(parents=True, exist_ok=True)
             (site_storage / "test-only-file").write_text("remove")
             self.assertTrue(schedule_site_reset(site_root))
+            # User explicitly opts in to remembering *normal size only*.
+            # The local-only QSettings value remains in temporary XDG paths.
+            window.set_remember_window_size(True)
+            window.resize(980, 620)
+            app.processEvents()
         finally:
             window.close()
             app.processEvents()
@@ -118,6 +125,19 @@ class LinuxQtSmoke(unittest.TestCase):
         # Qt profile is no longer running; next startup consumes the reset marker.
         reopened = BrowserWindow()
         try:
+            self.assertTrue(reopened.remember_window_size)
+            saved = reopened.preferences.value("window_normal_size", "")
+            self.assertTrue(isinstance(saved, str) and "x" in saved)
+            screen = QApplication.primaryScreen()
+            area = screen.availableGeometry()
+            self.assertEqual(
+                (reopened.width(), reopened.height()),
+                restored_window_size(saved, area.width(), area.height()),
+            )
+            self.assertFalse(reopened.isMaximized())
+            self.assertFalse(reopened.isFullScreen())
+            reopened.set_remember_window_size(False)
+            self.assertFalse(reopened.preferences.contains("window_normal_size"))
             self.assertEqual(reopened.current().current_address(), "goree://new-tab")
             self.assertFalse((site_root / "web-profile" / "test-only-file").exists())
             self.assertFalse((site_root / RESET_MARKER).exists())
