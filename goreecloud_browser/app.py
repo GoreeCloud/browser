@@ -64,7 +64,7 @@ from goreecloud_browser.sandbox import (
 )
 from goreecloud_browser.web_security import configure_content_security
 from goreecloud_browser.windowing import (
-    DEFAULT_WINDOW_SIZE, MIN_WINDOW_SIZE, initial_window_size,
+    DEFAULT_WINDOW_SIZE, MIN_WINDOW_SIZE, initial_window_size, restored_window_size,
 )
 
 # Values copied from the canonical GC UI token implementation
@@ -484,13 +484,23 @@ class BrowserWindow(QMainWindow):
         self.setWindowTitle("GoreeCloud Browser")
         self.setWindowIcon(browser_icon())
         self.setMinimumSize(*MIN_WINDOW_SIZE)
+        self.preferences = QSettings("GoreeCloud", "GoreeCloudBrowser")
+        # Window memory is explicitly opt-in. New profiles and disabled memory
+        # always open *normal*, never maximized/full-screen, even if the
+        # previous session was immersive.
+        self.remember_window_size = self.preferences.value(
+            "remember_window_size", False, type=bool)
         screen = QApplication.primaryScreen()
         if screen is None:
             self.resize(*DEFAULT_WINDOW_SIZE)
         else:
             work_area = screen.availableGeometry()
-            self.resize(*initial_window_size(work_area.width(), work_area.height()))
-        self.preferences = QSettings("GoreeCloud", "GoreeCloudBrowser")
+            width, height = work_area.width(), work_area.height()
+            size = (restored_window_size(
+                self.preferences.value("window_normal_size", ""), width, height)
+                if self.remember_window_size
+                else initial_window_size(width, height))
+            self.resize(*size)
         self.mode = self.preferences.value("appearance", "light")
         if self.mode not in THEMES:
             self.mode = "light"
@@ -1040,6 +1050,14 @@ class BrowserWindow(QMainWindow):
     def open_bookmark_menu(self):
         self.bookmark_button.showMenu()
 
+    def set_remember_window_size(self, enabled: bool) -> None:
+        """Persist only a user-approved normal size, not window state/position."""
+        self.remember_window_size = bool(enabled)
+        self.preferences.setValue("remember_window_size", self.remember_window_size)
+        if not self.remember_window_size:
+            self.preferences.remove("window_normal_size")
+        self.preferences.sync()
+
     def set_preference(self, key: str, value: bool):
         self.preferences.setValue(key, bool(value))
         if key == "block_trackers":
@@ -1371,6 +1389,11 @@ class BrowserWindow(QMainWindow):
             destroy_qobject(profile)
         self.space_profiles.clear()
         self.profile_lock.close()
+        if self.remember_window_size:
+            normal = self.normalGeometry()
+            width, height = normal.width(), normal.height()
+            if width >= MIN_WINDOW_SIZE[0] and height >= MIN_WINDOW_SIZE[1]:
+                self.preferences.setValue("window_normal_size", f"{width}x{height}")
         self.preferences.sync()
         super().closeEvent(event)
 

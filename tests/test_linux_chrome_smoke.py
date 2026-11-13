@@ -64,6 +64,17 @@ class ChromeAndWebspaceTests(unittest.TestCase):
                     self.assertEqual(window.current().current_address(), "goree://settings")
                     content = window.current().settings_page
                     self.assertIsInstance(content, SettingsPage)
+                    # Explicit opt-in: no window layout data is stored by
+                    # default, and disabling memory clears its saved size.
+                    self.assertFalse(content.remember_window_size.isChecked())
+                    content.remember_window_size.setChecked(True)
+                    self.assertTrue(window.remember_window_size)
+                    self.assertTrue(window.preferences.value(
+                        "remember_window_size", False, type=bool))
+                    window.preferences.setValue("window_normal_size", "990x650")
+                    content.remember_window_size.setChecked(False)
+                    self.assertFalse(window.remember_window_size)
+                    self.assertFalse(window.preferences.contains("window_normal_size"))
                     titles = [x.title() for x in content.findChildren(QGroupBox)]
                     for expected in ("Theme Manager", "ChatGPT.com", "Cookies Manager", "DNS Manager",
                                      "Proxy Manager", "Advanced Tab Manager", "Advanced Download Manager"):
