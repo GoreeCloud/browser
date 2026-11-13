@@ -24,8 +24,11 @@ If the usable display area is smaller than the 700×480 minimum, some overflow
 cannot be avoided by sizing alone. This change does not add automatic saving or
 restoring of window geometry or an explicit remembered full-screen preference.
 Real multi-monitor, scaling, window manager and session restoration acceptance
-remain outstanding. The source-level policy is checked by pure offline unit
-tests; a true desktop acceptance test is still necessary before a Stable claim.
+remain outstanding. Six pure offline geometry tests check the sizing policy.
+An additional **isolated native Qt integration smoke** asserts first-launch
+size and non-maximized/non-full-screen state under offscreen Qt and disposable
+Xvfb, without accessing the user browser profile. These checks are not a
+replacement for actual GNOME/KDE/Wayland window-manager or device acceptance.
 
 This follows [GoreeCloud UI desktop windowing](https://github.com/GoreeCloud/gc-ui/blob/main/docs/PLATFORM_ADAPTERS.md)
 without changing the GC UI web-only Stable 1.0 candidate scope.
