@@ -21,14 +21,26 @@ window manager continues to own the window borders, controls, focus and placemen
 users can maximize, restore or enter full-screen through supported native actions.
 
 If the usable display area is smaller than the 700×480 minimum, some overflow
-cannot be avoided by sizing alone. This change does not add automatic saving or
-restoring of window geometry or an explicit remembered full-screen preference.
+cannot be avoided by sizing alone.
+
+**Optional normal-size memory:** Settings → Desktop → *Remember normal window
+size* is OFF on a fresh profile. When deliberately enabled, closing the browser
+records the normal (unmaximized) width and height in local QSettings only, with
+no screen coordinates, display identifiers or website data. The next launch
+opens as a **normal window** at that size, clamped to 90% of the available work
+area with the existing 700×480 minimum. Explicitly disabling the preference
+deletes the stored size. Corrupt or malformed saved values fall back to the
+usual safe first-run dimensions. Maximized and full-screen states are never
+saved or restored, so turning on size memory does not create an immersive
+startup. No network request or system-wide setting is involved.
+
 Real multi-monitor, scaling, window manager and session restoration acceptance
-remain outstanding. Six pure offline geometry tests check the sizing policy.
-An additional **isolated native Qt integration smoke** asserts first-launch
-size and non-maximized/non-full-screen state under offscreen Qt and disposable
-Xvfb, without accessing the user browser profile. These checks are not a
-replacement for actual GNOME/KDE/Wayland window-manager or device acceptance.
+remain outstanding. Pure offline geometry and saved-state tests check the
+sizing policy. **Isolated native Qt integration smoke** checks first-launch
+normal window state and local opt-in size persistence under offscreen Qt and
+disposable Xvfb, without accessing the user browser profile. These checks are
+not a replacement for actual GNOME/KDE/Wayland window-manager or device
+acceptance.
 
 This follows [GoreeCloud UI desktop windowing](https://github.com/GoreeCloud/gc-ui/blob/main/docs/PLATFORM_ADAPTERS.md)
 without changing the GC UI web-only Stable 1.0 candidate scope.
