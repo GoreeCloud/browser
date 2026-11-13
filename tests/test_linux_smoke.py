@@ -32,6 +32,7 @@ class LinuxQtSmoke(unittest.TestCase):
         from PySide6.QtWebEngineCore import QWebEngineProfile
         from shiboken6 import delete as destroy_qobject
         from goreecloud_browser.app import BrowserWindow
+        from goreecloud_browser.windowing import initial_window_size
         from goreecloud_browser.site_data import RESET_MARKER, schedule_site_reset
 
         class Handler(BaseHTTPRequestHandler):
@@ -51,7 +52,19 @@ class LinuxQtSmoke(unittest.TestCase):
         app = QApplication.instance() or QApplication([])
         window = BrowserWindow()
         try:
+            # The first launch uses a normal OS-managed window, not a
+            # maximized/fullscreen browser. Screen work area excludes docks.
+            screen = QApplication.primaryScreen()
+            self.assertIsNotNone(screen)
+            area = screen.availableGeometry()
+            wanted = initial_window_size(area.width(), area.height())
+            self.assertEqual((window.width(), window.height()), wanted)
+            self.assertFalse(window.isMaximized())
+            self.assertFalse(window.isFullScreen())
             window.show()
+            app.processEvents()
+            self.assertFalse(window.isMaximized())
+            self.assertFalse(window.isFullScreen())
             self.assertFalse(window.windowIcon().isNull(), "GoreeCloud icon missing from Qt window")
             self.assertFalse(window.windowIcon().pixmap(48, 48).isNull(), "Icon failed to render")
             self.assertEqual(window.tabs.count(), 1)
