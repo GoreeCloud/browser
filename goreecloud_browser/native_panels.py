@@ -75,6 +75,17 @@ class SettingsPage(QWidget):
         controls.addWidget(self.theme)
         stack.addWidget(panel)
 
+        panel, controls = section("Desktop • Window behavior",
+            "Browser opens in a normal, resizable window by default. "
+            "Optional size memory stores only this window's dimensions on "
+            "this device. Maximized, full-screen and screen position are "
+            "never saved, so you can always reopen in a normal window.")
+        self.remember_window_size = QCheckBox("Remember normal window size")
+        self.remember_window_size.setChecked(browser.remember_window_size)
+        self.remember_window_size.toggled.connect(browser.set_remember_window_size)
+        controls.addWidget(self.remember_window_size)
+        stack.addWidget(panel)
+
         panel, controls = section("Privacy Shield • Adblocker",
             "Domain filtering is not cosmetic ad removal. Enabled subscriptions "
             "may fetch fixed HTTPS lists at startup, revealing your connection IP "
