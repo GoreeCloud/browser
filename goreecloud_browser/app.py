@@ -65,6 +65,7 @@ from goreecloud_browser.sandbox import (
 from goreecloud_browser.web_security import configure_content_security
 from goreecloud_browser.windowing import (
     DEFAULT_WINDOW_SIZE, MIN_WINDOW_SIZE, initial_window_size, restored_window_size,
+    restrictive_work_area,
 )
 
 # Values copied from the canonical GC UI token implementation
@@ -490,12 +491,18 @@ class BrowserWindow(QMainWindow):
         # previous session was immersive.
         self.remember_window_size = self.preferences.value(
             "remember_window_size", False, type=bool)
-        screen = QApplication.primaryScreen()
-        if screen is None:
+        # The window manager may place a first-launch window on ANY attached
+        # display, not necessarily the primary one. Before placement is known,
+        # choose conservative available work-area dimensions across monitors.
+        # Store no monitor identity or coordinates in settings.
+        work_area = restrictive_work_area(
+            (s.availableGeometry().width(), s.availableGeometry().height())
+            for s in QApplication.screens()
+        )
+        if work_area is None:
             self.resize(*DEFAULT_WINDOW_SIZE)
         else:
-            work_area = screen.availableGeometry()
-            width, height = work_area.width(), work_area.height()
+            width, height = work_area
             size = (restored_window_size(
                 self.preferences.value("window_normal_size", ""), width, height)
                 if self.remember_window_size
