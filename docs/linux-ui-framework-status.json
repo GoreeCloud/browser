@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "platform": "linux",
+  "product": "GoreeCloud Browser",
+  "canonicalRequirement": "https://drive.google.com/file/d/1L-93POcFZE12F-vYxbSc9XquQ-KWOa6f/view",
+  "approvedPrimaryUi": [
+    "qt-quick-6.12.0",
+    "flutter-linux-desktop",
+    "slint"
+  ],
+  "currentPrimaryUi": "qt-widgets",
+  "currentQtBinding": "PySide6==6.11.3",
+  "status": "migration-required",
+  "grandfathered": false,
+  "proposedTarget": "qt-quick-6.12.0",
+  "targetStatus": "design-and-feasibility-only",
+  "evidencePaths": [
+    "goreecloud_browser/app.py",
+    "pyproject.toml"
+  ],
+  "runtimeTargetVerified": false,
+  "releasedCompliant": false,
+  "plan": "docs/LINUX_UI_MIGRATION.md"
+}
