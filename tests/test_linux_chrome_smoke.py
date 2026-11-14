@@ -18,6 +18,7 @@ class ChromeAndWebspaceTests(unittest.TestCase):
     def test_toolbar_order_light_theme_and_native_settings(self):
         from PySide6.QtWidgets import QApplication, QGroupBox
         from PySide6.QtCore import Qt
+        from PySide6.QtTest import QTest
         from shiboken6 import delete as destroy_qobject
         from goreecloud_browser.app import BrowserWindow
         from goreecloud_browser.native_panels import SettingsPage
@@ -38,15 +39,23 @@ class ChromeAndWebspaceTests(unittest.TestCase):
                     self.assertIn(
                         "F11", [shortcut.key().toString() for shortcut in window._shortcuts],
                     )
-                    # User-triggered native fullscreen must not change the
-                    # normal-window startup policy or lose maximize state.
-                    window.toggle_fullscreen()
+                    # Exercise Qt's real shortcut-event dispatcher from the
+                    # focused address input, not only the callback method.
+                    # Activate/focus before synthetic key events: headless
+                    # Qt backends do not have an external window manager.
+                    window.activateWindow()
+                    window.address.setFocus()
+                    QTest.qWait(100)
+                    self.assertTrue(window.address.hasFocus())
+                    QTest.keyClick(window.address, Qt.Key.Key_F11)
                     app.processEvents()
                     self.assertTrue(window.isFullScreen())
-                    window.toggle_fullscreen()
+                    QTest.keyClick(window.address, Qt.Key.Key_F11)
                     app.processEvents()
                     self.assertFalse(window.isFullScreen())
                     self.assertFalse(window.isMaximized())
+                    # Method checks still cover maximize -> fullscreen ->
+                    # maximized, independently of keyboard event routing.
                     window.showMaximized()
                     app.processEvents()
                     self.assertTrue(window.isMaximized())
