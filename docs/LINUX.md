@@ -19,6 +19,9 @@ full-screen. The initial client size is capped at 1250×790 and normally at
 while honoring its existing 700×480 minimum layout size. The operating-system
 window manager continues to own the window borders, controls, focus and placement;
 users can maximize, restore or enter full-screen through supported native actions.
+**F11** explicitly toggles native full-screen; pressing it again restores the prior
+normal or maximized state. F11 never enables full-screen at launch, and no
+full-screen/maximize state is persisted.
 
 If the usable display area is smaller than the 700×480 minimum, some overflow
 cannot be avoided by sizing alone.
