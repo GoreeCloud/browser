@@ -44,7 +44,13 @@ class LinuxQtSmoke(unittest.TestCase):
                 self.send_header("Content-Type", "text/html")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
-                self.wfile.write(body)
+                # Qt may cancel a completed/navigation-replaced request
+                # after response headers. This is a local smoke fixture,
+                # not a production HTTP server; ignore expected disconnects.
+                try:
+                    self.wfile.write(body)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
 
             def log_message(self, *_args):
                 pass
@@ -115,6 +121,32 @@ class LinuxQtSmoke(unittest.TestCase):
             window.set_remember_window_size(True)
             window.resize(980, 620)
             app.processEvents()
+            self.assertEqual(
+                (window.normalGeometry().width(), window.normalGeometry().height()),
+                (980, 620),
+            )
+            # The owner can explicitly maximize and then restore to normal.
+            window.showMaximized()
+            app.processEvents()
+            self.assertTrue(window.isMaximized())
+            self.assertFalse(window.isFullScreen())
+            window.showNormal()
+            app.processEvents()
+            self.assertFalse(window.isMaximized())
+            self.assertFalse(window.isFullScreen())
+            self.assertEqual(
+                (window.width(), window.height()), (980, 620),
+            )
+            # Closing while explicitly fullscreen must persist only the
+            # last normal dimensions, never an immersive startup state.
+            window.showFullScreen()
+            app.processEvents()
+            self.assertTrue(window.isFullScreen())
+            self.assertFalse(window.isMaximized())
+            self.assertEqual(
+                (window.normalGeometry().width(), window.normalGeometry().height()),
+                (980, 620),
+            )
         finally:
             window.close()
             app.processEvents()
@@ -127,7 +159,7 @@ class LinuxQtSmoke(unittest.TestCase):
         try:
             self.assertTrue(reopened.remember_window_size)
             saved = reopened.preferences.value("window_normal_size", "")
-            self.assertTrue(isinstance(saved, str) and "x" in saved)
+            self.assertEqual(saved, "980x620")
             screen = QApplication.primaryScreen()
             area = screen.availableGeometry()
             self.assertEqual(

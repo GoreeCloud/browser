@@ -37,10 +37,11 @@ startup. No network request or system-wide setting is involved.
 Real multi-monitor, scaling, window manager and session restoration acceptance
 remain outstanding. Pure offline geometry and saved-state tests check the
 sizing policy. **Isolated native Qt integration smoke** checks first-launch
-normal window state and local opt-in size persistence under offscreen Qt and
-disposable Xvfb, without accessing the user browser profile. These checks are
-not a replacement for actual GNOME/KDE/Wayland window-manager or device
-acceptance.
+normal window state, user-invoked maximize/normal and full-screen transitions,
+and normal-only opt-in size persistence even after a full-screen close,
+under offscreen Qt and disposable Xvfb without accessing the user browser
+profile. These checks are not a replacement for actual GNOME/KDE/Wayland
+window-manager or device acceptance.
 
 This follows [GoreeCloud UI desktop windowing](https://github.com/GoreeCloud/gc-ui/blob/main/docs/PLATFORM_ADAPTERS.md)
 without changing the GC UI web-only Stable 1.0 candidate scope.
