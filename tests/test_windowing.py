@@ -4,7 +4,40 @@ import unittest
 
 from goreecloud_browser.windowing import (
     DEFAULT_WINDOW_SIZE, MIN_WINDOW_SIZE, initial_window_size, restored_window_size,
+    restrictive_work_area,
 )
+
+
+class MultiMonitorWorkAreaTests(unittest.TestCase):
+    def test_mixed_monitor_resolutions_protect_smaller_usable_display(self):
+        primary = (3840, 2160)
+        secondary = (1024, 600)
+        for areas in ((primary, secondary), (secondary, primary)):
+            with self.subTest(areas=areas):
+                work_area = restrictive_work_area(areas)
+                self.assertEqual(work_area, secondary)
+                self.assertEqual(initial_window_size(*work_area), (921, 540))
+                self.assertEqual(restored_window_size("1800x900", *work_area), (921, 540))
+
+    def test_smallest_width_and_height_can_come_from_different_displays(self):
+        self.assertEqual(
+            restrictive_work_area(((900, 1800), (2000, 650))),
+            (900, 650),
+        )
+
+    def test_invalid_dimensions_are_ignored(self):
+        self.assertEqual(
+            restrictive_work_area(((0, 0), (1920, 1080), (-1, 800))),
+            (1920, 1080),
+        )
+        self.assertEqual(restrictive_work_area(()), None)
+        self.assertEqual(restrictive_work_area(((0, 0), (-3, 600))), None)
+
+    def test_bools_and_other_noninteger_inputs_do_not_set_window_size(self):
+        self.assertEqual(
+            restrictive_work_area(((True, 720), (1280, 720), (900.2, 800))),
+            (1280, 720),
+        )
 
 
 class InitialWindowSizeTests(unittest.TestCase):
