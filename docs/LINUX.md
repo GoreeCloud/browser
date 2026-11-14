@@ -15,7 +15,8 @@ acceptance.
 
 GoreeCloud Browser starts as a **normal, resizable Qt window**, not maximized or
 full-screen. The initial client size is capped at 1250×790 and normally at
-90% of the primary display's available work area (excluding panels and docks),
+90% of the most restrictive width and height from all attached displays'
+available work areas (excluding panels and docks),
 while honoring its existing 700×480 minimum layout size. The operating-system
 window manager continues to own the window borders, controls, focus and placement;
 users can maximize, restore or enter full-screen through supported native actions.
@@ -30,8 +31,9 @@ cannot be avoided by sizing alone.
 size* is OFF on a fresh profile. When deliberately enabled, closing the browser
 records the normal (unmaximized) width and height in local QSettings only, with
 no screen coordinates, display identifiers or website data. The next launch
-opens as a **normal window** at that size, clamped to 90% of the available work
-area with the existing 700×480 minimum. Explicitly disabling the preference
+opens as a **normal window** at that size, clamped to 90% of the smallest
+available work-area dimensions across detected displays, with the existing
+700×480 minimum. Explicitly disabling the preference
 deletes the stored size. Corrupt or malformed saved values fall back to the
 usual safe first-run dimensions. Maximized and full-screen states are never
 saved or restored, so turning on size memory does not create an immersive
