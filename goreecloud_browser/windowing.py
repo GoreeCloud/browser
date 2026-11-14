@@ -7,10 +7,34 @@ The default is a normal, resizable window rather than an immersive session.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 
 
 DEFAULT_WINDOW_SIZE = (1250, 790)
 MIN_WINDOW_SIZE = (700, 480)
+
+
+def restrictive_work_area(
+    areas: Iterable[tuple[int, int]],
+) -> tuple[int, int] | None:
+    """Choose a startup size safe across all currently detected displays.
+
+    Before a first window is shown, an OS window manager can place it on a
+    non-primary monitor. Use the smallest valid logical work-area width and
+    height among active displays, independent of enumeration order. Invalid
+    geometry is ignored rather than letting it force a zero-size window.
+
+    This returns only dimensions: no monitor names, coordinates or identity
+    are read, stored or sent anywhere.
+    """
+    valid = [
+        (width, height) for width, height in areas
+        if type(width) is int and type(height) is int
+        and width > 0 and height > 0
+    ]
+    if not valid:
+        return None
+    return min(w for w, _ in valid), min(h for _, h in valid)
 
 
 def initial_window_size(available_width: int, available_height: int) -> tuple[int, int]:
