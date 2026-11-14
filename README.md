@@ -1,5 +1,7 @@
 # GoreeCloud Browser
 
+**Linux UI framework compliance: migration required.** This working Qt Widgets preview does **not** yet meet the founder's mandatory [Qt Quick 6.12.0 / Flutter Linux Desktop / Slint-only standard](https://drive.google.com/file/d/1L-93POcFZE12F-vYxbSc9XquQ-KWOa6f/view), which applies to existing apps without grandfathering. [Migration plan](docs/LINUX_UI_MIGRATION.md) · [machine-readable status](docs/linux-ui-framework-status.json). Passing legacy windowing/security tests does not constitute framework compliance.
+
 **Active platform: Linux first.** Windows and macOS are deferred until the Linux
 experience is sufficiently validated; neither is being qualified or packaged yet.
 
