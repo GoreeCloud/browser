@@ -34,6 +34,7 @@ class LinuxQtSmoke(unittest.TestCase):
         from goreecloud_browser.app import BrowserWindow
         from goreecloud_browser.windowing import (
             initial_window_size, restored_window_size,
+            restrictive_work_area,
         )
         from goreecloud_browser.site_data import RESET_MARKER, schedule_site_reset
 
@@ -60,12 +61,15 @@ class LinuxQtSmoke(unittest.TestCase):
         app = QApplication.instance() or QApplication([])
         window = BrowserWindow()
         try:
-            # The first launch uses a normal OS-managed window, not a
-            # maximized/fullscreen browser. Screen work area excludes docks.
-            screen = QApplication.primaryScreen()
-            self.assertIsNotNone(screen)
-            area = screen.availableGeometry()
-            wanted = initial_window_size(area.width(), area.height())
+            # A new normal Qt window must fit the smallest usable work
+            # area, since the compositor might select a secondary display.
+            area = restrictive_work_area(
+                (screen.availableGeometry().width(),
+                 screen.availableGeometry().height())
+                for screen in QApplication.screens()
+            )
+            self.assertIsNotNone(area)
+            wanted = initial_window_size(*area)
             self.assertEqual((window.width(), window.height()), wanted)
             self.assertFalse(window.isMaximized())
             self.assertFalse(window.isFullScreen())
@@ -160,11 +164,15 @@ class LinuxQtSmoke(unittest.TestCase):
             self.assertTrue(reopened.remember_window_size)
             saved = reopened.preferences.value("window_normal_size", "")
             self.assertEqual(saved, "980x620")
-            screen = QApplication.primaryScreen()
-            area = screen.availableGeometry()
+            available = restrictive_work_area(
+                (screen.availableGeometry().width(),
+                 screen.availableGeometry().height())
+                for screen in QApplication.screens()
+            )
+            self.assertIsNotNone(available)
             self.assertEqual(
                 (reopened.width(), reopened.height()),
-                restored_window_size(saved, area.width(), area.height()),
+                restored_window_size(saved, *available),
             )
             self.assertFalse(reopened.isMaximized())
             self.assertFalse(reopened.isFullScreen())
