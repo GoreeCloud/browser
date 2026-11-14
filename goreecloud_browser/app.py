@@ -1324,6 +1324,22 @@ class BrowserWindow(QMainWindow):
             "GoreeShield: privacy settings • Wardveil: security responsibility.\n\n"
             "This preview is not yet ready to replace a fully maintained browser.")
 
+    def toggle_fullscreen(self) -> None:
+        """Toggle fullscreen only at user request; restore prior maximized state.
+
+        The window always starts normal unless a future *explicit* preference
+        specifies otherwise; this interaction does not persist screen state.
+        """
+        if self.isFullScreen():
+            if getattr(self, "_fullscreen_was_maximized", False):
+                self.showMaximized()
+            else:
+                self.showNormal()
+            self._fullscreen_was_maximized = False
+            return
+        self._fullscreen_was_maximized = self.isMaximized()
+        self.showFullScreen()
+
     def install_shortcuts(self):
         commands = [
             ("Ctrl+T", self.new_tab),
@@ -1332,6 +1348,7 @@ class BrowserWindow(QMainWindow):
             ("Ctrl+R", self.reload_page),
             ("F5", self.reload_page),
             ("Alt+Home", self.show_home),
+            ("F11", self.toggle_fullscreen),
             ("Alt+Left", self.go_back),
             ("Alt+Right", self.go_forward),
             ("Ctrl+D", self.add_bookmark),

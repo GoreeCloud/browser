@@ -33,6 +33,32 @@ class ChromeAndWebspaceTests(unittest.TestCase):
                 try:
                     window.show()
                     app.processEvents()
+                    self.assertFalse(window.isMaximized())
+                    self.assertFalse(window.isFullScreen())
+                    self.assertIn(
+                        "F11", [shortcut.key().toString() for shortcut in window._shortcuts],
+                    )
+                    # User-triggered native fullscreen must not change the
+                    # normal-window startup policy or lose maximize state.
+                    window.toggle_fullscreen()
+                    app.processEvents()
+                    self.assertTrue(window.isFullScreen())
+                    window.toggle_fullscreen()
+                    app.processEvents()
+                    self.assertFalse(window.isFullScreen())
+                    self.assertFalse(window.isMaximized())
+                    window.showMaximized()
+                    app.processEvents()
+                    self.assertTrue(window.isMaximized())
+                    window.toggle_fullscreen()
+                    app.processEvents()
+                    self.assertTrue(window.isFullScreen())
+                    window.toggle_fullscreen()
+                    app.processEvents()
+                    self.assertTrue(window.isMaximized())
+                    self.assertFalse(window.isFullScreen())
+                    window.showNormal()
+                    app.processEvents()
                     self.assertEqual(window.mode, "light")
                     self.assertEqual(window.toolbar_order, (
                         "back", "forward", "refresh", "home", "omnibox",
