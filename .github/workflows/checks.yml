@@ -189,6 +189,13 @@ jobs:
           QT_QPA_PLATFORM: xcb
           QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
         run: xvfb-run -a -s '-screen 0 1280x800x24' python -m unittest discover -s tests -p 'test_linux_smoke.py' -v
+      - name: Linux X11 two-screen windowed startup and bounded remembered size
+        env:
+          GC_BROWSER_QT_SMOKE: "1"
+          GC_BROWSER_TWO_SCREENS: "1"
+          QT_QPA_PLATFORM: xcb
+          QTWEBENGINE_CHROMIUM_FLAGS: --disable-gpu
+        run: xvfb-run -a -s '-screen 0 1920x1080x24 -screen 1 800x600x24' python -m unittest discover -s tests -p 'test_linux_dual_screen_smoke.py' -v
       - name: Linux X11 HTTP navigation integrity (Xvfb)
         env:
           GC_BROWSER_QT_SMOKE: "1"
