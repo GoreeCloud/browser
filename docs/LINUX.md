@@ -45,8 +45,12 @@ sizing policy. **Isolated native Qt integration smoke** checks first-launch
 normal window state, user-invoked maximize/normal and full-screen transitions,
 and normal-only opt-in size persistence even after a full-screen close,
 under offscreen Qt and disposable Xvfb without accessing the user browser
-profile. These checks are not a replacement for actual GNOME/KDE/Wayland
-window-manager or device acceptance.
+profile. A distinct, gated **two-screen Xvfb smoke** creates separate logical
+1920×1080 and 800×600 X screens, checks Qt detects both, verifies 720×540
+normal startup, and confirms an opt-in oversized saved window is clamped on
+reopening. This validates the native dual-screen sizing path in a disposable
+virtual display; it does **not** establish actual GNOME/KDE/Wayland
+window-manager placement, display unplugging, or user-device acceptance.
 
 This follows [GoreeCloud UI desktop windowing](https://github.com/GoreeCloud/gc-ui/blob/main/docs/PLATFORM_ADAPTERS.md)
 without changing the GC UI web-only Stable 1.0 candidate scope.
