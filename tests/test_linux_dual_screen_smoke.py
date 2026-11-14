@@ -22,6 +22,16 @@ from unittest.mock import patch
 )
 class DualScreenStartupSmoke(unittest.TestCase):
     def test_normal_first_launch_and_remembered_size_fit_smallest_display(self):
+        # Unlike regular opt-in smoke, two-screen acceptance must *only* open
+        # windows against a hosted disposable Xvfb compositor, never an
+        # owner's existing X11/Wayland session or personal browser profile.
+        if not (
+            os.environ.get("GITHUB_ACTIONS") == "true"
+            and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
+            and os.environ.get("QT_QPA_PLATFORM") == "xcb"
+            and os.environ.get("DISPLAY")
+        ):
+            self.fail("Two-screen smoke requires hosted private Xvfb")
         from PySide6.QtWidgets import QApplication
         from shiboken6 import delete as destroy_qobject
 
